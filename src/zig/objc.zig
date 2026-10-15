@@ -6,6 +6,23 @@ const Object = @import("Object.zig").Object;
 const Protocol = @import("Protocol.zig").Protocol;
 const Sel = @import("Sel.zig").Sel;
 
+// Match objc_super's C layout while allowing a tagged receiver, whose bits need not
+// satisfy the alignment of the struct_objc_object imported from objc/objc.h.
+const Super = extern struct {
+    receiver: *Object,
+    super_class: *Class,
+};
+
+comptime {
+    if (@sizeOf(Super) != @sizeOf(c.struct_objc_super) or
+        @alignOf(Super) != @alignOf(c.struct_objc_super) or
+        @offsetOf(Super, "receiver") != @offsetOf(c.struct_objc_super, "receiver") or
+        @offsetOf(Super, "super_class") != @offsetOf(c.struct_objc_super, "super_class"))
+    {
+        @compileError("Super must match objc_super's C layout");
+    }
+}
+
 /// Sends `sel` to `target` by calling objc_msgSend cast to `fn (@TypeOf(target), SEL, args...) Return`.
 /// `Return` and the types of `args` must match the method's declaration exactly; mismatches are not caught at compile time.
 pub fn msgSend(target: anytype, comptime Return: type, sel: *Sel, args: anytype) Return {
@@ -36,8 +53,8 @@ pub fn msgSendSuper(target: anytype, superclass: *Class, comptime Return: type, 
             &c.objc_msgSendSuper,
         else => @compileError("unsupported architecture for objc_msgSendSuper"),
     };
-    var super: c.struct_objc_super = .{ .receiver = @ptrCast(@alignCast(target)), .super_class = @ptrCast(superclass) };
-    const f: *const MsgSendFn(*c.struct_objc_super, Return, @TypeOf(args)) = @ptrCast(send);
+    var super: Super = .{ .receiver = @ptrCast(target), .super_class = superclass };
+    const f: *const MsgSendFn(*Super, Return, @TypeOf(args)) = @ptrCast(send);
     return @call(.auto, f, .{ &super, @as(c.SEL, @ptrCast(sel)) } ++ args);
 }
 
@@ -87,17 +104,20 @@ pub const AssociationPolicy = enum(usize) {
 
 /// `key` is compared by address, so it is usually the address of a global variable. A null `value` removes the association.
 pub fn setAssociatedObject(object: *Object, key: *const anyopaque, value: ?*Object, policy: AssociationPolicy) void {
-    c.objc_setAssociatedObject(@ptrCast(@alignCast(object)), key, @ptrCast(@alignCast(value)), @intFromEnum(policy));
+    const f: *const fn (*Object, *const anyopaque, ?*Object, usize) callconv(.c) void = @ptrCast(&c.objc_setAssociatedObject);
+    f(object, key, value, @intFromEnum(policy));
 }
 
 pub fn getAssociatedObject(object: *Object, key: *const anyopaque) ?*Object {
-    return @ptrCast(c.objc_getAssociatedObject(@ptrCast(@alignCast(object)), key));
+    const f: *const fn (*Object, *const anyopaque) callconv(.c) ?*Object = @ptrCast(&c.objc_getAssociatedObject);
+    return f(object, key);
 }
 
 /// Called when a collection is mutated during fast enumeration. Runs the handler installed with
 /// `setEnumerationMutationHandler`; the default one throws an exception.
 pub fn enumerationMutation(obj: *Object) void {
-    c.objc_enumerationMutation(@ptrCast(@alignCast(obj)));
+    const f: *const fn (*Object) callconv(.c) void = @ptrCast(&c.objc_enumerationMutation);
+    f(obj);
 }
 
 /// The handler is process-wide, and the previous one cannot be retrieved.
@@ -106,11 +126,14 @@ pub fn setEnumerationMutationHandler(handler: ?*const fn (*Object) callconv(.c) 
 }
 
 pub fn retain(obj: *Object) *Object {
-    return @ptrCast(c.objc_retain(@ptrCast(@alignCast(obj))));
+    // Tagged pointers need the runtime call without an alignment cast to imported `id`.
+    const f: *const fn (*Object) callconv(.c) *Object = @ptrCast(&c.objc_retain);
+    return f(obj);
 }
 
 pub fn release(obj: *Object) void {
-    c.objc_release(@ptrCast(@alignCast(obj)));
+    const f: *const fn (*Object) callconv(.c) void = @ptrCast(&c.objc_release);
+    f(obj);
 }
 
 pub fn autoreleasePoolPush() *anyopaque {
@@ -168,6 +191,34 @@ test "getClass / getMetaClass / retain / release / autoreleasePool" {
     try std.testing.expectEqual(1, msgSend(obj, usize, Sel.registerName("retainCount"), .{}));
 }
 
+test "tagged NSNumber: msgSendSuper, retain / release, and associated objects" {
+    const NSNumber = getClass("NSNumber").?;
+    const allocated = msgSend(NSNumber, ?*Object, Sel.registerName("alloc"), .{}).?;
+    const number = msgSend(allocated, ?*Object, Sel.registerName("initWithInteger:"), .{@as(isize, 42)}).?;
+    defer release(number);
+    try std.testing.expect(@intFromPtr(number) % @alignOf(c.struct_objc_object) != 0);
+
+    try std.testing.expectEqual(number, retain(number));
+    release(number);
+    try std.testing.expectEqual(42, msgSend(number, isize, Sel.registerName("integerValue"), .{}));
+    try std.testing.expectEqual(number.getClass(), msgSendSuper(number, getClass("NSObject").?, *Class, Sel.registerName("class"), .{}));
+
+    const obj = msgSend(getClass("NSObject").?, ?*Object, Sel.registerName("new"), .{}).?;
+    defer release(obj);
+    const keys = struct {
+        var receiver: u8 = 0;
+        var value: u8 = 0;
+    };
+
+    setAssociatedObject(number, &keys.receiver, obj, .retain_nonatomic);
+    defer setAssociatedObject(number, &keys.receiver, null, .retain_nonatomic);
+    try std.testing.expectEqual(obj, getAssociatedObject(number, &keys.receiver).?);
+
+    setAssociatedObject(obj, &keys.value, number, .retain_nonatomic);
+    defer setAssociatedObject(obj, &keys.value, null, .retain_nonatomic);
+    try std.testing.expectEqual(number, getAssociatedObject(obj, &keys.value).?);
+}
+
 test "setAssociatedObject / getAssociatedObject" {
     const key = struct {
         var value: u8 = 0;
@@ -209,8 +260,17 @@ test "enumerationMutation / setEnumerationMutationHandler" {
     defer release(obj);
 
     setEnumerationMutationHandler(&handler.f);
+    defer setEnumerationMutationHandler(null);
     enumerationMutation(obj);
     try std.testing.expectEqual(obj, handler.mutated.?);
+
+    const NSNumber = getClass("NSNumber").?;
+    const allocated = msgSend(NSNumber, ?*Object, Sel.registerName("alloc"), .{}).?;
+    const number = msgSend(allocated, ?*Object, Sel.registerName("initWithInteger:"), .{@as(isize, 42)}).?;
+    defer release(number);
+    try std.testing.expect(@intFromPtr(number) % @alignOf(c.struct_objc_object) != 0);
+    enumerationMutation(number);
+    try std.testing.expectEqual(number, handler.mutated.?);
 }
 
 test "allocateClassPair / registerClassPair / disposeClassPair" {

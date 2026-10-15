@@ -5,15 +5,19 @@ const Ivar = @import("Ivar.zig").Ivar;
 
 pub const Object = opaque {
     pub fn getClass(self: *Object) *Class {
-        return @ptrCast(c.object_getClass(@ptrCast(@alignCast(self))).?);
+        // Objective-C objects may be tagged pointers, which do not satisfy `id`'s Zig alignment.
+        const get_class: *const fn (*Object) callconv(.c) ?*Class = @ptrCast(&c.object_getClass);
+        return get_class(self).?;
     }
 
     pub fn getClassName(self: *Object) [:0]const u8 {
-        return std.mem.span(c.object_getClassName(@ptrCast(@alignCast(self))));
+        const get_class_name: *const fn (*Object) callconv(.c) [*:0]const u8 = @ptrCast(&c.object_getClassName);
+        return std.mem.span(get_class_name(self));
     }
 
     pub fn isClass(self: *Object) bool {
-        return c.object_isClass(@ptrCast(@alignCast(self))) == c.YES;
+        const is_class: *const fn (*Object) callconv(.c) c.BOOL = @ptrCast(&c.object_isClass);
+        return is_class(self) == c.YES;
     }
 
     /// Copies the first `size` bytes of the object, usually `getClass().getInstanceSize()`.
@@ -37,7 +41,9 @@ pub const Object = opaque {
 
     /// Ivars whose memory management is unknown (e.g. added with `Class.addIvar`) are assigned without retaining.
     pub fn setIvar(self: *Object, ivar: *Ivar, value: ?*Object) void {
-        c.object_setIvar(@ptrCast(@alignCast(self)), @ptrCast(ivar), @ptrCast(@alignCast(value)));
+        // The owner has storage for ivars, but the value may be a tagged pointer.
+        const set_ivar: *const fn (c.id, c.Ivar, ?*Object) callconv(.c) void = @ptrCast(&c.object_setIvar);
+        set_ivar(@ptrCast(@alignCast(self)), @ptrCast(ivar), value);
     }
 };
 
@@ -51,6 +57,18 @@ test "Object" {
     try std.testing.expectEqualStrings("NSObject", obj.getClassName());
     try std.testing.expect(!obj.isClass());
     try std.testing.expect(objc.msgSend(NSObject, ?*Object, objc.Sel.registerName("class"), .{}).?.isClass());
+}
+
+test "Object: tagged NSNumber class inspection" {
+    const objc = @import("root.zig");
+    const NSNumber = objc.getClass("NSNumber").?;
+    const allocated = objc.msgSend(NSNumber, ?*Object, objc.Sel.registerName("alloc"), .{}).?;
+    const number = objc.msgSend(allocated, ?*Object, objc.Sel.registerName("initWithInteger:"), .{@as(isize, 42)}).?;
+    defer objc.release(number);
+
+    try std.testing.expect(@intFromPtr(number) % @alignOf(c.struct_objc_object) != 0);
+    try std.testing.expectEqualStrings(number.getClass().getName(), number.getClassName());
+    try std.testing.expect(!number.isClass());
 }
 
 test "Object: getIvar / setIvar / getInstanceVariable / copy / dispose" {
@@ -82,6 +100,15 @@ test "Object: getIvar / setIvar / getInstanceVariable / copy / dispose" {
     try std.testing.expectEqual(Sub, copied.getClass());
     try std.testing.expectEqual(value, copied.getIvar(ivar).?);
     copied.dispose();
+
+    const allocated = objc.msgSend(objc.getClass("NSNumber").?, ?*Object, objc.Sel.registerName("alloc"), .{}).?;
+    const number = objc.msgSend(allocated, ?*Object, objc.Sel.registerName("initWithInteger:"), .{@as(isize, 42)}).?;
+    defer objc.release(number);
+    try std.testing.expect(@intFromPtr(number) % @alignOf(c.struct_objc_object) != 0);
+    obj.setIvar(ivar, number);
+    try std.testing.expectEqual(number, obj.getIvar(ivar).?);
+    try std.testing.expectEqual(ivar, obj.getInstanceVariable("_value", &raw).?);
+    try std.testing.expectEqual(@as(?*anyopaque, number), raw);
 
     obj.setIvar(ivar, null);
 }
