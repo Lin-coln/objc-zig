@@ -1,6 +1,6 @@
 const std = @import("std");
 
-pub const c = @import("objc");
+pub const c = @import("objc-abi");
 
 test "runtime.h + message.h: define subclass at runtime, msgSend / msgSendSuper" {
     const NSObject = c.objc_getClass("NSObject");
