@@ -44,6 +44,8 @@ pub fn build(b: *std.Build) void {
             },
         });
 
+        mod.linkFramework("ScreenCaptureKit", .{});
+
         const tests = b.addTest(.{ .root_module = mod });
         test_step.dependOn(&b.addRunArtifact(tests).step);
         break :blk mod;
