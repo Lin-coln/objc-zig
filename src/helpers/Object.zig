@@ -1,13 +1,13 @@
 const std = @import("std");
-const objc = @import("root.zig");
+const objc = @import("../root.zig");
 
 /// Returns a set of Objective-C object helpers bound to `T` (any opaque object type). Assemble a
 /// wrapper by picking the pieces you want:
 ///
-///     const h = Object.Helpers(Self);
+///     const h = objc.helpers.Object(Self);
 ///     pub const release = h.release;
 ///     pub const getWidth = h.prop(usize, "width").getter;
-pub fn Helpers(comptime T: type) type {
+pub fn Object(comptime T: type) type {
     return struct {
         pub fn retain(self: *T) *T {
             return @ptrCast(objc.zig.retain(@ptrCast(self)));
@@ -58,8 +58,8 @@ pub fn Helpers(comptime T: type) type {
     };
 }
 
-test "Helpers: getProperty / setProperty" {
-    const h = Helpers(objc.zig.Object);
+test "helpers.Object: getProperty / setProperty" {
+    const h = Object(objc.zig.Object);
     const data = objc.zig.msgSend(objc.zig.getClass("NSMutableData").?, ?*objc.zig.Object, objc.zig.Sel.registerName("new"), .{}).?;
     defer h.release(data);
 
@@ -67,8 +67,8 @@ test "Helpers: getProperty / setProperty" {
     try std.testing.expectEqual(8, h.getProperty(data, usize, "length"));
 }
 
-test "Helpers: prop getter and setter" {
-    const h = Helpers(objc.zig.Object);
+test "helpers.Object: prop getter and setter" {
+    const h = Object(objc.zig.Object);
     const length = h.prop(usize, "length");
     const data = objc.zig.msgSend(objc.zig.getClass("NSMutableData").?, ?*objc.zig.Object, objc.zig.Sel.registerName("new"), .{}).?;
     defer h.release(data);
@@ -77,8 +77,8 @@ test "Helpers: prop getter and setter" {
     try std.testing.expectEqual(12, length.getter(data));
 }
 
-test "Helpers: getProperty honors a custom getter" {
-    const h = Helpers(objc.zig.Object);
+test "helpers.Object: getProperty honors a custom getter" {
+    const h = Object(objc.zig.Object);
     const operation = objc.zig.msgSend(objc.zig.getClass("NSOperation").?, ?*objc.zig.Object, objc.zig.Sel.registerName("new"), .{}).?;
     defer h.release(operation);
 

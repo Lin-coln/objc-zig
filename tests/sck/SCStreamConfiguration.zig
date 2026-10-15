@@ -3,7 +3,7 @@ const objc = @import("objc");
 
 pub const SCStreamConfiguration = opaque {
     const Self = @This();
-    const h = objc.Object.Helpers(Self);
+    const h = objc.helpers.Object(Self);
 
     pub fn new() *Self {
         return @ptrCast(objc.getClass("SCStreamConfiguration").?.new());

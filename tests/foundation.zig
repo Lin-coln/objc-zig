@@ -3,7 +3,7 @@ const objc = @import("objc");
 
 const MutableData = opaque {
     const Self = @This();
-    const h = objc.Object.Helpers(Self);
+    const h = objc.helpers.Object(Self);
 
     pub const msgSend = h.msgSend;
     pub const release = h.release;

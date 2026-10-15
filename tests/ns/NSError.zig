@@ -3,7 +3,7 @@ const objc = @import("objc");
 
 pub const NSError = opaque {
     const Self = @This();
-    const h = objc.Object.Helpers(Self);
+    const h = objc.helpers.Object(Self);
 
     pub fn new(domain: [:0]const u8, code: isize) *Self {
         const domain_string = objc.zig.msgSend(
