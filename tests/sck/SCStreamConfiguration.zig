@@ -9,9 +9,7 @@ pub const SCStreamConfiguration = opaque {
         return @ptrCast(objc.getClass("SCStreamConfiguration").?.new());
     }
 
-    pub fn release(self: *Self) void {
-        h.release(self);
-    }
+    pub const release = h.release;
 
     pub const getWidth = h.prop(usize, "width").getter;
     pub const setWidth = h.prop(usize, "width").setter;
