@@ -1,5 +1,6 @@
 const std = @import("std");
 const objc = @import("../root.zig");
+const cast = objc.zig.utils.cast;
 
 /// Returns a set of Objective-C object helpers bound to `T` (any opaque object type). Assemble a
 /// wrapper by picking the pieces you want:
@@ -26,19 +27,22 @@ pub fn Object(comptime T: type) type {
         /// property's `G` attribute at runtime, falling back to `name` itself as the getter selector.
         pub fn getProperty(self: *T, comptime P: type, name: [:0]const u8) P {
             const class = @as(*objc.zig.Object, @ptrCast(self)).getClass();
-            if (class.getProperty(name)) |property| {
-                if (property.copyAttributeValue("G")) |getter| {
-                    defer std.c.free(getter.ptr);
-                    return msgSend(self, P, getter, .{});
-                }
-            }
-            return msgSend(self, P, name, .{});
+            const getter = if (class.getProperty(name)) |property| property.copyAttributeValue("G") else null;
+            defer if (getter) |custom| std.c.free(custom.ptr);
+
+            const selector = getter orelse name;
+            if (P == bool) return cast.bool(msgSend(self, objc.c.BOOL, selector, .{}));
+            return msgSend(self, P, selector, .{});
         }
 
         /// Writes `value` to the Objective-C property `name` via its `set<Name>:` setter.
         pub fn setProperty(self: *T, comptime name: [:0]const u8, value: anytype) void {
             const setter = "set" ++ [_]u8{std.ascii.toUpper(name[0])} ++ name[1..] ++ ":";
-            msgSend(self, void, setter, .{value});
+            if (@TypeOf(value) == bool) {
+                msgSend(self, void, setter, .{cast.BOOL(value)});
+            } else {
+                msgSend(self, void, setter, .{value});
+            }
         }
 
         /// Accessor methods for the property `name` of type `P`:
@@ -87,7 +91,7 @@ test "helpers.Object: getProperty honors a custom getter" {
     defer std.c.free(getter.ptr);
     try std.testing.expectEqualStrings("isCancelled", getter);
 
-    try std.testing.expectEqual(objc.c.NO, h.getProperty(operation, objc.c.BOOL, "cancelled"));
+    try std.testing.expectEqual(false, h.getProperty(operation, bool, "cancelled"));
     h.msgSend(operation, void, "cancel", .{});
-    try std.testing.expectEqual(objc.c.YES, h.getProperty(operation, objc.c.BOOL, "cancelled"));
+    try std.testing.expectEqual(true, h.getProperty(operation, bool, "cancelled"));
 }

@@ -8,6 +8,7 @@ pub const Ivar = @import("Ivar.zig").Ivar;
 pub const Method = @import("Method.zig").Method;
 pub const Property = @import("Property.zig").Property;
 pub const Block = @import("Block.zig").Block;
+pub const utils = @import("utils.zig");
 
 pub const msgSend = objc.msgSend;
 pub const msgSendSuper = objc.msgSendSuper;
