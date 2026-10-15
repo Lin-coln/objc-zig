@@ -34,5 +34,20 @@ pub fn build(b: *std.Build) void {
         break :blk mod;
     };
 
-    _ = objc;
+    const objc_tests = blk: {
+        const mod = b.createModule(.{
+            .root_source_file = b.path("tests/tests.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "objc", .module = objc },
+            },
+        });
+
+        const tests = b.addTest(.{ .root_module = mod });
+        test_step.dependOn(&b.addRunArtifact(tests).step);
+        break :blk mod;
+    };
+
+    _ = objc_tests;
 }

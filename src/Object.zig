@@ -66,3 +66,28 @@ test "Helpers: getProperty / setProperty" {
     h.setProperty(data, "length", @as(usize, 8));
     try std.testing.expectEqual(8, h.getProperty(data, usize, "length"));
 }
+
+test "Helpers: prop getter and setter" {
+    const h = Helpers(objc.zig.Object);
+    const length = h.prop(usize, "length");
+    const data = objc.zig.msgSend(objc.zig.getClass("NSMutableData").?, ?*objc.zig.Object, objc.zig.Sel.registerName("new"), .{}).?;
+    defer h.release(data);
+
+    length.setter(data, 12);
+    try std.testing.expectEqual(12, length.getter(data));
+}
+
+test "Helpers: getProperty honors a custom getter" {
+    const h = Helpers(objc.zig.Object);
+    const operation = objc.zig.msgSend(objc.zig.getClass("NSOperation").?, ?*objc.zig.Object, objc.zig.Sel.registerName("new"), .{}).?;
+    defer h.release(operation);
+
+    const cancelled = operation.getClass().getProperty("cancelled").?;
+    const getter = cancelled.copyAttributeValue("G").?;
+    defer std.c.free(getter.ptr);
+    try std.testing.expectEqualStrings("isCancelled", getter);
+
+    try std.testing.expectEqual(objc.c.NO, h.getProperty(operation, objc.c.BOOL, "cancelled"));
+    h.msgSend(operation, void, "cancel", .{});
+    try std.testing.expectEqual(objc.c.YES, h.getProperty(operation, objc.c.BOOL, "cancelled"));
+}
