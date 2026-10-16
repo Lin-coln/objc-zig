@@ -2,11 +2,11 @@ const std = @import("std");
 const objc = @import("root.zig");
 
 /// The registered class with this name, or null if no such class is registered.
-pub fn getClass(name: [:0]const u8) ?*Class {
-    return @ptrCast(objc.rt.getClass(name));
+pub fn class(name: [:0]const u8) ?*Class {
+    return @ptrCast(objc.rt.class(name));
 }
 
-/// An Objective-C class object. Obtain one with `getClass`.
+/// An Objective-C class object. Obtain one with `class`.
 pub const Class = opaque {
     const Self = @This();
 
@@ -27,7 +27,7 @@ pub const Class = opaque {
 };
 
 test "Class" {
-    const object = getClass("NSObject").?.new();
+    const object = class("NSObject").?.new();
     defer objc.rt.release(object);
-    try std.testing.expectEqual(null, getClass("NoSuchClassName"));
+    try std.testing.expectEqual(null, class("NoSuchClassName"));
 }

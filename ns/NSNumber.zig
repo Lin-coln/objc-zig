@@ -17,7 +17,7 @@ pub const NSNumber = opaque {
             else => @compileError("NSNumber.init supports only isize, f64, and bool"),
         };
 
-        const allocated: *Self = @ptrCast(objc.getClass("NSNumber").?.alloc());
+        const allocated: *Self = @ptrCast(objc.class("NSNumber").?.alloc());
         const argument = if (T == bool) cast.BOOL(value) else value;
         return h.msgSend(allocated, ?*Self, selector, .{argument}).?;
     }
@@ -30,7 +30,7 @@ pub const NSNumber = opaque {
             else => @compileError("NSNumber.as supports only isize, f64, and bool"),
         };
 
-        return h.getProperty(self, T, name);
+        return h.property(self, T, name);
     }
 };
 

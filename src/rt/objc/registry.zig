@@ -2,12 +2,12 @@ const c = @import("../../c.zig").c;
 const Class = @import("../Class.zig").Class;
 const Protocol = @import("../Protocol.zig").Protocol;
 
-pub fn getClass(name: [:0]const u8) ?*Class {
+pub fn class(name: [:0]const u8) ?*Class {
     return @ptrCast(c.objc_getClass(name));
 }
 
-/// Unlike `getClass`, logs a message to stderr when no class named `name` exists.
-pub fn getMetaClass(name: [:0]const u8) ?*Class {
+/// Unlike `class`, logs a message to stderr when no class named `name` exists.
+pub fn metaClass(name: [:0]const u8) ?*Class {
     return @ptrCast(c.objc_getMetaClass(name));
 }
 
@@ -25,6 +25,6 @@ pub fn disposeClassPair(cls: *Class) void {
     c.objc_disposeClassPair(@ptrCast(cls));
 }
 
-pub fn getProtocol(name: [:0]const u8) ?*Protocol {
+pub fn protocol(name: [:0]const u8) ?*Protocol {
     return @ptrCast(c.objc_getProtocol(name));
 }

@@ -7,7 +7,7 @@ const cast = objc.rt.utils.cast;
 ///
 ///     const h = objc.helpers.Object(Self);
 ///     pub const release = h.release;
-///     pub const getWidth = h.prop(usize, "width").getter;
+///     pub const width = h.prop(usize, "width").getter;
 pub fn Object(comptime T: type) type {
     return struct {
         pub fn retain(self: *T) *T {
@@ -25,9 +25,9 @@ pub fn Object(comptime T: type) type {
 
         /// Reads the Objective-C property `name` as `P`. Honors a `getter=` declaration by resolving the
         /// property's `G` attribute at runtime, falling back to `name` itself as the getter selector.
-        pub fn getProperty(self: *T, comptime P: type, name: [:0]const u8) P {
-            const class = @as(*objc.rt.Object, @ptrCast(self)).getClass();
-            const getter = if (class.getProperty(name)) |property| property.copyAttributeValue("G") else null;
+        pub fn property(self: *T, comptime P: type, name: [:0]const u8) P {
+            const class = @as(*objc.rt.Object, @ptrCast(self)).class();
+            const getter = if (class.property(name)) |metadata| metadata.copyAttributeValue("G") else null;
             defer if (getter) |custom| std.c.free(custom.ptr);
 
             const selector = getter orelse name;
@@ -47,12 +47,12 @@ pub fn Object(comptime T: type) type {
 
         /// Accessor methods for the property `name` of type `P`:
         ///
-        ///     pub const getWidth = h.prop(usize, "width").getter;
+        ///     pub const width = h.prop(usize, "width").getter;
         ///     pub const setWidth = h.prop(usize, "width").setter;
         pub fn prop(comptime P: type, comptime name: [:0]const u8) type {
             return struct {
                 pub fn getter(self: *T) P {
-                    return getProperty(self, P, name);
+                    return property(self, P, name);
                 }
                 pub fn setter(self: *T, value: P) void {
                     setProperty(self, name, value);
@@ -62,36 +62,36 @@ pub fn Object(comptime T: type) type {
     };
 }
 
-test "helpers.Object: getProperty / setProperty" {
+test "helpers.Object: property / setProperty" {
     const h = Object(objc.rt.Object);
-    const data = objc.rt.msgSend(objc.rt.getClass("NSMutableData").?, ?*objc.rt.Object, objc.rt.Sel.registerName("new"), .{}).?;
+    const data = objc.rt.msgSend(objc.rt.class("NSMutableData").?, ?*objc.rt.Object, objc.rt.Sel.registerName("new"), .{}).?;
     defer h.release(data);
 
     h.setProperty(data, "length", @as(usize, 8));
-    try std.testing.expectEqual(8, h.getProperty(data, usize, "length"));
+    try std.testing.expectEqual(8, h.property(data, usize, "length"));
 }
 
 test "helpers.Object: prop getter and setter" {
     const h = Object(objc.rt.Object);
     const length = h.prop(usize, "length");
-    const data = objc.rt.msgSend(objc.rt.getClass("NSMutableData").?, ?*objc.rt.Object, objc.rt.Sel.registerName("new"), .{}).?;
+    const data = objc.rt.msgSend(objc.rt.class("NSMutableData").?, ?*objc.rt.Object, objc.rt.Sel.registerName("new"), .{}).?;
     defer h.release(data);
 
     length.setter(data, 12);
     try std.testing.expectEqual(12, length.getter(data));
 }
 
-test "helpers.Object: getProperty honors a custom getter" {
+test "helpers.Object: property honors a custom getter" {
     const h = Object(objc.rt.Object);
-    const operation = objc.rt.msgSend(objc.rt.getClass("NSOperation").?, ?*objc.rt.Object, objc.rt.Sel.registerName("new"), .{}).?;
+    const operation = objc.rt.msgSend(objc.rt.class("NSOperation").?, ?*objc.rt.Object, objc.rt.Sel.registerName("new"), .{}).?;
     defer h.release(operation);
 
-    const cancelled = operation.getClass().getProperty("cancelled").?;
+    const cancelled = operation.class().property("cancelled").?;
     const getter = cancelled.copyAttributeValue("G").?;
     defer std.c.free(getter.ptr);
     try std.testing.expectEqualStrings("isCancelled", getter);
 
-    try std.testing.expectEqual(false, h.getProperty(operation, bool, "cancelled"));
+    try std.testing.expectEqual(false, h.property(operation, bool, "cancelled"));
     h.msgSend(operation, void, "cancel", .{});
-    try std.testing.expectEqual(true, h.getProperty(operation, bool, "cancelled"));
+    try std.testing.expectEqual(true, h.property(operation, bool, "cancelled"));
 }

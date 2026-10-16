@@ -2,7 +2,7 @@ const std = @import("std");
 const c = @import("../c.zig").c;
 
 pub const Method = opaque {
-    pub fn getImplementation(self: *Method) c.IMP {
+    pub fn implementation(self: *Method) c.IMP {
         return c.method_getImplementation(@ptrCast(self));
     }
 
@@ -16,7 +16,7 @@ pub const Method = opaque {
     }
 };
 
-test "Method: getImplementation / setImplementation / exchangeImplementations" {
+test "Method: implementation / setImplementation / exchangeImplementations" {
     const objc = @import("root.zig");
     const impl = struct {
         fn one(_: *objc.Object, _: *objc.Sel) callconv(.c) usize {
@@ -29,7 +29,7 @@ test "Method: getImplementation / setImplementation / exchangeImplementations" {
             return 3;
         }
     };
-    const Sub = objc.allocateClassPair(objc.getClass("NSObject").?, "NativeObjcMethodTest", 0).?;
+    const Sub = objc.allocateClassPair(objc.class("NSObject").?, "NativeObjcMethodTest", 0).?;
     try std.testing.expect(Sub.addMethod(objc.Sel.registerName("a"), &impl.one, "Q@:"));
     try std.testing.expect(Sub.addMethod(objc.Sel.registerName("b"), &impl.two, "Q@:"));
     objc.registerClassPair(Sub);
@@ -38,9 +38,9 @@ test "Method: getImplementation / setImplementation / exchangeImplementations" {
     const obj = objc.msgSend(Sub, ?*objc.Object, objc.Sel.registerName("new"), .{}).?;
     defer objc.release(obj);
 
-    const a = Sub.getInstanceMethod(objc.Sel.registerName("a")).?;
-    const b = Sub.getInstanceMethod(objc.Sel.registerName("b")).?;
-    try std.testing.expectEqual(@as(c.IMP, @ptrCast(&impl.one)), a.getImplementation());
+    const a = Sub.instanceMethod(objc.Sel.registerName("a")).?;
+    const b = Sub.instanceMethod(objc.Sel.registerName("b")).?;
+    try std.testing.expectEqual(@as(c.IMP, @ptrCast(&impl.one)), a.implementation());
 
     a.exchangeImplementations(b);
     try std.testing.expectEqual(2, objc.msgSend(obj, usize, objc.Sel.registerName("a"), .{}));

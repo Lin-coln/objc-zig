@@ -10,11 +10,11 @@ pub fn NSArray(comptime T: type) type {
         pub const release = h.release;
 
         pub fn init(objects: []const *T) *Self {
-            const allocated: *Self = @ptrCast(objc.getClass("NSArray").?.alloc());
+            const allocated: *Self = @ptrCast(objc.class("NSArray").?.alloc());
             return h.msgSend(allocated, ?*Self, "initWithObjects:count:", .{ objects.ptr, objects.len }).?;
         }
 
-        pub const getCount = h.prop(usize, "count").getter;
+        pub const count = h.prop(usize, "count").getter;
 
         /// The returned object is borrowed from the array.
         pub fn objectAtIndex(self: *Self, index: usize) *T {
@@ -34,7 +34,7 @@ test "NSArray: create and read objects" {
     const array = NSArray(NSString).init(&objects);
     defer array.release();
 
-    try std.testing.expectEqual(2, array.getCount());
-    try std.testing.expectEqualStrings("first", array.objectAtIndex(0).getUTF8String());
-    try std.testing.expectEqualStrings("second", array.objectAtIndex(1).getUTF8String());
+    try std.testing.expectEqual(2, array.count());
+    try std.testing.expectEqualStrings("first", array.objectAtIndex(0).utf8String());
+    try std.testing.expectEqualStrings("second", array.objectAtIndex(1).utf8String());
 }

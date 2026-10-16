@@ -228,7 +228,7 @@ test "Block: invoke directly and after copy / release" {
 
 test "Block: heap copy retains *Object in context and releases it when freed" {
     const objc = @import("root.zig");
-    const obj = objc.msgSend(objc.getClass("NSObject").?, ?*Object, Sel.registerName("new"), .{}).?;
+    const obj = objc.msgSend(objc.class("NSObject").?, ?*Object, Sel.registerName("new"), .{}).?;
     defer objc.release(obj);
 
     // The context itself is an object.
@@ -268,7 +268,7 @@ test "Block: signature and flags" {
         .{ Block(*Object, fn (Point, [*:0]const u8, *Class, *Sel) Point), "{Point=dd}@?{Point=dd}*#:", 5 },
         .{ Block(void, fn (*const Point, ?*const fn () callconv(.c) void, [4]u8) void), "v@?^{Point}^?[4C]", 4 },
     };
-    const NSMethodSignature = objc.getClass("NSMethodSignature").?;
+    const NSMethodSignature = objc.class("NSMethodSignature").?;
     inline for (cases) |case| {
         const signature = std.mem.span(case[0].block_descriptor.signature);
         try std.testing.expectEqualStrings(case[1], signature);

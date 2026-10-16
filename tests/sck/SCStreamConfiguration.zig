@@ -6,20 +6,20 @@ pub const SCStreamConfiguration = opaque {
     const h = objc.helpers.Object(Self);
 
     pub fn new() *Self {
-        return @ptrCast(objc.getClass("SCStreamConfiguration").?.new());
+        return @ptrCast(objc.class("SCStreamConfiguration").?.new());
     }
 
     pub const release = h.release;
 
-    pub const getWidth = h.prop(usize, "width").getter;
+    pub const width = h.prop(usize, "width").getter;
     pub const setWidth = h.prop(usize, "width").setter;
-    pub const getHeight = h.prop(usize, "height").getter;
+    pub const height = h.prop(usize, "height").getter;
     pub const setHeight = h.prop(usize, "height").setter;
-    pub const getQueueDepth = h.prop(isize, "queueDepth").getter;
+    pub const queueDepth = h.prop(isize, "queueDepth").getter;
     pub const setQueueDepth = h.prop(isize, "queueDepth").setter;
-    pub const getShowsCursor = h.prop(bool, "showsCursor").getter;
+    pub const showsCursor = h.prop(bool, "showsCursor").getter;
     pub const setShowsCursor = h.prop(bool, "showsCursor").setter;
-    pub const getCapturesAudio = h.prop(bool, "capturesAudio").getter;
+    pub const capturesAudio = h.prop(bool, "capturesAudio").getter;
     pub const setCapturesAudio = h.prop(bool, "capturesAudio").setter;
 };
 
@@ -33,9 +33,9 @@ test "SCStreamConfiguration: configure video and audio properties" {
     configuration.setShowsCursor(false);
     configuration.setCapturesAudio(true);
 
-    try std.testing.expectEqual(1280, configuration.getWidth());
-    try std.testing.expectEqual(720, configuration.getHeight());
-    try std.testing.expectEqual(4, configuration.getQueueDepth());
-    try std.testing.expectEqual(false, configuration.getShowsCursor());
-    try std.testing.expectEqual(true, configuration.getCapturesAudio());
+    try std.testing.expectEqual(1280, configuration.width());
+    try std.testing.expectEqual(720, configuration.height());
+    try std.testing.expectEqual(4, configuration.queueDepth());
+    try std.testing.expectEqual(false, configuration.showsCursor());
+    try std.testing.expectEqual(true, configuration.capturesAudio());
 }

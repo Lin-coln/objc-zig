@@ -5,7 +5,7 @@ pub const helpers = @import("helpers/root.zig");
 
 // helpers
 pub const Class = @import("Class.zig").Class;
-pub const getClass = @import("Class.zig").getClass;
+pub const class = @import("Class.zig").class;
 
 test {
     _ = @import("c.zig");

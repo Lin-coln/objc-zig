@@ -2,7 +2,7 @@ const std = @import("std");
 const c = @import("../c.zig").c;
 
 pub const Property = opaque {
-    pub fn getName(self: *Property) [:0]const u8 {
+    pub fn name(self: *Property) [:0]const u8 {
         return std.mem.span(c.property_getName(@ptrCast(self)));
     }
 
@@ -14,8 +14,8 @@ pub const Property = opaque {
 
 test "Property" {
     const objc = @import("root.zig");
-    const length = objc.getClass("NSString").?.getProperty("length").?;
-    try std.testing.expectEqualStrings("length", length.getName());
+    const length = objc.class("NSString").?.property("length").?;
+    try std.testing.expectEqualStrings("length", length.name());
 
     const @"type" = length.copyAttributeValue("T").?;
     defer std.c.free(@"type".ptr);
