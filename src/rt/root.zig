@@ -1,4 +1,4 @@
-const objc = @import("objc.zig");
+const objc = @import("objc/root.zig");
 
 pub const Sel = @import("Sel.zig").Sel;
 pub const Class = @import("Class.zig").Class;
@@ -29,7 +29,7 @@ pub const autoreleasePoolPush = objc.autoreleasePoolPush;
 pub const autoreleasePoolPop = objc.autoreleasePoolPop;
 
 test {
-    _ = @import("objc.zig");
+    _ = @import("objc/root.zig");
     _ = @import("Sel.zig");
     _ = @import("Class.zig");
     _ = @import("Object.zig");

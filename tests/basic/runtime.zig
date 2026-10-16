@@ -1,5 +1,5 @@
 const std = @import("std");
-const objc = @import("objc").zig;
+const objc = @import("objc").rt;
 
 test "runtime: registered class stores an object through Zig methods" {
     const Object = objc.Object;

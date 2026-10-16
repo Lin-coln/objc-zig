@@ -1,6 +1,6 @@
 const std = @import("std");
-const objc = @import("../root.zig");
-const cast = objc.zig.utils.cast;
+const objc = @import("objc");
+const cast = objc.rt.utils.cast;
 
 pub const NSNumber = opaque {
     const Self = @This();

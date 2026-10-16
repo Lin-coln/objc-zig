@@ -1,5 +1,5 @@
 const std = @import("std");
-const objc = @import("../root.zig");
+const objc = @import("objc");
 const NSString = @import("NSString.zig").NSString;
 
 pub const NSError = opaque {
@@ -18,7 +18,7 @@ pub const NSError = opaque {
             allocated,
             ?*Self,
             "initWithDomain:code:userInfo:",
-            .{ domain_string, code, @as(?*objc.zig.Object, null) },
+            .{ domain_string, code, @as(?*objc.rt.Object, null) },
         );
     }
 
@@ -36,8 +36,8 @@ pub const NSError = opaque {
 };
 
 test "NSError: create and read Objective-C properties" {
-    const pool = objc.zig.autoreleasePoolPush();
-    defer objc.zig.autoreleasePoolPop(pool);
+    const pool = objc.rt.autoreleasePoolPush();
+    defer objc.rt.autoreleasePoolPop(pool);
 
     const err = NSError.init("ObjcZigTestDomain", 42).?;
     defer err.release();

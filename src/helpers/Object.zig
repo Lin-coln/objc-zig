@@ -1,6 +1,6 @@
 const std = @import("std");
 const objc = @import("../root.zig");
-const cast = objc.zig.utils.cast;
+const cast = objc.rt.utils.cast;
 
 /// Returns a set of Objective-C object helpers bound to `T` (any opaque object type). Assemble a
 /// wrapper by picking the pieces you want:
@@ -11,22 +11,22 @@ const cast = objc.zig.utils.cast;
 pub fn Object(comptime T: type) type {
     return struct {
         pub fn retain(self: *T) *T {
-            return @ptrCast(objc.zig.retain(@ptrCast(self)));
+            return @ptrCast(objc.rt.retain(@ptrCast(self)));
         }
 
         pub fn release(self: *T) void {
-            objc.zig.release(@ptrCast(self));
+            objc.rt.release(@ptrCast(self));
         }
 
         /// Sends the selector named `sel` to the object.
         pub fn msgSend(self: *T, comptime Return: type, sel: [:0]const u8, args: anytype) Return {
-            return objc.zig.msgSend(@as(*objc.zig.Object, @ptrCast(self)), Return, objc.zig.Sel.registerName(sel), args);
+            return objc.rt.msgSend(@as(*objc.rt.Object, @ptrCast(self)), Return, objc.rt.Sel.registerName(sel), args);
         }
 
         /// Reads the Objective-C property `name` as `P`. Honors a `getter=` declaration by resolving the
         /// property's `G` attribute at runtime, falling back to `name` itself as the getter selector.
         pub fn getProperty(self: *T, comptime P: type, name: [:0]const u8) P {
-            const class = @as(*objc.zig.Object, @ptrCast(self)).getClass();
+            const class = @as(*objc.rt.Object, @ptrCast(self)).getClass();
             const getter = if (class.getProperty(name)) |property| property.copyAttributeValue("G") else null;
             defer if (getter) |custom| std.c.free(custom.ptr);
 
@@ -63,8 +63,8 @@ pub fn Object(comptime T: type) type {
 }
 
 test "helpers.Object: getProperty / setProperty" {
-    const h = Object(objc.zig.Object);
-    const data = objc.zig.msgSend(objc.zig.getClass("NSMutableData").?, ?*objc.zig.Object, objc.zig.Sel.registerName("new"), .{}).?;
+    const h = Object(objc.rt.Object);
+    const data = objc.rt.msgSend(objc.rt.getClass("NSMutableData").?, ?*objc.rt.Object, objc.rt.Sel.registerName("new"), .{}).?;
     defer h.release(data);
 
     h.setProperty(data, "length", @as(usize, 8));
@@ -72,9 +72,9 @@ test "helpers.Object: getProperty / setProperty" {
 }
 
 test "helpers.Object: prop getter and setter" {
-    const h = Object(objc.zig.Object);
+    const h = Object(objc.rt.Object);
     const length = h.prop(usize, "length");
-    const data = objc.zig.msgSend(objc.zig.getClass("NSMutableData").?, ?*objc.zig.Object, objc.zig.Sel.registerName("new"), .{}).?;
+    const data = objc.rt.msgSend(objc.rt.getClass("NSMutableData").?, ?*objc.rt.Object, objc.rt.Sel.registerName("new"), .{}).?;
     defer h.release(data);
 
     length.setter(data, 12);
@@ -82,8 +82,8 @@ test "helpers.Object: prop getter and setter" {
 }
 
 test "helpers.Object: getProperty honors a custom getter" {
-    const h = Object(objc.zig.Object);
-    const operation = objc.zig.msgSend(objc.zig.getClass("NSOperation").?, ?*objc.zig.Object, objc.zig.Sel.registerName("new"), .{}).?;
+    const h = Object(objc.rt.Object);
+    const operation = objc.rt.msgSend(objc.rt.getClass("NSOperation").?, ?*objc.rt.Object, objc.rt.Sel.registerName("new"), .{}).?;
     defer h.release(operation);
 
     const cancelled = operation.getClass().getProperty("cancelled").?;

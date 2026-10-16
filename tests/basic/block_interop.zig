@@ -1,5 +1,5 @@
 const std = @import("std");
-const objc = @import("objc").zig;
+const objc = @import("objc").rt;
 const c = @import("objc").c;
 
 const Block = objc.Block;

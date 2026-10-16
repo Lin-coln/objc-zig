@@ -17,17 +17,38 @@ pub fn build(b: *std.Build) void {
     };
 
     const objc = blk: {
-        const mod = b.addModule("objc", .{
+        const options: std.Build.Module.CreateOptions = .{
             .root_source_file = b.path("src/root.zig"),
             .target = target,
             .optimize = optimize,
             .imports = &.{
                 .{ .name = "objc-abi", .module = abi },
             },
+        };
+
+        const mod = b.addModule("objc", options);
+        mod.linkSystemLibrary("objc", .{});
+
+        const test_mod = b.createModule(options);
+        test_mod.linkSystemLibrary("objc", .{});
+        test_mod.linkFramework("Foundation", .{ .needed = true });
+
+        const tests = b.addTest(.{ .root_module = test_mod });
+        test_step.dependOn(&b.addRunArtifact(tests).step);
+        break :blk mod;
+    };
+
+    const ns = blk: {
+        const mod = b.addModule("objc/ns", .{
+            .root_source_file = b.path("ns/root.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "objc", .module = objc },
+            },
         });
 
-        mod.linkSystemLibrary("objc", .{});
-        mod.linkFramework("Foundation", .{});
+        mod.linkFramework("Foundation", .{ .needed = true });
 
         const tests = b.addTest(.{ .root_module = mod });
         test_step.dependOn(&b.addRunArtifact(tests).step);
@@ -41,6 +62,7 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
             .imports = &.{
                 .{ .name = "objc", .module = objc },
+                .{ .name = "objc/ns", .module = ns },
             },
         });
 

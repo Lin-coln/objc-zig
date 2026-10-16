@@ -1,5 +1,5 @@
 const std = @import("std");
-const objc = @import("../root.zig");
+const objc = @import("objc");
 
 pub const NSString = opaque {
     const Self = @This();
