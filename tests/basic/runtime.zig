@@ -7,17 +7,17 @@ test "runtime: registered class stores an object through Zig methods" {
 
     const methods = struct {
         fn setPayload(self: *Object, _: *Sel, value: ?*Object) callconv(.c) void {
-            const ivar = self.class().instanceVariable("_payload").?;
+            const ivar = self.getClass().getInstanceVariable("_payload").?;
             self.setIvar(ivar, value);
         }
 
         fn payload(self: *Object, _: *Sel) callconv(.c) ?*Object {
-            const ivar = self.class().instanceVariable("_payload").?;
-            return self.ivar(ivar);
+            const ivar = self.getClass().getInstanceVariable("_payload").?;
+            return self.getIvar(ivar);
         }
     };
 
-    const NSObject = objc.class("NSObject").?;
+    const NSObject = objc.getClass("NSObject").?;
     const cls = objc.allocateClassPair(NSObject, "ObjcZigBasicRuntimeFlowTest", 0) orelse return error.ClassAllocFailed;
     try std.testing.expect(cls.addIvar("_payload", @sizeOf(*anyopaque), std.math.log2_int(usize, @alignOf(*anyopaque)), "@"));
     try std.testing.expect(cls.addMethod(Sel.registerName("setPayload:"), &methods.setPayload, "v@:@"));
@@ -25,7 +25,7 @@ test "runtime: registered class stores an object through Zig methods" {
     objc.registerClassPair(cls);
     defer objc.disposeClassPair(cls);
 
-    try std.testing.expectEqual(cls, objc.class("ObjcZigBasicRuntimeFlowTest").?);
+    try std.testing.expectEqual(cls, objc.getClass("ObjcZigBasicRuntimeFlowTest").?);
 
     // Keep the payload alive until after the instance is released.
     const payload = objc.msgSend(NSObject, ?*Object, Sel.registerName("new"), .{}).?;

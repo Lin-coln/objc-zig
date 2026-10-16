@@ -7,13 +7,13 @@ const Object = objc.Object;
 const Sel = objc.Sel;
 
 fn numberArray() *Object {
-    const NSNumber = objc.class("NSNumber").?;
+    const NSNumber = objc.getClass("NSNumber").?;
     var numbers: [3]*Object = .{
         objc.msgSend(NSNumber, ?*Object, Sel.registerName("numberWithInt:"), .{@as(c_int, 30)}).?,
         objc.msgSend(NSNumber, ?*Object, Sel.registerName("numberWithInt:"), .{@as(c_int, 10)}).?,
         objc.msgSend(NSNumber, ?*Object, Sel.registerName("numberWithInt:"), .{@as(c_int, 20)}).?,
     };
-    return objc.msgSend(objc.class("NSArray").?, ?*Object, Sel.registerName("arrayWithObjects:count:"), .{ &numbers, @as(usize, numbers.len) }).?;
+    return objc.msgSend(objc.getClass("NSArray").?, ?*Object, Sel.registerName("arrayWithObjects:count:"), .{ &numbers, @as(usize, numbers.len) }).?;
 }
 
 test "NSArray enumeration invokes a Zig Block and honors stop" {

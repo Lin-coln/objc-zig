@@ -14,7 +14,7 @@ pub fn setAssociatedObject(object: *Object, key: *const anyopaque, value: ?*Obje
     c.objc_setAssociatedObject(@ptrCast(object), key, @ptrCast(value), @backingInt(policy));
 }
 
-pub fn associatedObject(object: *Object, key: *const anyopaque) ?*Object {
+pub fn getAssociatedObject(object: *Object, key: *const anyopaque) ?*Object {
     return @ptrCast(c.objc_getAssociatedObject(@ptrCast(object), key));
 }
 

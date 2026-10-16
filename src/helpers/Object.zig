@@ -26,8 +26,8 @@ pub fn Object(comptime T: type) type {
         /// Reads the Objective-C property `name` as `P`. Honors a `getter=` declaration by resolving the
         /// property's `G` attribute at runtime, falling back to `name` itself as the getter selector.
         pub fn property(self: *T, comptime P: type, name: [:0]const u8) P {
-            const class = @as(*objc.rt.Object, @ptrCast(self)).class();
-            const getter = if (class.property(name)) |metadata| metadata.copyAttributeValue("G") else null;
+            const class = @as(*objc.rt.Object, @ptrCast(self)).getClass();
+            const getter = if (class.getProperty(name)) |metadata| metadata.copyAttributeValue("G") else null;
             defer if (getter) |custom| std.c.free(custom.ptr);
 
             const selector = getter orelse name;
@@ -64,7 +64,7 @@ pub fn Object(comptime T: type) type {
 
 test "helpers.Object: property / setProperty" {
     const h = Object(objc.rt.Object);
-    const data = objc.rt.msgSend(objc.rt.class("NSMutableData").?, ?*objc.rt.Object, objc.rt.Sel.registerName("new"), .{}).?;
+    const data = objc.rt.msgSend(objc.rt.getClass("NSMutableData").?, ?*objc.rt.Object, objc.rt.Sel.registerName("new"), .{}).?;
     defer h.release(data);
 
     h.setProperty(data, "length", @as(usize, 8));
@@ -74,7 +74,7 @@ test "helpers.Object: property / setProperty" {
 test "helpers.Object: prop getter and setter" {
     const h = Object(objc.rt.Object);
     const length = h.prop(usize, "length");
-    const data = objc.rt.msgSend(objc.rt.class("NSMutableData").?, ?*objc.rt.Object, objc.rt.Sel.registerName("new"), .{}).?;
+    const data = objc.rt.msgSend(objc.rt.getClass("NSMutableData").?, ?*objc.rt.Object, objc.rt.Sel.registerName("new"), .{}).?;
     defer h.release(data);
 
     length.setter(data, 12);
@@ -83,10 +83,10 @@ test "helpers.Object: prop getter and setter" {
 
 test "helpers.Object: property honors a custom getter" {
     const h = Object(objc.rt.Object);
-    const operation = objc.rt.msgSend(objc.rt.class("NSOperation").?, ?*objc.rt.Object, objc.rt.Sel.registerName("new"), .{}).?;
+    const operation = objc.rt.msgSend(objc.rt.getClass("NSOperation").?, ?*objc.rt.Object, objc.rt.Sel.registerName("new"), .{}).?;
     defer h.release(operation);
 
-    const cancelled = operation.class().property("cancelled").?;
+    const cancelled = operation.getClass().getProperty("cancelled").?;
     const getter = cancelled.copyAttributeValue("G").?;
     defer std.c.free(getter.ptr);
     try std.testing.expectEqualStrings("isCancelled", getter);

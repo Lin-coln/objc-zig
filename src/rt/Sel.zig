@@ -6,7 +6,7 @@ pub const Sel = opaque {
         return @ptrCast(c.sel_registerName(selector_name).?);
     }
 
-    pub fn name(self: *Sel) [:0]const u8 {
+    pub fn getName(self: *Sel) [:0]const u8 {
         return std.mem.span(c.sel_getName(@ptrCast(self)));
     }
 };
@@ -14,5 +14,5 @@ pub const Sel = opaque {
 test "Sel" {
     const sel = Sel.registerName("description");
     try std.testing.expectEqual(sel, Sel.registerName("description"));
-    try std.testing.expectEqualStrings("description", sel.name());
+    try std.testing.expectEqualStrings("description", sel.getName());
 }

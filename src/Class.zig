@@ -3,7 +3,7 @@ const objc = @import("root.zig");
 
 /// The registered class with this name, or null if no such class is registered.
 pub fn class(name: [:0]const u8) ?*Class {
-    return @ptrCast(objc.rt.class(name));
+    return @ptrCast(objc.rt.getClass(name));
 }
 
 /// An Objective-C class object. Obtain one with `class`.

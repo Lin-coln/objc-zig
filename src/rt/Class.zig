@@ -7,15 +7,15 @@ const Method = @import("Method.zig").Method;
 const Property = @import("Property.zig").Property;
 
 pub const Class = opaque {
-    pub fn name(self: *Class) [:0]const u8 {
+    pub fn getName(self: *Class) [:0]const u8 {
         return std.mem.span(c.class_getName(@ptrCast(self)));
     }
 
-    pub fn superclass(self: *Class) ?*Class {
+    pub fn getSuperclass(self: *Class) ?*Class {
         return @ptrCast(c.class_getSuperclass(@ptrCast(self)));
     }
 
-    pub fn instanceSize(self: *Class) usize {
+    pub fn getInstanceSize(self: *Class) usize {
         return c.class_getInstanceSize(@ptrCast(self));
     }
 
@@ -53,15 +53,15 @@ pub const Class = opaque {
         return c.class_addIvar(@ptrCast(self), ivar_name, size, alignment, types) == c.YES;
     }
 
-    pub fn instanceVariable(self: *Class, ivar_name: [:0]const u8) ?*Ivar {
+    pub fn getInstanceVariable(self: *Class, ivar_name: [:0]const u8) ?*Ivar {
         return @ptrCast(c.class_getInstanceVariable(@ptrCast(self), ivar_name));
     }
 
-    pub fn instanceMethod(self: *Class, sel: *Sel) ?*Method {
+    pub fn getInstanceMethod(self: *Class, sel: *Sel) ?*Method {
         return @ptrCast(c.class_getInstanceMethod(@ptrCast(self), @ptrCast(sel)));
     }
 
-    pub fn property(self: *Class, property_name: [:0]const u8) ?*Property {
+    pub fn getProperty(self: *Class, property_name: [:0]const u8) ?*Property {
         return @ptrCast(c.class_getProperty(@ptrCast(self), property_name));
     }
 
@@ -84,38 +84,38 @@ pub const Class = opaque {
 
 test "Class" {
     const objc = @import("root.zig");
-    const NSObject = objc.class("NSObject").?;
-    const NSString = objc.class("NSString").?;
+    const NSObject = objc.getClass("NSObject").?;
+    const NSString = objc.getClass("NSString").?;
 
-    try std.testing.expectEqualStrings("NSString", NSString.name());
-    try std.testing.expectEqual(NSObject, NSString.superclass().?);
-    try std.testing.expectEqual(null, NSObject.superclass());
+    try std.testing.expectEqualStrings("NSString", NSString.getName());
+    try std.testing.expectEqual(NSObject, NSString.getSuperclass().?);
+    try std.testing.expectEqual(null, NSObject.getSuperclass());
     try std.testing.expect(!NSObject.isMetaClass());
     // An NSObject instance only holds its isa pointer.
-    try std.testing.expectEqual(@sizeOf(*anyopaque), NSObject.instanceSize());
+    try std.testing.expectEqual(@sizeOf(*anyopaque), NSObject.getInstanceSize());
     try std.testing.expect(NSString.respondsToSelector(Sel.registerName("length")));
     try std.testing.expect(!NSObject.respondsToSelector(Sel.registerName("length")));
-    try std.testing.expect(NSString.conformsToProtocol(objc.protocol("NSCopying").?));
-    try std.testing.expect(!NSObject.conformsToProtocol(objc.protocol("NSCopying").?));
-    try std.testing.expectEqualStrings("length", NSString.property("length").?.name());
-    try std.testing.expectEqual(null, NSString.property("noSuchProperty"));
+    try std.testing.expect(NSString.conformsToProtocol(objc.getProtocol("NSCopying").?));
+    try std.testing.expect(!NSObject.conformsToProtocol(objc.getProtocol("NSCopying").?));
+    try std.testing.expectEqualStrings("length", NSString.getProperty("length").?.getName());
+    try std.testing.expectEqual(null, NSString.getProperty("noSuchProperty"));
 
     const properties = NSString.copyPropertyList().?;
     defer std.c.free(@ptrCast(properties.ptr));
     for (properties) |property| {
-        if (std.mem.eql(u8, property.name(), "length")) break;
+        if (std.mem.eql(u8, property.getName(), "length")) break;
     } else return error.TestExpectedPropertyLength;
 
     const protocols = NSString.copyProtocolList().?;
     defer std.c.free(@ptrCast(protocols.ptr));
     for (protocols) |protocol| {
-        if (protocol.isEqual(objc.protocol("NSCopying").?)) break;
+        if (protocol.isEqual(objc.getProtocol("NSCopying").?)) break;
     } else return error.TestExpectedProtocolNSCopying;
 }
 
 test "Class: addMethod / replaceMethod / addProtocol" {
     const objc = @import("root.zig");
-    const Sub = objc.allocateClassPair(objc.class("NSObject").?, "NativeObjcClassTest", 0).?;
+    const Sub = objc.allocateClassPair(objc.getClass("NSObject").?, "NativeObjcClassTest", 0).?;
     const answer = struct {
         fn f(_: *objc.Object, _: *Sel) callconv(.c) usize {
             return 42;
@@ -128,18 +128,18 @@ test "Class: addMethod / replaceMethod / addProtocol" {
     }.f;
     try std.testing.expect(Sub.addMethod(Sel.registerName("answer"), &answer, "Q@:"));
     try std.testing.expect(!Sub.addMethod(Sel.registerName("answer"), &answer, "Q@:"));
-    try std.testing.expect(Sub.addProtocol(objc.protocol("NSCopying").?));
+    try std.testing.expect(Sub.addProtocol(objc.getProtocol("NSCopying").?));
     objc.registerClassPair(Sub);
     defer objc.disposeClassPair(Sub);
 
     try std.testing.expect(Sub.respondsToSelector(Sel.registerName("answer")));
-    try std.testing.expect(Sub.conformsToProtocol(objc.protocol("NSCopying").?));
+    try std.testing.expect(Sub.conformsToProtocol(objc.getProtocol("NSCopying").?));
 
     const obj = objc.msgSend(Sub, ?*objc.Object, Sel.registerName("new"), .{}).?;
     defer objc.release(obj);
     try std.testing.expectEqual(42, objc.msgSend(obj, usize, Sel.registerName("answer"), .{}));
-    try std.testing.expect(Sub.instanceMethod(Sel.registerName("answer")) != null);
-    try std.testing.expectEqual(null, Sub.instanceMethod(Sel.registerName("noSuchMethod")));
+    try std.testing.expect(Sub.getInstanceMethod(Sel.registerName("answer")) != null);
+    try std.testing.expectEqual(null, Sub.getInstanceMethod(Sel.registerName("noSuchMethod")));
 
     try std.testing.expectEqual(@as(c.IMP, @ptrCast(&answer)), Sub.replaceMethod(Sel.registerName("answer"), &seven, "Q@:"));
     try std.testing.expectEqual(7, objc.msgSend(obj, usize, Sel.registerName("answer"), .{}));
@@ -147,9 +147,9 @@ test "Class: addMethod / replaceMethod / addProtocol" {
     try std.testing.expectEqual(7, objc.msgSend(obj, usize, Sel.registerName("added"), .{}));
 }
 
-test "Class: addIvar / instanceVariable" {
+test "Class: addIvar / getInstanceVariable" {
     const objc = @import("root.zig");
-    const Sub = objc.allocateClassPair(objc.class("NSObject").?, "NativeObjcIvarTest", 0).?;
+    const Sub = objc.allocateClassPair(objc.getClass("NSObject").?, "NativeObjcIvarTest", 0).?;
     const pointer_align_log2 = std.math.log2_int(usize, @alignOf(*anyopaque));
     try std.testing.expect(Sub.addIvar("_value", @sizeOf(*anyopaque), pointer_align_log2, "@"));
     try std.testing.expect(!Sub.addIvar("_value", @sizeOf(*anyopaque), pointer_align_log2, "@"));
@@ -157,9 +157,9 @@ test "Class: addIvar / instanceVariable" {
     defer objc.disposeClassPair(Sub);
 
     try std.testing.expect(!Sub.addIvar("_late", @sizeOf(*anyopaque), pointer_align_log2, "@"));
-    try std.testing.expectEqual(2 * @sizeOf(*anyopaque), Sub.instanceSize());
+    try std.testing.expectEqual(2 * @sizeOf(*anyopaque), Sub.getInstanceSize());
     try std.testing.expectEqual(null, Sub.copyPropertyList());
     try std.testing.expectEqual(null, Sub.copyProtocolList());
-    try std.testing.expect(Sub.instanceVariable("_value") != null);
-    try std.testing.expectEqual(null, Sub.instanceVariable("_late"));
+    try std.testing.expect(Sub.getInstanceVariable("_value") != null);
+    try std.testing.expectEqual(null, Sub.getInstanceVariable("_late"));
 }
