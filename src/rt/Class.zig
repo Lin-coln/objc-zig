@@ -41,11 +41,11 @@ pub const Class = opaque {
     }
 
     pub fn addProtocol(self: *Class, protocol: *Protocol) bool {
-        return c.class_addProtocol(@ptrCast(self), @ptrCast(@alignCast(protocol))) == c.YES;
+        return c.class_addProtocol(@ptrCast(self), @ptrCast(protocol)) == c.YES;
     }
 
     pub fn conformsToProtocol(self: *Class, protocol: *Protocol) bool {
-        return c.class_conformsToProtocol(@ptrCast(self), @ptrCast(@alignCast(protocol))) == c.YES;
+        return c.class_conformsToProtocol(@ptrCast(self), @ptrCast(protocol)) == c.YES;
     }
 
     /// Only works between `allocateClassPair` and `registerClassPair`. `alignment` is log2 of the alignment in bytes.

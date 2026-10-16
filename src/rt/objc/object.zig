@@ -11,20 +11,17 @@ pub const AssociationPolicy = enum(usize) {
 
 /// `key` is compared by address, so it is usually the address of a global variable. A null `value` removes the association.
 pub fn setAssociatedObject(object: *Object, key: *const anyopaque, value: ?*Object, policy: AssociationPolicy) void {
-    const f: *const fn (*Object, *const anyopaque, ?*Object, usize) callconv(.c) void = @ptrCast(&c.objc_setAssociatedObject);
-    f(object, key, value, @intFromEnum(policy));
+    c.objc_setAssociatedObject(@ptrCast(object), key, @ptrCast(value), @backingInt(policy));
 }
 
 pub fn getAssociatedObject(object: *Object, key: *const anyopaque) ?*Object {
-    const f: *const fn (*Object, *const anyopaque) callconv(.c) ?*Object = @ptrCast(&c.objc_getAssociatedObject);
-    return f(object, key);
+    return @ptrCast(c.objc_getAssociatedObject(@ptrCast(object), key));
 }
 
 /// Called when a collection is mutated during fast enumeration. Runs the handler installed with
 /// `setEnumerationMutationHandler`; the default one throws an exception.
 pub fn enumerationMutation(obj: *Object) void {
-    const f: *const fn (*Object) callconv(.c) void = @ptrCast(&c.objc_enumerationMutation);
-    f(obj);
+    c.objc_enumerationMutation(@ptrCast(obj));
 }
 
 /// The handler is process-wide, and the previous one cannot be retrieved.

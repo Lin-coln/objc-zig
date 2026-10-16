@@ -4,20 +4,20 @@ const Property = @import("Property.zig").Property;
 
 pub const Protocol = opaque {
     pub fn getName(self: *Protocol) [:0]const u8 {
-        return std.mem.span(c.protocol_getName(@ptrCast(@alignCast(self))));
+        return std.mem.span(c.protocol_getName(@ptrCast(self)));
     }
 
     pub fn conformsToProtocol(self: *Protocol, other: *Protocol) bool {
-        return c.protocol_conformsToProtocol(@ptrCast(@alignCast(self)), @ptrCast(@alignCast(other))) == c.YES;
+        return c.protocol_conformsToProtocol(@ptrCast(self), @ptrCast(other)) == c.YES;
     }
 
     pub fn isEqual(self: *Protocol, other: *Protocol) bool {
-        return c.protocol_isEqual(@ptrCast(@alignCast(self)), @ptrCast(@alignCast(other))) == c.YES;
+        return c.protocol_isEqual(@ptrCast(self), @ptrCast(other)) == c.YES;
     }
 
     pub fn getProperty(self: *Protocol, name: [:0]const u8, is_required: bool, is_instance: bool) ?*Property {
         return @ptrCast(c.protocol_getProperty(
-            @ptrCast(@alignCast(self)),
+            @ptrCast(self),
             name,
             if (is_required) c.YES else c.NO,
             if (is_instance) c.YES else c.NO,

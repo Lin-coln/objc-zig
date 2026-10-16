@@ -2,14 +2,11 @@ const c = @import("../../c.zig").c;
 const Object = @import("../Object.zig").Object;
 
 pub fn retain(obj: *Object) *Object {
-    // Tagged pointers need the runtime call without an alignment cast to imported `id`.
-    const f: *const fn (*Object) callconv(.c) *Object = @ptrCast(&c.objc_retain);
-    return f(obj);
+    return @ptrCast(c.objc_retain(@ptrCast(obj)).?);
 }
 
 pub fn release(obj: *Object) void {
-    const f: *const fn (*Object) callconv(.c) void = @ptrCast(&c.objc_release);
-    f(obj);
+    c.objc_release(@ptrCast(obj));
 }
 
 pub fn autoreleasePoolPush() *anyopaque {

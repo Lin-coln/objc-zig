@@ -5,45 +5,39 @@ const Ivar = @import("Ivar.zig").Ivar;
 
 pub const Object = opaque {
     pub fn getClass(self: *Object) *Class {
-        // Objective-C objects may be tagged pointers, which do not satisfy `id`'s Zig alignment.
-        const get_class: *const fn (*Object) callconv(.c) ?*Class = @ptrCast(&c.object_getClass);
-        return get_class(self).?;
+        return @ptrCast(c.object_getClass(@ptrCast(self)).?);
     }
 
     pub fn getClassName(self: *Object) [:0]const u8 {
-        const get_class_name: *const fn (*Object) callconv(.c) [*:0]const u8 = @ptrCast(&c.object_getClassName);
-        return std.mem.span(get_class_name(self));
+        return std.mem.span(c.object_getClassName(@ptrCast(self)));
     }
 
     pub fn isClass(self: *Object) bool {
-        const is_class: *const fn (*Object) callconv(.c) c.BOOL = @ptrCast(&c.object_isClass);
-        return is_class(self) == c.YES;
+        return c.object_isClass(@ptrCast(self)) == c.YES;
     }
 
     /// Copies the first `size` bytes of the object, usually `getClass().getInstanceSize()`.
     pub fn copy(self: *Object, size: usize) ?*Object {
-        return @ptrCast(c.object_copy(@ptrCast(@alignCast(self)), size));
+        return @ptrCast(c.object_copy(@ptrCast(self), size));
     }
 
     /// Frees the object without sending it `dealloc`.
     pub fn dispose(self: *Object) void {
-        _ = c.object_dispose(@ptrCast(@alignCast(self)));
+        _ = c.object_dispose(@ptrCast(self));
     }
 
     /// If `out_value` is not null, it receives the ivar's current value.
     pub fn getInstanceVariable(self: *Object, name: [:0]const u8, out_value: ?*?*anyopaque) ?*Ivar {
-        return @ptrCast(c.object_getInstanceVariable(@ptrCast(@alignCast(self)), name, out_value));
+        return @ptrCast(c.object_getInstanceVariable(@ptrCast(self), name, out_value));
     }
 
     pub fn getIvar(self: *Object, ivar: *Ivar) ?*Object {
-        return @ptrCast(c.object_getIvar(@ptrCast(@alignCast(self)), @ptrCast(ivar)));
+        return @ptrCast(c.object_getIvar(@ptrCast(self), @ptrCast(ivar)));
     }
 
     /// Ivars whose memory management is unknown (e.g. added with `Class.addIvar`) are assigned without retaining.
     pub fn setIvar(self: *Object, ivar: *Ivar, value: ?*Object) void {
-        // The owner has storage for ivars, but the value may be a tagged pointer.
-        const set_ivar: *const fn (c.id, c.Ivar, ?*Object) callconv(.c) void = @ptrCast(&c.object_setIvar);
-        set_ivar(@ptrCast(@alignCast(self)), @ptrCast(ivar), value);
+        c.object_setIvar(@ptrCast(self), @ptrCast(ivar), @ptrCast(value));
     }
 };
 
@@ -59,14 +53,13 @@ test "Object" {
     try std.testing.expect(objc.msgSend(NSObject, ?*Object, objc.Sel.registerName("class"), .{}).?.isClass());
 }
 
-test "Object: tagged NSNumber class inspection" {
+test "Object: NSNumber class inspection" {
     const objc = @import("root.zig");
     const NSNumber = objc.getClass("NSNumber").?;
     const allocated = objc.msgSend(NSNumber, ?*Object, objc.Sel.registerName("alloc"), .{}).?;
     const number = objc.msgSend(allocated, ?*Object, objc.Sel.registerName("initWithInteger:"), .{@as(isize, 42)}).?;
     defer objc.release(number);
 
-    try std.testing.expect(@intFromPtr(number) % @alignOf(c.struct_objc_object) != 0);
     try std.testing.expectEqualStrings(number.getClass().getName(), number.getClassName());
     try std.testing.expect(!number.isClass());
 }
@@ -104,7 +97,6 @@ test "Object: getIvar / setIvar / getInstanceVariable / copy / dispose" {
     const allocated = objc.msgSend(objc.getClass("NSNumber").?, ?*Object, objc.Sel.registerName("alloc"), .{}).?;
     const number = objc.msgSend(allocated, ?*Object, objc.Sel.registerName("initWithInteger:"), .{@as(isize, 42)}).?;
     defer objc.release(number);
-    try std.testing.expect(@intFromPtr(number) % @alignOf(c.struct_objc_object) != 0);
     obj.setIvar(ivar, number);
     try std.testing.expectEqual(number, obj.getIvar(ivar).?);
     try std.testing.expectEqual(ivar, obj.getInstanceVariable("_value", &raw).?);

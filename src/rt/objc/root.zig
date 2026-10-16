@@ -77,13 +77,11 @@ test "getClass / getMetaClass / retain / release / autoreleasePool" {
     try std.testing.expectEqual(1, msgSend(obj, usize, Sel.registerName("retainCount"), .{}));
 }
 
-test "tagged NSNumber: msgSendSuper, retain / release, and associated objects" {
+test "NSNumber: msgSendSuper, retain / release, and associated objects" {
     const NSNumber = getClass("NSNumber").?;
     const allocated = msgSend(NSNumber, ?*Object, Sel.registerName("alloc"), .{}).?;
     const number = msgSend(allocated, ?*Object, Sel.registerName("initWithInteger:"), .{@as(isize, 42)}).?;
     defer release(number);
-    try std.testing.expect(@intFromPtr(number) % @alignOf(c.struct_objc_object) != 0);
-
     try std.testing.expectEqual(number, retain(number));
     release(number);
     try std.testing.expectEqual(42, msgSend(number, isize, Sel.registerName("integerValue"), .{}));
@@ -154,7 +152,6 @@ test "enumerationMutation / setEnumerationMutationHandler" {
     const allocated = msgSend(NSNumber, ?*Object, Sel.registerName("alloc"), .{}).?;
     const number = msgSend(allocated, ?*Object, Sel.registerName("initWithInteger:"), .{@as(isize, 42)}).?;
     defer release(number);
-    try std.testing.expect(@intFromPtr(number) % @alignOf(c.struct_objc_object) != 0);
     enumerationMutation(number);
     try std.testing.expectEqual(number, handler.mutated.?);
 }

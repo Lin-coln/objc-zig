@@ -4,23 +4,6 @@ const Class = @import("../Class.zig").Class;
 const Object = @import("../Object.zig").Object;
 const Sel = @import("../Sel.zig").Sel;
 
-// Match objc_super's C layout while allowing a tagged receiver, whose bits need not
-// satisfy the alignment of the struct_objc_object imported from objc/objc.h.
-const Super = extern struct {
-    receiver: *Object,
-    super_class: *Class,
-};
-
-comptime {
-    if (@sizeOf(Super) != @sizeOf(c.struct_objc_super) or
-        @alignOf(Super) != @alignOf(c.struct_objc_super) or
-        @offsetOf(Super, "receiver") != @offsetOf(c.struct_objc_super, "receiver") or
-        @offsetOf(Super, "super_class") != @offsetOf(c.struct_objc_super, "super_class"))
-    {
-        @compileError("Super must match objc_super's C layout");
-    }
-}
-
 /// Sends `sel` to `target` by calling objc_msgSend cast to `fn (@TypeOf(target), SEL, args...) Return`.
 /// `Return` and the types of `args` must match the method's declaration exactly; mismatches are not caught at compile time.
 pub fn msgSend(target: anytype, comptime Return: type, sel: *Sel, args: anytype) Return {
@@ -51,8 +34,8 @@ pub fn msgSendSuper(target: anytype, superclass: *Class, comptime Return: type, 
             &c.objc_msgSendSuper,
         else => @compileError("unsupported architecture for objc_msgSendSuper"),
     };
-    var super: Super = .{ .receiver = @ptrCast(target), .super_class = superclass };
-    const f: *const MsgSendFn(*Super, Return, @TypeOf(args)) = @ptrCast(send);
+    var super: c.struct_objc_super = .{ .receiver = @ptrCast(target), .super_class = @ptrCast(superclass) };
+    const f: *const MsgSendFn(*c.struct_objc_super, Return, @TypeOf(args)) = @ptrCast(send);
     return @call(.auto, f, .{ &super, @as(c.SEL, @ptrCast(sel)) } ++ args);
 }
 
