@@ -2,9 +2,9 @@ const Root = @This();
 const std = @import("std");
 const builtin = @import("builtin");
 const c = @import("../c.zig").c;
-const Object = @import("Object.zig").Object;
-const Class = @import("Class.zig").Class;
-const Sel = @import("Sel.zig").Sel;
+const Object = @import("../rt/Object.zig").Object;
+const Class = @import("../rt/Class.zig").Class;
+const Sel = @import("../rt/Sel.zig").Sel;
 
 /// An Objective-C block literal (Apple Block ABI) whose `invoke` has the parameters of `Function`,
 /// preceded by a pointer to the block itself. `context` is copied bytewise when the block is copied to the heap.
@@ -227,7 +227,7 @@ test "Block: invoke directly and after copy / release" {
 }
 
 test "Block: heap copy retains *Object in context and releases it when freed" {
-    const objc = @import("root.zig");
+    const objc = @import("../rt/root.zig");
     const obj = objc.msgSend(objc.getClass("NSObject").?, ?*Object, Sel.registerName("new"), .{}).?;
     defer objc.release(obj);
 
@@ -259,7 +259,7 @@ test "Block: heap copy retains *Object in context and releases it when freed" {
 }
 
 test "Block: signature and flags" {
-    const objc = @import("root.zig");
+    const objc = @import("../rt/root.zig");
     const Point = extern struct { x: f64, y: f64 };
     const Big = extern struct { a: u64, b: u64, c: u64 };
     const cases = .{

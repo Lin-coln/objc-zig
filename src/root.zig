@@ -4,6 +4,7 @@ pub const rt = @import("rt/root.zig");
 pub const helpers = @import("helpers/root.zig");
 
 // helpers
+pub const Block = @import("Block/Self.zig").Block;
 pub const Class = @import("Class.zig").Class;
 pub const class = @import("Class.zig").class;
 
@@ -11,5 +12,6 @@ test {
     _ = @import("c.zig");
     _ = @import("rt/root.zig");
     _ = @import("helpers/root.zig");
+    _ = @import("Block/Self.zig");
     _ = @import("Class.zig");
 }

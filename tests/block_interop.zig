@@ -2,7 +2,7 @@ const std = @import("std");
 const objc = @import("objc").rt;
 const c = @import("objc").c;
 
-const Block = objc.Block;
+const Block = @import("objc").Block;
 const Object = objc.Object;
 const Sel = objc.Sel;
 

@@ -7,7 +7,6 @@ pub const Protocol = @import("Protocol.zig").Protocol;
 pub const Ivar = @import("Ivar.zig").Ivar;
 pub const Method = @import("Method.zig").Method;
 pub const Property = @import("Property.zig").Property;
-pub const Block = @import("Block.zig").Block;
 pub const utils = @import("utils.zig");
 
 pub const msgSend = objc.msgSend;
@@ -36,5 +35,4 @@ test {
     _ = @import("Protocol.zig");
     _ = @import("Method.zig");
     _ = @import("Property.zig");
-    _ = @import("Block.zig");
 }
