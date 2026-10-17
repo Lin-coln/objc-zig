@@ -27,10 +27,8 @@ pub const SCShareableContent = opaque {
             semaphore: dispatch.semaphore_t,
             content: ?*Self = null,
         };
-        const Completion = objc.Block(*State, fn (?*Self, ?*ns.NSError) void);
         const complete = struct {
-            fn f(block: *const Completion, content: ?*Self, err: ?*ns.NSError) callconv(.c) void {
-                const state = block.context;
+            fn f(state: *State, content: ?*Self, err: ?*ns.NSError) void {
                 const signal = state.semaphore;
                 defer dispatch.release(signal.as_object());
 
@@ -40,7 +38,7 @@ pub const SCShareableContent = opaque {
         }.f;
 
         var state: State = .{ .semaphore = semaphore };
-        const handler = Completion.init(&state, &complete);
+        const handler = objc.helpers.block.initWithContext(&state, complete);
         // Keep the semaphore alive until the callback finishes signaling it.
         dispatch.retain(semaphore.as_object());
         getShareableContent(&handler);

@@ -3,6 +3,7 @@ const rt = @import("objc").rt;
 const c = @import("objc").c;
 
 const Block = @import("objc").Block;
+const block = @import("objc").helpers.block;
 const Object = rt.Object;
 const Sel = rt.Sel;
 
@@ -23,17 +24,15 @@ test "NSArray enumeration invokes a Zig Block and honors stop" {
 
     // void (^)(id obj, NSUInteger idx, BOOL *stop): sum values and stop after the second element.
     const State = struct { sum: c_int = 0, count: usize = 0 };
-    const Enumerate = Block(*State, fn (?*Object, usize, *c.BOOL) void);
-    const enumerate = struct {
-        fn f(block: *const Enumerate, obj: ?*Object, idx: usize, stop: *c.BOOL) callconv(.c) void {
-            block.context.sum += rt.msgSend(obj.?, c_int, Sel.registerName("intValue"), .{});
-            block.context.count += 1;
+    var state: State = .{};
+    var enumerate = block.initWithContext(&state, struct {
+        fn f(s: *State, obj: ?*Object, idx: usize, stop: *c.BOOL) void {
+            s.sum += rt.msgSend(obj.?, c_int, Sel.registerName("intValue"), .{});
+            s.count += 1;
             if (idx == 1) stop.* = c.YES;
         }
-    }.f;
-    var state: State = .{};
-    var enumerate_block = Enumerate.init(&state, &enumerate);
-    rt.msgSend(array, void, Sel.registerName("enumerateObjectsUsingBlock:"), .{&enumerate_block});
+    }.f);
+    rt.msgSend(array, void, Sel.registerName("enumerateObjectsUsingBlock:"), .{&enumerate});
     try std.testing.expectEqual(2, state.count);
     try std.testing.expectEqual(40, state.sum);
 }

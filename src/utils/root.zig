@@ -1,5 +1,7 @@
 const std = @import("std");
-const c = @import("c.zig").c;
+const c = @import("../c.zig").c;
+
+pub const spreadArgs = @import("spreadArgs.zig").spreadArgs;
 
 pub const cast = struct {
     pub fn @"bool"(value: c.BOOL) bool {
@@ -94,4 +96,8 @@ test "resolveTypeName: named and generated types" {
         try std.testing.expectEqualStrings(case[1], name);
         try std.testing.expectEqual(@as(u8, 0), name.ptr[name.len]);
     }
+}
+
+test {
+    _ = @import("spreadArgs.zig");
 }

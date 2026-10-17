@@ -1,4 +1,3 @@
-const Root = @This();
 const std = @import("std");
 const builtin = @import("builtin");
 const c = @import("../c.zig").c;
@@ -15,7 +14,9 @@ pub fn Block(comptime Context: type, comptime Function: type) type {
 
     return extern struct {
         const Self = @This();
-        // todo: use DescriptorWithHelpers if Context is rt.Object
+        // Context is currently copied bytewise, without retaining or releasing captured objects.
+        // TODO: expose context copy/dispose callbacks through DescriptorWithHelpers;
+        // callers must manage captured object lifetimes until these callbacks are supported.
         const Descriptor = @import("descriptor.zig").Descriptor(Self);
         const Callback = getCallbackType(Self, Function);
         isa: ?*anyopaque = &c._NSConcreteStackBlock,
