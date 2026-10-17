@@ -5,6 +5,7 @@ const c = @import("../c.zig").c;
 const Object = @import("../rt/Object.zig").Object;
 const Class = @import("../rt/Class.zig").Class;
 const Sel = @import("../rt/Sel.zig").Sel;
+const Signature = @import("signature.zig");
 
 /// An Objective-C block literal (Apple Block ABI) whose `invoke` has the parameters of `Function`,
 /// preceded by a pointer to the block itself. `context` is copied bytewise when the block is copied to the heap.
@@ -14,7 +15,7 @@ const Sel = @import("../rt/Sel.zig").Sel;
 pub fn Block(comptime Context: type, comptime Function: type) type {
     const fn_info = @typeInfo(Function).@"fn";
     const Return = fn_info.return_type.?;
-    const signature = comptime Signature.generate(Function);
+    const signature = comptime Signature.generateFromFnType(Function);
     const flags = comptime Literal.getFlags(Context, Function);
 
     return extern struct {
@@ -136,71 +137,6 @@ const Literal = struct {
                 return .{ .reserved = 0, .size = @sizeOf(BlockType), .signature = signature };
             }
         };
-    }
-};
-
-const Signature = struct {
-    /// The block signature for `Function`: its return type, the block itself, then its parameters.
-    /// Sizes and offsets are left out: they depend on the target, while the types alone describe `invoke`.
-    fn generate(comptime Function: type) [:0]const u8 {
-        const fn_info = @typeInfo(Function).@"fn";
-        var types: []const u8 = encodeType(fn_info.return_type.?) ++ "@?";
-        for (fn_info.param_types) |T| types = types ++ encodeType(T.?);
-        return std.fmt.comptimePrint("{s}", .{types});
-    }
-
-    /// Objective-C type encoding of `T`. Integers are encoded by width so the result does not depend on the target's `long`.
-    fn encodeType(comptime T: type) []const u8 {
-        return switch (T) {
-            void, anyopaque => "v",
-            bool => "B",
-            f32 => "f",
-            f64 => "d",
-            c_longdouble => "D",
-            *Object, ?*Object => "@",
-            *Class, ?*Class => "#",
-            *Sel, ?*Sel => ":",
-            [*:0]u8, [*:0]const u8, ?[*:0]u8, ?[*:0]const u8, [*c]u8, [*c]const u8 => "*",
-            else => switch (@typeInfo(T)) {
-                .int => |int| switch (int.bits) {
-                    8 => if (int.signedness == .signed) "c" else "C",
-                    16 => if (int.signedness == .signed) "s" else "S",
-                    32 => if (int.signedness == .signed) "i" else "I",
-                    64 => if (int.signedness == .signed) "q" else "Q",
-                    else => @compileError("no Objective-C type encoding for " ++ @typeName(T)),
-                },
-                .@"enum" => |info| encodeType(info.tag_type),
-                .optional => |info| if (@typeInfo(info.child) == .pointer) encodeType(info.child) else @compileError("no Objective-C type encoding for " ++ @typeName(T)),
-                .pointer => |info| switch (info.size) {
-                    .slice => @compileError("no Objective-C type encoding for " ++ @typeName(T)),
-                    // Pointers to structs only name the struct, which also keeps self-referential structs finite.
-                    else => switch (@typeInfo(info.child)) {
-                        .@"fn" => "^?",
-                        .@"opaque" => "^v",
-                        .@"struct" => |s| if (s.layout == .@"extern") "^{" ++ structName(info.child) ++ "}" else "^" ++ encodeType(info.child),
-                        else => "^" ++ encodeType(info.child),
-                    },
-                },
-                .@"struct" => |info| switch (info.layout) {
-                    .@"extern" => blk: {
-                        var fields: []const u8 = "";
-                        for (info.field_types) |F| fields = fields ++ encodeType(F);
-                        break :blk "{" ++ structName(T) ++ "=" ++ fields ++ "}";
-                    },
-                    .@"packed" => encodeType(info.backing_integer.?),
-                    .auto => @compileError("no Objective-C type encoding for non-extern struct " ++ @typeName(T)),
-                },
-                .array => |info| std.fmt.comptimePrint("[{d}{s}]", .{ info.len, encodeType(info.child) }),
-                else => @compileError("no Objective-C type encoding for " ++ @typeName(T)),
-            },
-        };
-    }
-
-    /// translate-c names C structs `struct_<tag>`, while Objective-C type encodings use the tag.
-    fn structName(comptime T: type) []const u8 {
-        const full = @typeName(T);
-        const name = full[if (std.mem.lastIndexOfScalar(u8, full, '.')) |i| i + 1 else 0..];
-        return if (std.mem.startsWith(u8, name, "struct_")) name["struct_".len..] else name;
     }
 };
 
