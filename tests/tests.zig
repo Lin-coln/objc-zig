@@ -3,4 +3,7 @@ comptime {
     _ = @import("block_interop.zig");
 
     _ = @import("sck/SCStreamConfiguration.zig");
+    _ = @import("sck/SCShareableContent.zig");
+    _ = @import("sck/SCWindow.zig");
+    _ = @import("sck/SCRunningApplication.zig");
 }

@@ -6,6 +6,16 @@ pub fn build(b: *std.Build) void {
 
     const test_step = b.step("test", "Run Objective-C tests");
 
+    const macos = blk: {
+        const trans = b.addTranslateC(.{
+            .root_source_file = b.path("translate/macos.h"),
+            .target = target,
+            .optimize = optimize,
+        });
+        const mod = trans.addModule("macos");
+        break :blk mod;
+    };
+
     const abi = blk: {
         const trans = b.addTranslateC(.{
             .root_source_file = b.path("translate/objc.h"),
@@ -63,10 +73,12 @@ pub fn build(b: *std.Build) void {
             .imports = &.{
                 .{ .name = "objc", .module = objc },
                 .{ .name = "objc/ns", .module = ns },
+                .{ .name = "macos", .module = macos },
             },
         });
 
         mod.linkFramework("ScreenCaptureKit", .{});
+        mod.linkFramework("CoreGraphics", .{});
 
         const tests = b.addTest(.{ .root_module = mod });
         test_step.dependOn(&b.addRunArtifact(tests).step);
