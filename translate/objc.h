@@ -9,6 +9,15 @@ typedef struct objc_object *id;
 #include <objc/message.h>
 #include <Block.h>
 
+// Apple Block ABI constants, absent from the public Block.h.
+// Values and names follow libclosure's Block_private.h.
+enum {
+    BLOCK_HAS_COPY_DISPOSE = 1 << 25,
+    BLOCK_USE_STRET = 1 << 29,
+    BLOCK_HAS_SIGNATURE = 1 << 30,
+    BLOCK_FIELD_IS_OBJECT = 3,
+};
+
 // The following functions are exported by libobjc but are not declared in any
 // public SDK header. Their declarations are copied from runtime/objc-internal.h
 // in Apple's objc4 source.
