@@ -227,9 +227,9 @@ test "Block: invoke directly and after copy / release" {
 }
 
 test "Block: heap copy retains *Object in context and releases it when freed" {
-    const objc = @import("../rt/root.zig");
-    const obj = objc.msgSend(objc.getClass("NSObject").?, ?*Object, Sel.registerName("new"), .{}).?;
-    defer objc.release(obj);
+    const rt = @import("../rt/root.zig");
+    const obj = rt.msgSend(rt.getClass("NSObject").?, ?*Object, Sel.registerName("new"), .{}).?;
+    defer rt.release(obj);
 
     // The context itself is an object.
     const Direct = Block(*Object, fn () void);
@@ -237,12 +237,12 @@ test "Block: heap copy retains *Object in context and releases it when freed" {
         fn f(_: *const Direct) callconv(.c) void {}
     }.f;
     const direct = Direct.init(obj, &direct_invoke);
-    try std.testing.expectEqual(1, objc.msgSend(obj, usize, Sel.registerName("retainCount"), .{}));
+    try std.testing.expectEqual(1, rt.msgSend(obj, usize, Sel.registerName("retainCount"), .{}));
     const direct_copy = direct.copy().?;
     try std.testing.expectEqual(obj, direct_copy.context);
-    try std.testing.expectEqual(2, objc.msgSend(obj, usize, Sel.registerName("retainCount"), .{}));
+    try std.testing.expectEqual(2, rt.msgSend(obj, usize, Sel.registerName("retainCount"), .{}));
     direct_copy.release();
-    try std.testing.expectEqual(1, objc.msgSend(obj, usize, Sel.registerName("retainCount"), .{}));
+    try std.testing.expectEqual(1, rt.msgSend(obj, usize, Sel.registerName("retainCount"), .{}));
 
     // Object fields of an extern struct context; other fields are only copied.
     const Captures = extern struct { first: *Object, count: i32, second: ?*Object };
@@ -253,13 +253,13 @@ test "Block: heap copy retains *Object in context and releases it when freed" {
     const fields = Fields.init(.{ .first = obj, .count = 7, .second = obj }, &fields_invoke);
     const fields_copy = fields.copy().?;
     try std.testing.expectEqual(7, fields_copy.context.count);
-    try std.testing.expectEqual(3, objc.msgSend(obj, usize, Sel.registerName("retainCount"), .{}));
+    try std.testing.expectEqual(3, rt.msgSend(obj, usize, Sel.registerName("retainCount"), .{}));
     fields_copy.release();
-    try std.testing.expectEqual(1, objc.msgSend(obj, usize, Sel.registerName("retainCount"), .{}));
+    try std.testing.expectEqual(1, rt.msgSend(obj, usize, Sel.registerName("retainCount"), .{}));
 }
 
 test "Block: signature and flags" {
-    const objc = @import("../rt/root.zig");
+    const rt = @import("../rt/root.zig");
     const Point = extern struct { x: f64, y: f64 };
     const Big = extern struct { a: u64, b: u64, c: u64 };
     const cases = .{
@@ -268,14 +268,14 @@ test "Block: signature and flags" {
         .{ Block(*Object, fn (Point, [*:0]const u8, *Class, *Sel) Point), "{Point=dd}@?{Point=dd}*#:", 5 },
         .{ Block(void, fn (*const Point, ?*const fn () callconv(.c) void, [4]u8) void), "v@?^{Point}^?[4C]", 4 },
     };
-    const NSMethodSignature = objc.getClass("NSMethodSignature").?;
+    const NSMethodSignature = rt.getClass("NSMethodSignature").?;
     inline for (cases) |case| {
         const signature = std.mem.span(case[0].block_descriptor.signature);
         try std.testing.expectEqualStrings(case[1], signature);
         // Foundation's own type encoding parser must accept the signature.
-        const parsed = objc.msgSend(NSMethodSignature, ?*Object, Sel.registerName("signatureWithObjCTypes:"), .{signature.ptr}).?;
-        try std.testing.expectEqual(case[2], objc.msgSend(parsed, usize, Sel.registerName("numberOfArguments"), .{}));
-        const first: [*:0]const u8 = objc.msgSend(parsed, [*:0]const u8, Sel.registerName("getArgumentTypeAtIndex:"), .{@as(usize, 0)});
+        const parsed = rt.msgSend(NSMethodSignature, ?*Object, Sel.registerName("signatureWithObjCTypes:"), .{signature.ptr}).?;
+        try std.testing.expectEqual(case[2], rt.msgSend(parsed, usize, Sel.registerName("numberOfArguments"), .{}));
+        const first: [*:0]const u8 = rt.msgSend(parsed, [*:0]const u8, Sel.registerName("getArgumentTypeAtIndex:"), .{@as(usize, 0)});
         try std.testing.expectEqualStrings("@?", std.mem.span(first));
     }
 

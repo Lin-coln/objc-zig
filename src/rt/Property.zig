@@ -13,8 +13,8 @@ pub const Property = opaque {
 };
 
 test "Property" {
-    const objc = @import("root.zig");
-    const length = objc.getClass("NSString").?.getProperty("length").?;
+    const rt = @import("root.zig");
+    const length = rt.getClass("NSString").?.getProperty("length").?;
     try std.testing.expectEqualStrings("length", length.getName());
 
     const @"type" = length.copyAttributeValue("T").?;

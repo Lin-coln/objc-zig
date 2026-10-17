@@ -26,18 +26,18 @@ pub const Protocol = opaque {
 };
 
 test "Protocol" {
-    const objc = @import("root.zig");
-    try std.testing.expectEqual(null, objc.getProtocol("NoSuchProtocolInThisProcess"));
-    try std.testing.expectEqualStrings("NSCopying", objc.getProtocol("NSCopying").?.getName());
+    const rt = @import("root.zig");
+    try std.testing.expectEqual(null, rt.getProtocol("NoSuchProtocolInThisProcess"));
+    try std.testing.expectEqualStrings("NSCopying", rt.getProtocol("NSCopying").?.getName());
 
-    const secure_coding = objc.getProtocol("NSSecureCoding").?;
-    const coding = objc.getProtocol("NSCoding").?;
+    const secure_coding = rt.getProtocol("NSSecureCoding").?;
+    const coding = rt.getProtocol("NSCoding").?;
     try std.testing.expect(secure_coding.conformsToProtocol(coding));
     try std.testing.expect(!coding.conformsToProtocol(secure_coding));
-    try std.testing.expect(coding.isEqual(objc.getProtocol("NSCoding").?));
+    try std.testing.expect(coding.isEqual(rt.getProtocol("NSCoding").?));
     try std.testing.expect(!coding.isEqual(secure_coding));
 
-    const nsobject = objc.getProtocol("NSObject").?;
+    const nsobject = rt.getProtocol("NSObject").?;
     try std.testing.expectEqualStrings("hash", nsobject.getProperty("hash", true, true).?.getName());
     try std.testing.expectEqual(null, nsobject.getProperty("hash", false, true));
 }

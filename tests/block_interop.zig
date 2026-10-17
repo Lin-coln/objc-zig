@@ -1,24 +1,24 @@
 const std = @import("std");
-const objc = @import("objc").rt;
+const rt = @import("objc").rt;
 const c = @import("objc").c;
 
 const Block = @import("objc").Block;
-const Object = objc.Object;
-const Sel = objc.Sel;
+const Object = rt.Object;
+const Sel = rt.Sel;
 
 fn numberArray() *Object {
-    const NSNumber = objc.getClass("NSNumber").?;
+    const NSNumber = rt.getClass("NSNumber").?;
     var numbers: [3]*Object = .{
-        objc.msgSend(NSNumber, ?*Object, Sel.registerName("numberWithInt:"), .{@as(c_int, 30)}).?,
-        objc.msgSend(NSNumber, ?*Object, Sel.registerName("numberWithInt:"), .{@as(c_int, 10)}).?,
-        objc.msgSend(NSNumber, ?*Object, Sel.registerName("numberWithInt:"), .{@as(c_int, 20)}).?,
+        rt.msgSend(NSNumber, ?*Object, Sel.registerName("numberWithInt:"), .{@as(c_int, 30)}).?,
+        rt.msgSend(NSNumber, ?*Object, Sel.registerName("numberWithInt:"), .{@as(c_int, 10)}).?,
+        rt.msgSend(NSNumber, ?*Object, Sel.registerName("numberWithInt:"), .{@as(c_int, 20)}).?,
     };
-    return objc.msgSend(objc.getClass("NSArray").?, ?*Object, Sel.registerName("arrayWithObjects:count:"), .{ &numbers, @as(usize, numbers.len) }).?;
+    return rt.msgSend(rt.getClass("NSArray").?, ?*Object, Sel.registerName("arrayWithObjects:count:"), .{ &numbers, @as(usize, numbers.len) }).?;
 }
 
 test "NSArray enumeration invokes a Zig Block and honors stop" {
-    const pool = objc.autoreleasePoolPush();
-    defer objc.autoreleasePoolPop(pool);
+    const pool = rt.autoreleasePoolPush();
+    defer rt.autoreleasePoolPop(pool);
     const array = numberArray();
 
     // void (^)(id obj, NSUInteger idx, BOOL *stop): sum values and stop after the second element.
@@ -26,32 +26,32 @@ test "NSArray enumeration invokes a Zig Block and honors stop" {
     const Enumerate = Block(*State, fn (?*Object, usize, *c.BOOL) void);
     const enumerate = struct {
         fn f(block: *const Enumerate, obj: ?*Object, idx: usize, stop: *c.BOOL) callconv(.c) void {
-            block.context.sum += objc.msgSend(obj.?, c_int, Sel.registerName("intValue"), .{});
+            block.context.sum += rt.msgSend(obj.?, c_int, Sel.registerName("intValue"), .{});
             block.context.count += 1;
             if (idx == 1) stop.* = c.YES;
         }
     }.f;
     var state: State = .{};
     var enumerate_block = Enumerate.init(&state, &enumerate);
-    objc.msgSend(array, void, Sel.registerName("enumerateObjectsUsingBlock:"), .{&enumerate_block});
+    rt.msgSend(array, void, Sel.registerName("enumerateObjectsUsingBlock:"), .{&enumerate_block});
     try std.testing.expectEqual(2, state.count);
     try std.testing.expectEqual(40, state.sum);
 }
 
 test "NSArray sorting invokes a Zig Block comparator" {
-    const pool = objc.autoreleasePoolPush();
-    defer objc.autoreleasePoolPop(pool);
+    const pool = rt.autoreleasePoolPush();
+    defer rt.autoreleasePoolPop(pool);
     const array = numberArray();
 
     // NSComparisonResult (^)(id, id)
     const Compare = Block(void, fn (?*Object, ?*Object) isize);
     const compare = struct {
         fn f(_: *const Compare, a: ?*Object, b: ?*Object) callconv(.c) isize {
-            return objc.msgSend(a.?, isize, Sel.registerName("compare:"), .{b.?});
+            return rt.msgSend(a.?, isize, Sel.registerName("compare:"), .{b.?});
         }
     }.f;
     var compare_block = Compare.init({}, &compare);
-    const sorted = objc.msgSend(array, ?*Object, Sel.registerName("sortedArrayUsingComparator:"), .{&compare_block}).?;
-    const first = objc.msgSend(sorted, ?*Object, Sel.registerName("firstObject"), .{}).?;
-    try std.testing.expectEqual(10, objc.msgSend(first, c_int, Sel.registerName("intValue"), .{}));
+    const sorted = rt.msgSend(array, ?*Object, Sel.registerName("sortedArrayUsingComparator:"), .{&compare_block}).?;
+    const first = rt.msgSend(sorted, ?*Object, Sel.registerName("firstObject"), .{}).?;
+    try std.testing.expectEqual(10, rt.msgSend(first, c_int, Sel.registerName("intValue"), .{}));
 }

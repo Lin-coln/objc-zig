@@ -42,40 +42,40 @@ pub const Object = opaque {
 };
 
 test "Object" {
-    const objc = @import("root.zig");
-    const NSObject = objc.getClass("NSObject").?;
-    const obj = objc.msgSend(NSObject, ?*Object, objc.Sel.registerName("new"), .{}).?;
-    defer objc.release(obj);
+    const rt = @import("root.zig");
+    const NSObject = rt.getClass("NSObject").?;
+    const obj = rt.msgSend(NSObject, ?*Object, rt.Sel.registerName("new"), .{}).?;
+    defer rt.release(obj);
 
     try std.testing.expectEqual(NSObject, obj.getClass());
     try std.testing.expectEqualStrings("NSObject", obj.getClassName());
     try std.testing.expect(!obj.isClass());
-    try std.testing.expect(objc.msgSend(NSObject, ?*Object, objc.Sel.registerName("class"), .{}).?.isClass());
+    try std.testing.expect(rt.msgSend(NSObject, ?*Object, rt.Sel.registerName("class"), .{}).?.isClass());
 }
 
 test "Object: NSNumber class inspection" {
-    const objc = @import("root.zig");
-    const NSNumber = objc.getClass("NSNumber").?;
-    const allocated = objc.msgSend(NSNumber, ?*Object, objc.Sel.registerName("alloc"), .{}).?;
-    const number = objc.msgSend(allocated, ?*Object, objc.Sel.registerName("initWithInteger:"), .{@as(isize, 42)}).?;
-    defer objc.release(number);
+    const rt = @import("root.zig");
+    const NSNumber = rt.getClass("NSNumber").?;
+    const allocated = rt.msgSend(NSNumber, ?*Object, rt.Sel.registerName("alloc"), .{}).?;
+    const number = rt.msgSend(allocated, ?*Object, rt.Sel.registerName("initWithInteger:"), .{@as(isize, 42)}).?;
+    defer rt.release(number);
 
     try std.testing.expectEqualStrings(number.getClass().getName(), number.getClassName());
     try std.testing.expect(!number.isClass());
 }
 
 test "Object: getIvar / setIvar / getInstanceVariable / copy / dispose" {
-    const objc = @import("root.zig");
-    const NSObject = objc.getClass("NSObject").?;
-    const Sub = objc.allocateClassPair(NSObject, "NativeObjcObjectIvarTest", 0).?;
+    const rt = @import("root.zig");
+    const NSObject = rt.getClass("NSObject").?;
+    const Sub = rt.allocateClassPair(NSObject, "NativeObjcObjectIvarTest", 0).?;
     try std.testing.expect(Sub.addIvar("_value", @sizeOf(*anyopaque), std.math.log2_int(usize, @alignOf(*anyopaque)), "@"));
-    objc.registerClassPair(Sub);
-    defer objc.disposeClassPair(Sub);
+    rt.registerClassPair(Sub);
+    defer rt.disposeClassPair(Sub);
 
-    const obj = objc.msgSend(Sub, ?*Object, objc.Sel.registerName("new"), .{}).?;
-    defer objc.release(obj);
-    const value = objc.msgSend(NSObject, ?*Object, objc.Sel.registerName("new"), .{}).?;
-    defer objc.release(value);
+    const obj = rt.msgSend(Sub, ?*Object, rt.Sel.registerName("new"), .{}).?;
+    defer rt.release(obj);
+    const value = rt.msgSend(NSObject, ?*Object, rt.Sel.registerName("new"), .{}).?;
+    defer rt.release(value);
 
     const ivar = Sub.getInstanceVariable("_value").?;
     try std.testing.expectEqual(null, obj.getIvar(ivar));
@@ -94,9 +94,9 @@ test "Object: getIvar / setIvar / getInstanceVariable / copy / dispose" {
     try std.testing.expectEqual(value, copied.getIvar(ivar).?);
     copied.dispose();
 
-    const allocated = objc.msgSend(objc.getClass("NSNumber").?, ?*Object, objc.Sel.registerName("alloc"), .{}).?;
-    const number = objc.msgSend(allocated, ?*Object, objc.Sel.registerName("initWithInteger:"), .{@as(isize, 42)}).?;
-    defer objc.release(number);
+    const allocated = rt.msgSend(rt.getClass("NSNumber").?, ?*Object, rt.Sel.registerName("alloc"), .{}).?;
+    const number = rt.msgSend(allocated, ?*Object, rt.Sel.registerName("initWithInteger:"), .{@as(isize, 42)}).?;
+    defer rt.release(number);
     obj.setIvar(ivar, number);
     try std.testing.expectEqual(number, obj.getIvar(ivar).?);
     try std.testing.expectEqual(ivar, obj.getInstanceVariable("_value", &raw).?);

@@ -31,14 +31,14 @@ pub fn setEnumerationMutationHandler(handler: ?*const fn (*Object) callconv(.c) 
 }
 
 test "NSNumber: associated objects in both directions" {
-    const objc = @import("../root.zig");
-    const NSNumber = objc.getClass("NSNumber").?;
-    const allocated = objc.msgSend(NSNumber, ?*Object, objc.Sel.registerName("alloc"), .{}).?;
-    const number = objc.msgSend(allocated, ?*Object, objc.Sel.registerName("initWithInteger:"), .{@as(isize, 42)}).?;
-    defer objc.release(number);
+    const rt = @import("../root.zig");
+    const NSNumber = rt.getClass("NSNumber").?;
+    const allocated = rt.msgSend(NSNumber, ?*Object, rt.Sel.registerName("alloc"), .{}).?;
+    const number = rt.msgSend(allocated, ?*Object, rt.Sel.registerName("initWithInteger:"), .{@as(isize, 42)}).?;
+    defer rt.release(number);
 
-    const obj = objc.msgSend(objc.getClass("NSObject").?, ?*Object, objc.Sel.registerName("new"), .{}).?;
-    defer objc.release(obj);
+    const obj = rt.msgSend(rt.getClass("NSObject").?, ?*Object, rt.Sel.registerName("new"), .{}).?;
+    defer rt.release(obj);
     const keys = struct {
         var receiver: u8 = 0;
         var value: u8 = 0;
@@ -54,56 +54,56 @@ test "NSNumber: associated objects in both directions" {
 }
 
 test "setAssociatedObject / getAssociatedObject" {
-    const objc = @import("../root.zig");
+    const rt = @import("../root.zig");
     const key = struct {
         var value: u8 = 0;
     };
-    const NSObject = objc.getClass("NSObject").?;
-    const obj = objc.msgSend(NSObject, ?*Object, objc.Sel.registerName("new"), .{}).?;
-    defer objc.release(obj);
-    const value = objc.msgSend(NSObject, ?*Object, objc.Sel.registerName("new"), .{}).?;
-    defer objc.release(value);
+    const NSObject = rt.getClass("NSObject").?;
+    const obj = rt.msgSend(NSObject, ?*Object, rt.Sel.registerName("new"), .{}).?;
+    defer rt.release(obj);
+    const value = rt.msgSend(NSObject, ?*Object, rt.Sel.registerName("new"), .{}).?;
+    defer rt.release(value);
 
     try std.testing.expectEqual(null, getAssociatedObject(obj, &key.value));
     setAssociatedObject(obj, &key.value, value, .retain);
-    try std.testing.expectEqual(2, objc.msgSend(value, usize, objc.Sel.registerName("retainCount"), .{}));
+    try std.testing.expectEqual(2, rt.msgSend(value, usize, rt.Sel.registerName("retainCount"), .{}));
     {
         // With an atomic policy the getter returns the value retained and autoreleased.
-        const pool = objc.autoreleasePoolPush();
-        defer objc.autoreleasePoolPop(pool);
+        const pool = rt.autoreleasePoolPush();
+        defer rt.autoreleasePoolPop(pool);
         try std.testing.expectEqual(value, getAssociatedObject(obj, &key.value).?);
     }
-    try std.testing.expectEqual(2, objc.msgSend(value, usize, objc.Sel.registerName("retainCount"), .{}));
+    try std.testing.expectEqual(2, rt.msgSend(value, usize, rt.Sel.registerName("retainCount"), .{}));
 
     setAssociatedObject(obj, &key.value, null, .retain);
     try std.testing.expectEqual(null, getAssociatedObject(obj, &key.value));
-    try std.testing.expectEqual(1, objc.msgSend(value, usize, objc.Sel.registerName("retainCount"), .{}));
+    try std.testing.expectEqual(1, rt.msgSend(value, usize, rt.Sel.registerName("retainCount"), .{}));
 
     setAssociatedObject(obj, &key.value, value, .assign);
-    try std.testing.expectEqual(1, objc.msgSend(value, usize, objc.Sel.registerName("retainCount"), .{}));
+    try std.testing.expectEqual(1, rt.msgSend(value, usize, rt.Sel.registerName("retainCount"), .{}));
     setAssociatedObject(obj, &key.value, null, .assign);
 }
 
 test "enumerationMutation / setEnumerationMutationHandler" {
-    const objc = @import("../root.zig");
+    const rt = @import("../root.zig");
     const handler = struct {
         var mutated: ?*Object = null;
         fn f(obj: *Object) callconv(.c) void {
             mutated = obj;
         }
     };
-    const obj = objc.msgSend(objc.getClass("NSObject").?, ?*Object, objc.Sel.registerName("new"), .{}).?;
-    defer objc.release(obj);
+    const obj = rt.msgSend(rt.getClass("NSObject").?, ?*Object, rt.Sel.registerName("new"), .{}).?;
+    defer rt.release(obj);
 
     setEnumerationMutationHandler(&handler.f);
     defer setEnumerationMutationHandler(null);
     enumerationMutation(obj);
     try std.testing.expectEqual(obj, handler.mutated.?);
 
-    const NSNumber = objc.getClass("NSNumber").?;
-    const allocated = objc.msgSend(NSNumber, ?*Object, objc.Sel.registerName("alloc"), .{}).?;
-    const number = objc.msgSend(allocated, ?*Object, objc.Sel.registerName("initWithInteger:"), .{@as(isize, 42)}).?;
-    defer objc.release(number);
+    const NSNumber = rt.getClass("NSNumber").?;
+    const allocated = rt.msgSend(NSNumber, ?*Object, rt.Sel.registerName("alloc"), .{}).?;
+    const number = rt.msgSend(allocated, ?*Object, rt.Sel.registerName("initWithInteger:"), .{@as(isize, 42)}).?;
+    defer rt.release(number);
     enumerationMutation(number);
     try std.testing.expectEqual(number, handler.mutated.?);
 }
