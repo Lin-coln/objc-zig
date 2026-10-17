@@ -20,7 +20,7 @@ pub fn msgSend(target: anytype, comptime Return: type, sel: *Sel, args: anytype)
         else => @compileError("unsupported architecture for objc_msgSend"),
     };
     const f: *const MsgSendFn(@TypeOf(target), Return, @TypeOf(args)) = @ptrCast(send);
-    return @call(.auto, f, .{ target, @as(c.SEL, @ptrCast(sel)) } ++ args);
+    return @call(.auto, f, .{ target, sel } ++ args);
 }
 
 /// Like `msgSend`, but starts the method lookup at `superclass` instead of `target`'s class.
@@ -36,14 +36,14 @@ pub fn msgSendSuper(target: anytype, superclass: *Class, comptime Return: type, 
     };
     var super: c.struct_objc_super = .{ .receiver = @ptrCast(target), .super_class = @ptrCast(superclass) };
     const f: *const MsgSendFn(*c.struct_objc_super, Return, @TypeOf(args)) = @ptrCast(send);
-    return @call(.auto, f, .{ &super, @as(c.SEL, @ptrCast(sel)) } ++ args);
+    return @call(.auto, f, .{ &super, sel } ++ args);
 }
 
 fn MsgSendFn(comptime Target: type, comptime Return: type, comptime Args: type) type {
     const field_types = @typeInfo(Args).@"struct".field_types;
     var param_types: [field_types.len + 2]type = undefined;
     param_types[0] = Target;
-    param_types[1] = c.SEL;
+    param_types[1] = *Sel;
     for (field_types, 0..) |T, i| param_types[i + 2] = T;
     return @Fn(&param_types, &@splat(.{}), Return, .{ .@"callconv" = .c });
 }

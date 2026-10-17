@@ -28,7 +28,7 @@ pub fn Object(comptime T: type) type {
 
         /// Sends the selector named `sel` to the object.
         pub fn msgSend(self: *T, comptime Return: type, sel: [:0]const u8, args: anytype) Return {
-            return objc.rt.msgSend(@as(*objc.rt.Object, @ptrCast(self)), Return, objc.rt.Sel.registerName(sel), args);
+            return objc.rt.msgSend(self, Return, objc.rt.Sel.registerName(sel), args);
         }
 
         /// Reads the Objective-C property `name` as `P`. Honors a `getter=` declaration by resolving the
