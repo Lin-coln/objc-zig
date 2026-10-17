@@ -1,5 +1,6 @@
 const std = @import("std");
 const objc = @import("../root.zig");
+const Class = @import("Class.zig").Class;
 const cast = objc.rt.utils.cast;
 
 /// Returns a set of Objective-C object helpers bound to `T` (any opaque object type). Assemble a
@@ -8,8 +9,15 @@ const cast = objc.rt.utils.cast;
 ///     const h = objc.helpers.Object(Self);
 ///     pub const release = h.release;
 ///     pub const width = h.prop(usize, "width").getter;
+///
+/// `alloc` and `new` forward to `Class(T)`.
 pub fn Object(comptime T: type) type {
+    const cls = Class(T);
+
     return struct {
+        pub const alloc = cls.alloc;
+        pub const new = cls.new;
+
         pub fn retain(self: *T) *T {
             return @ptrCast(objc.rt.retain(@ptrCast(self)));
         }

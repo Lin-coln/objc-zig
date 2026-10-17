@@ -5,12 +5,9 @@ pub const NSMutableData = opaque {
     const Self = @This();
     const h = objc.helpers.Object(Self);
 
+    pub const new = h.new;
     pub const retain = h.retain;
     pub const release = h.release;
-
-    pub fn new() *Self {
-        return @ptrCast(objc.class("NSMutableData").?.new());
-    }
 
     pub const length = h.prop(usize, "length").getter;
     pub const setLength = h.prop(usize, "length").setter;

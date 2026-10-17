@@ -13,7 +13,7 @@ pub const NSError = opaque {
         const domain_string = NSString.init(domain_name) orelse return null;
         defer domain_string.release();
 
-        const allocated: *Self = @ptrCast(objc.class("NSError").?.alloc());
+        const allocated: *Self = h.alloc();
         return h.msgSend(
             allocated,
             ?*Self,

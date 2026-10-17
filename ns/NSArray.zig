@@ -10,7 +10,7 @@ pub fn NSArray(comptime T: type) type {
         pub const release = h.release;
 
         pub fn init(objects: []const *T) *Self {
-            const allocated: *Self = @ptrCast(objc.class("NSArray").?.alloc());
+            const allocated: *Self = h.alloc();
             return h.msgSend(allocated, ?*Self, "initWithObjects:count:", .{ objects.ptr, objects.len }).?;
         }
 

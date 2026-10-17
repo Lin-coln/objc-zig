@@ -10,7 +10,7 @@ pub const NSString = opaque {
     pub const release = h.release;
 
     pub fn init(utf8: []const u8) ?*Self {
-        const allocated: *Self = @ptrCast(objc.class("NSString").?.alloc());
+        const allocated: *Self = h.alloc();
         return h.msgSend(allocated, ?*Self, "initWithBytes:length:encoding:", .{ utf8.ptr, utf8.len, utf8_encoding });
     }
 
