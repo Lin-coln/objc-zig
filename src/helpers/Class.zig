@@ -1,5 +1,6 @@
 const std = @import("std");
 const objc = @import("../root.zig");
+const bindMethod = @import("method.zig").method;
 
 /// Class helpers for a wrapper whose type or type factory is named after its Objective-C class.
 pub fn Class(comptime T: type) type {
@@ -32,20 +33,7 @@ pub fn Class(comptime T: type) type {
             comptime name: [:0]const u8,
             comptime Shape: type,
         ) *const Shape {
-            const fn_info = switch (@typeInfo(Shape)) {
-                .@"fn" => |info| info,
-                else => @compileError("method Shape must be a function type"),
-            };
-            if (fn_info.is_generic or fn_info.attrs.varargs)
-                @compileError("method Shape must have fixed, non-generic parameters");
-
-            const Static = struct {
-                fn call(args: std.meta.ArgsTuple(Shape)) fn_info.return_type.? {
-                    return msgSend(fn_info.return_type.?, name, args);
-                }
-            };
-
-            return objc.utils.spreadArgs(Static.call, fn_info.attrs.@"callconv");
+            return bindMethod(name, Shape, msgSend);
         }
 
         /// Binds a void class method whose last Shape parameter is a block function type.

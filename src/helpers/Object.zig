@@ -1,6 +1,8 @@
 const std = @import("std");
 const objc = @import("../root.zig");
 const Class = @import("Class.zig").Class;
+const bindMethod = @import("method.zig").method;
+const prependArgs = @import("method.zig").prependArgs;
 const cast = objc.utils.cast;
 
 /// Returns a set of Objective-C object helpers bound to `T` (any opaque object type). Assemble a
@@ -26,6 +28,18 @@ pub fn Object(comptime T: type) type {
         /// Sends the selector named `sel` to the object.
         pub fn msgSend(self: *T, comptime Return: type, sel: [:0]const u8, args: anytype) Return {
             return objc.rt.msgSend(self, Return, objc.rt.Sel.registerName(sel), args);
+        }
+
+        /// Binds an instance method, prepending `*T` to the declared Shape.
+        pub fn method(comptime name: [:0]const u8, comptime Shape: type) prependArgs(Shape, &.{*T}) {
+            const Static = struct {
+                fn send(comptime Return: type, sel: [:0]const u8, args: anytype) Return {
+                    var method_args: std.meta.ArgsTuple(Shape) = undefined;
+                    inline for (0..method_args.len) |i| method_args[i] = args[i + 1];
+                    return msgSend(args[0], Return, sel, method_args);
+                }
+            };
+            return bindMethod(name, prependArgs(Shape, &.{*T}), Static.send).*;
         }
 
         /// Reads the instance property `name` as `P`, using the class bound to `T` for metadata.
@@ -67,6 +81,26 @@ pub fn Object(comptime T: type) type {
             };
         }
     };
+}
+
+test "helpers.Object: method binds instance receivers and arguments" {
+    const NSMutableData = opaque {
+        const Self = @This();
+        const h = Object(Self);
+
+        pub const length = h.method("length", fn () usize);
+        pub const setLength = h.method("setLength:", fn (usize) void);
+    };
+    const h = Object(NSMutableData);
+    const first = h.cls.new();
+    defer h.release(first);
+    const second = h.cls.new();
+    defer h.release(second);
+
+    first.setLength(7);
+    second.setLength(12);
+    try std.testing.expectEqual(7, first.length());
+    try std.testing.expectEqual(12, second.length());
 }
 
 test "helpers.Object: property / setProperty" {
