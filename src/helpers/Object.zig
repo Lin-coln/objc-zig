@@ -1,7 +1,7 @@
 const std = @import("std");
 const objc = @import("../root.zig");
 const Class = @import("Class.zig").Class;
-const cast = objc.rt.utils.cast;
+const cast = objc.utils.cast;
 
 /// Returns a set of Objective-C object helpers bound to `T` (any opaque object type). Assemble a
 /// wrapper by picking the pieces you want:

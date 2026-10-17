@@ -1,6 +1,6 @@
 const std = @import("std");
 const objc = @import("objc");
-const cast = objc.rt.utils.cast;
+const cast = objc.utils.cast;
 
 pub const NSNumber = opaque {
     const Self = @This();
