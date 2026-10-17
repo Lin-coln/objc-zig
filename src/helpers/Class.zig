@@ -21,7 +21,8 @@ pub fn Class(comptime T: type) type {
             return objc.rt.msgSend(getClass(), Return, objc.rt.Sel.registerName(sel), args);
         }
 
-        fn getClass() *objc.rt.Class {
+        /// Returns the Objective-C class bound to the wrapper type.
+        pub fn getClass() *objc.rt.Class {
             return objc.rt.getClass(class_name).?;
         }
     };

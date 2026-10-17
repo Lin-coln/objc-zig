@@ -31,11 +31,10 @@ pub fn Object(comptime T: type) type {
             return objc.rt.msgSend(self, Return, objc.rt.Sel.registerName(sel), args);
         }
 
-        /// Reads the Objective-C property `name` as `P`. Honors a `getter=` declaration by resolving the
-        /// property's `G` attribute at runtime, falling back to `name` itself as the getter selector.
+        /// Reads the instance property `name` as `P`, using the class bound to `T` for metadata.
+        /// Honors its `G` attribute, falling back to `name` itself as the getter selector.
         pub fn property(self: *T, comptime P: type, name: [:0]const u8) P {
-            const class = @as(*objc.rt.Object, @ptrCast(self)).getClass();
-            const getter = if (class.getProperty(name)) |metadata| metadata.copyAttributeValue("G") else null;
+            const getter = if (cls.getClass().getProperty(name)) |metadata| metadata.copyAttributeValue("G") else null;
             defer if (getter) |custom| std.c.free(custom.ptr);
 
             const selector = getter orelse name;
@@ -71,8 +70,9 @@ pub fn Object(comptime T: type) type {
 }
 
 test "helpers.Object: property / setProperty" {
-    const h = Object(objc.rt.Object);
-    const data = objc.rt.msgSend(objc.rt.getClass("NSMutableData").?, ?*objc.rt.Object, objc.rt.Sel.registerName("new"), .{}).?;
+    const NSMutableData = opaque {};
+    const h = Object(NSMutableData);
+    const data = h.new();
     defer h.release(data);
 
     h.setProperty(data, "length", @as(usize, 8));
@@ -80,9 +80,10 @@ test "helpers.Object: property / setProperty" {
 }
 
 test "helpers.Object: prop getter and setter" {
-    const h = Object(objc.rt.Object);
+    const NSMutableData = opaque {};
+    const h = Object(NSMutableData);
     const length = h.prop(usize, "length");
-    const data = objc.rt.msgSend(objc.rt.getClass("NSMutableData").?, ?*objc.rt.Object, objc.rt.Sel.registerName("new"), .{}).?;
+    const data = h.new();
     defer h.release(data);
 
     length.setter(data, 12);
@@ -90,11 +91,12 @@ test "helpers.Object: prop getter and setter" {
 }
 
 test "helpers.Object: property honors a custom getter" {
-    const h = Object(objc.rt.Object);
-    const operation = objc.rt.msgSend(objc.rt.getClass("NSOperation").?, ?*objc.rt.Object, objc.rt.Sel.registerName("new"), .{}).?;
+    const NSOperation = opaque {};
+    const h = Object(NSOperation);
+    const operation = h.new();
     defer h.release(operation);
 
-    const cancelled = operation.getClass().getProperty("cancelled").?;
+    const cancelled = Class(NSOperation).getClass().getProperty("cancelled").?;
     const getter = cancelled.copyAttributeValue("G").?;
     defer std.c.free(getter.ptr);
     try std.testing.expectEqualStrings("isCancelled", getter);
