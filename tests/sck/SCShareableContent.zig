@@ -15,9 +15,9 @@ pub const SCShareableContent = opaque {
     pub const windows = h.prop(*ns.NSArray(SCWindow), "windows").getter;
 
     /// The context pointer must remain valid until the completion handler returns.
-    pub const getShareableContent = h.cls.methodWithBlock(
+    pub const getShareableContent = h.cls.methodWithCallback(
         "getShareableContentWithCompletionHandler:",
-        fn (?*Self, ?*ns.NSError) void,
+        fn (fn (?*Self, ?*ns.NSError) void) void,
     );
 
     /// Returns retained content, or null on failure. The caller must release the result.
@@ -29,20 +29,19 @@ pub const SCShareableContent = opaque {
             semaphore: dispatch.semaphore_t,
             content: ?*Self = null,
         };
-        const complete = struct {
-            fn f(state: *State, content: ?*Self, err: ?*ns.NSError) void {
-                const signal = state.semaphore;
-                defer dispatch.release(signal.as_object());
-
-                if (err == null) state.content = if (content) |value| value.retain() else null;
-                _ = dispatch.semaphore_signal(signal);
-            }
-        }.f;
 
         var state: State = .{ .semaphore = semaphore };
         // Keep the semaphore alive until the callback finishes signaling it.
         dispatch.retain(semaphore.as_object());
-        getShareableContent(*State, &state, complete);
+        getShareableContent(&state, struct {
+            fn f(s: *State, content: ?*Self, err: ?*ns.NSError) void {
+                const signal = s.semaphore;
+                defer dispatch.release(signal.as_object());
+
+                if (err == null) s.content = if (content) |value| value.retain() else null;
+                _ = dispatch.semaphore_signal(signal);
+            }
+        }.f);
         _ = dispatch.semaphore_wait(semaphore, .FOREVER);
         return state.content;
     }
@@ -76,7 +75,7 @@ test "SCShareableContent: getShareableContent invokes a Zig Block" {
         var state: State = .{};
     };
     const state = &Storage.state;
-    SCShareableContent.getShareableContent(*State, state, State.complete);
+    SCShareableContent.getShareableContent(state, State.complete);
     try state.ready.waitTimeout(std.testing.io, .{ .duration = .{
         .raw = .fromSeconds(10),
         .clock = .awake,
