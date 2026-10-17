@@ -35,8 +35,11 @@ pub fn Object(comptime T: type) type {
             defer if (getter) |custom| std.c.free(custom.ptr);
 
             const selector = getter orelse name;
-            if (P == bool) return cast.bool(msgSend(self, objc.c.BOOL, selector, .{}));
-            return msgSend(self, P, selector, .{});
+            if (P == bool) {
+                return cast.bool(msgSend(self, objc.c.BOOL, selector, .{}));
+            } else {
+                return msgSend(self, P, selector, .{});
+            }
         }
 
         /// Writes `value` to the Objective-C property `name` via its `set<Name>:` setter.

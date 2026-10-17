@@ -14,9 +14,11 @@ pub const SCShareableContent = opaque {
 
     pub const windows = h.prop(*ns.NSArray(SCWindow), "windows").getter;
 
-    pub fn getShareableContent(completion_handler: anytype) void {
-        h.cls.msgSend(void, "getShareableContentWithCompletionHandler:", .{completion_handler});
-    }
+    /// The context pointer must remain valid until the completion handler returns.
+    pub const getShareableContent = h.cls.methodWithBlock(
+        "getShareableContentWithCompletionHandler:",
+        fn (?*Self, ?*ns.NSError) void,
+    );
 
     /// Returns retained content, or null on failure. The caller must release the result.
     pub fn getShareableContentSync() ?*Self {
@@ -38,10 +40,9 @@ pub const SCShareableContent = opaque {
         }.f;
 
         var state: State = .{ .semaphore = semaphore };
-        const handler = objc.helpers.block.initWithContext(&state, complete);
         // Keep the semaphore alive until the callback finishes signaling it.
         dispatch.retain(semaphore.as_object());
-        getShareableContent(&handler);
+        getShareableContent(*State, &state, complete);
         _ = dispatch.semaphore_wait(semaphore, .FOREVER);
         return state.content;
     }
@@ -51,39 +52,41 @@ test "SCShareableContent: getShareableContent invokes a Zig Block" {
     // This query needs Screen Recording permission. Preflight never requests it.
     if (!macos.CGPreflightScreenCaptureAccess()) return error.SkipZigTest;
 
-    const Completion = objc.Block(void, fn (?*SCShareableContent, ?*ns.NSError) void);
     const State = struct {
-        // Static storage remains valid if the callback arrives after the timeout.
-        var ready: std.Io.Semaphore = .{};
-        var received_content = false;
-        var received_error = false;
-        var error_code: isize = 0;
+        ready: std.Io.Semaphore = .{},
+        received_content: bool = false,
+        received_error: bool = false,
+        error_code: isize = 0,
 
-        fn complete(_: *const Completion, content: ?*SCShareableContent, err: ?*ns.NSError) callconv(.c) void {
+        fn complete(state: *@This(), content: ?*SCShareableContent, err: ?*ns.NSError) void {
             if (content) |value| {
                 _ = value.windows().count();
-                received_content = true;
+                state.received_content = true;
             }
             if (err) |value| {
-                received_error = true;
-                error_code = value.code();
+                state.received_error = true;
+                state.error_code = value.code();
             }
-            ready.post(std.testing.io);
+            state.ready.post(std.testing.io);
         }
     };
 
-    const handler = Completion.init({}, &State.complete);
-    SCShareableContent.getShareableContent(&handler);
-    try State.ready.waitTimeout(std.testing.io, .{ .duration = .{
+    const Storage = struct {
+        // Static storage remains valid if the callback arrives after the timeout.
+        var state: State = .{};
+    };
+    const state = &Storage.state;
+    SCShareableContent.getShareableContent(*State, state, State.complete);
+    try state.ready.waitTimeout(std.testing.io, .{ .duration = .{
         .raw = .fromSeconds(10),
         .clock = .awake,
     } });
 
-    if (State.received_error) {
-        std.debug.print("SCShareableContent failed with NSError code {d}\n", .{State.error_code});
+    if (state.received_error) {
+        std.debug.print("SCShareableContent failed with NSError code {d}\n", .{state.error_code});
         return error.ShareableContentFailed;
     }
-    try std.testing.expect(State.received_content);
+    try std.testing.expect(state.received_content);
 }
 
 test "SCShareableContent: getShareableContentSync returns retained content" {
