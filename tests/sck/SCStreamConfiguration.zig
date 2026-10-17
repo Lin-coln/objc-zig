@@ -5,7 +5,7 @@ pub const SCStreamConfiguration = opaque {
     const Self = @This();
     const h = objc.helpers.Object(Self);
 
-    pub const new = h.new;
+    pub const new = h.cls.new;
     pub const release = h.release;
 
     pub const width = h.prop(usize, "width").getter;

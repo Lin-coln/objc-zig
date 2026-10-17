@@ -10,13 +10,10 @@ const cast = objc.rt.utils.cast;
 ///     pub const release = h.release;
 ///     pub const width = h.prop(usize, "width").getter;
 ///
-/// `alloc` and `new` forward to `Class(T)`.
+/// Class helpers such as `alloc`, `new`, and class `msgSend` are available through `h.cls`.
 pub fn Object(comptime T: type) type {
-    const cls = Class(T);
-
     return struct {
-        pub const alloc = cls.alloc;
-        pub const new = cls.new;
+        pub const cls = Class(T);
 
         pub fn retain(self: *T) *T {
             return @ptrCast(objc.rt.retain(@ptrCast(self)));
@@ -72,7 +69,7 @@ pub fn Object(comptime T: type) type {
 test "helpers.Object: property / setProperty" {
     const NSMutableData = opaque {};
     const h = Object(NSMutableData);
-    const data = h.new();
+    const data = h.cls.new();
     defer h.release(data);
 
     h.setProperty(data, "length", @as(usize, 8));
@@ -83,7 +80,7 @@ test "helpers.Object: prop getter and setter" {
     const NSMutableData = opaque {};
     const h = Object(NSMutableData);
     const length = h.prop(usize, "length");
-    const data = h.new();
+    const data = h.cls.new();
     defer h.release(data);
 
     length.setter(data, 12);
@@ -93,10 +90,10 @@ test "helpers.Object: prop getter and setter" {
 test "helpers.Object: property honors a custom getter" {
     const NSOperation = opaque {};
     const h = Object(NSOperation);
-    const operation = h.new();
+    const operation = h.cls.new();
     defer h.release(operation);
 
-    const cancelled = Class(NSOperation).getClass().getProperty("cancelled").?;
+    const cancelled = h.cls.getClass().getProperty("cancelled").?;
     const getter = cancelled.copyAttributeValue("G").?;
     defer std.c.free(getter.ptr);
     try std.testing.expectEqualStrings("isCancelled", getter);

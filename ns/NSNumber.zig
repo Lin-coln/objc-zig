@@ -17,7 +17,7 @@ pub const NSNumber = opaque {
             else => @compileError("NSNumber.init supports only isize, f64, and bool"),
         };
 
-        const allocated: *Self = h.alloc();
+        const allocated: *Self = h.cls.alloc();
         const argument = if (T == bool) cast.BOOL(value) else value;
         return h.msgSend(allocated, ?*Self, selector, .{argument}).?;
     }

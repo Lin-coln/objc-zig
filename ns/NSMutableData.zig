@@ -5,7 +5,7 @@ pub const NSMutableData = opaque {
     const Self = @This();
     const h = objc.helpers.Object(Self);
 
-    pub const new = h.new;
+    pub const new = h.cls.new;
     pub const retain = h.retain;
     pub const release = h.release;
 

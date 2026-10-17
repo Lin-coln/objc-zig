@@ -8,7 +8,6 @@ const SCWindow = @import("SCWindow.zig").SCWindow;
 pub const SCShareableContent = opaque {
     const Self = @This();
     const h = objc.helpers.Object(Self);
-    const cls = objc.helpers.Class(Self);
 
     pub const retain = h.retain;
     pub const release = h.release;
@@ -16,7 +15,7 @@ pub const SCShareableContent = opaque {
     pub const windows = h.prop(*ns.NSArray(SCWindow), "windows").getter;
 
     pub fn getShareableContent(completion_handler: anytype) void {
-        cls.msgSend(void, "getShareableContentWithCompletionHandler:", .{completion_handler});
+        h.cls.msgSend(void, "getShareableContentWithCompletionHandler:", .{completion_handler});
     }
 
     /// Returns retained content, or null on failure. The caller must release the result.
