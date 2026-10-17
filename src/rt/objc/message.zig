@@ -1,3 +1,4 @@
+const std = @import("std");
 const builtin = @import("builtin");
 const c = @import("../../c.zig").c;
 const Class = @import("../Class.zig").Class;
@@ -46,4 +47,42 @@ fn MsgSendFn(comptime Target: type, comptime Return: type, comptime Args: type) 
     param_types[1] = *Sel;
     for (field_types, 0..) |T, i| param_types[i + 2] = T;
     return @Fn(&param_types, &@splat(.{}), Return, .{ .@"callconv" = .c });
+}
+
+test "msgSend / msgSendSuper: class and instance targets, arguments, integer and large struct returns" {
+    const objc = @import("../root.zig");
+    const Big = extern struct { x: u64, y: u64, z: u64 };
+    const impl = struct {
+        fn hash(_: *objc.Object, _: c.SEL) callconv(.c) usize {
+            return 42;
+        }
+        fn big(_: *objc.Object, _: c.SEL, x: u64) callconv(.c) Big {
+            return .{ .x = x, .y = x + 1, .z = x + 2 };
+        }
+    };
+    const NSObject = objc.getClass("NSObject").?;
+    const Sub = objc.allocateClassPair(NSObject, "NativeObjcMsgSendTest", 0).?;
+    try std.testing.expect(Sub.addMethod(Sel.registerName("hash"), &impl.hash, "Q@:"));
+    try std.testing.expect(Sub.addMethod(Sel.registerName("big:"), &impl.big, "{Big=QQQ}@:Q"));
+    objc.registerClassPair(Sub);
+    defer objc.disposeClassPair(Sub);
+
+    const obj = msgSend(Sub, ?*Object, Sel.registerName("new"), .{}).?;
+    defer objc.release(obj);
+
+    try std.testing.expectEqual(42, msgSend(obj, usize, Sel.registerName("hash"), .{}));
+    // NSObject's -hash returns the object's address.
+    try std.testing.expectEqual(@intFromPtr(obj), msgSendSuper(obj, NSObject, usize, Sel.registerName("hash"), .{}));
+    try std.testing.expectEqual(Big{ .x = 7, .y = 8, .z = 9 }, msgSend(obj, Big, Sel.registerName("big:"), .{@as(u64, 7)}));
+}
+
+test "msgSend / msgSendSuper: NSNumber receiver" {
+    const objc = @import("../root.zig");
+    const NSNumber = objc.getClass("NSNumber").?;
+    const allocated = msgSend(NSNumber, ?*Object, Sel.registerName("alloc"), .{}).?;
+    const number = msgSend(allocated, ?*Object, Sel.registerName("initWithInteger:"), .{@as(isize, 42)}).?;
+    defer objc.release(number);
+
+    try std.testing.expectEqual(42, msgSend(number, isize, Sel.registerName("integerValue"), .{}));
+    try std.testing.expectEqual(number.getClass(), msgSendSuper(number, objc.getClass("NSObject").?, *Class, Sel.registerName("class"), .{}));
 }
