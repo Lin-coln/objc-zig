@@ -2,12 +2,8 @@ comptime {
     _ = @import("basic/runtime.zig");
     _ = @import("block_interop.zig");
 
-    _ = @import("sck/SCStreamConfiguration.zig");
-    _ = @import("sck/SCShareableContent.zig");
-    _ = @import("sck/SCWindow.zig");
-    _ = @import("sck/SCRunningApplication.zig");
-    _ = @import("sck/SCContentFilter.zig");
-    _ = @import("sck/SCStream.zig");
+    _ = @import("sck/shareable_content.zig");
+    _ = @import("sck/stream.zig");
 
     _ = @import("mtl/MTLDevice.zig");
     _ = @import("mtl/MTLTextureDescriptor.zig");

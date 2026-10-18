@@ -9,6 +9,7 @@
         "build.zig.zon",
         "src",
         "ns",
+        "sck",
         "tests",
         "translate",
     },

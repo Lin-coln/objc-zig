@@ -1,12 +1,10 @@
 const std = @import("std");
 const objc = @import("objc");
 const ns = @import("objc/ns");
-const macos = @import("macos");
 const SCContentFilter = @import("SCContentFilter.zig").SCContentFilter;
 const SCStreamConfiguration = @import("SCStreamConfiguration.zig").SCStreamConfiguration;
 const SCStreamDelegate = @import("SCStreamDelegate.zig").SCStreamDelegate;
 const SCStreamOutput = @import("SCStreamOutput.zig").SCStreamOutput;
-const SCShareableContent = @import("SCShareableContent.zig").SCShareableContent;
 const dispatch = std.c.dispatch;
 
 /// SCStreamOutputType from ScreenCaptureKit/SCStream.h.
@@ -50,24 +48,3 @@ pub const SCStream = opaque {
     pub const stopCaptureSync = h.methodSync("stopCaptureWithCompletionHandler:", fn () anyerror!void);
     pub const updateConfigurationSync = h.methodSync("updateConfiguration:completionHandler:", fn (*SCStreamConfiguration) anyerror!void);
 };
-
-test "SCStream: initialize and update configuration" {
-    std.testing.refAllDecls(SCStream);
-    if (!macos.CGPreflightScreenCaptureAccess()) return error.SkipZigTest;
-    // Initialize CoreGraphics in this command-line test process before creating a filter.
-    _ = macos.CGMainDisplayID();
-    const content = try SCShareableContent.getShareableContentSync();
-    defer content.release();
-    const windows = content.windows();
-    if (windows.count() == 0) return error.SkipZigTest;
-    const filter = SCContentFilter.init(windows.objectAtIndex(0));
-    defer filter.release();
-    const configuration = SCStreamConfiguration.new();
-    defer configuration.release();
-    configuration.setWidth(128);
-    configuration.setHeight(72);
-    const stream = SCStream.init(filter, configuration, null);
-    defer stream.release();
-    configuration.setQueueDepth(4);
-    try stream.updateConfigurationSync(configuration);
-}

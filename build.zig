@@ -118,6 +118,31 @@ pub fn build(b: *std.Build) void {
         break :blk mod;
     };
 
+    const sck = blk: {
+        const options: std.Build.Module.CreateOptions = .{
+            .root_source_file = b.path("sck/root.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "objc", .module = objc },
+                .{ .name = "objc/ns", .module = ns },
+                .{ .name = "macos", .module = macos },
+            },
+        };
+
+        const mod = b.addModule("objc/sck", options);
+        mod.linkFramework("ScreenCaptureKit", .{ .needed = true });
+
+        const test_mod = b.createModule(options);
+        test_mod.linkFramework("ScreenCaptureKit", .{ .needed = true });
+        test_mod.linkFramework("CoreGraphics", .{});
+        test_mod.linkFramework("CoreMedia", .{});
+
+        const tests = b.addTest(.{ .root_module = test_mod });
+        test_step.dependOn(&b.addRunArtifact(tests).step);
+        break :blk mod;
+    };
+
     const objc_tests = blk: {
         const mod = b.createModule(.{
             .root_source_file = b.path("tests/tests.zig"),
@@ -126,14 +151,13 @@ pub fn build(b: *std.Build) void {
             .imports = &.{
                 .{ .name = "objc", .module = objc },
                 .{ .name = "objc/ns", .module = ns },
+                .{ .name = "objc/sck", .module = sck },
                 .{ .name = "macos", .module = macos },
                 .{ .name = "macos/mtl-abi", .module = mtl_abi },
             },
         });
 
-        mod.linkFramework("ScreenCaptureKit", .{});
         mod.linkFramework("CoreGraphics", .{});
-        mod.linkFramework("CoreMedia", .{});
         mod.linkFramework("CoreVideo", .{});
         mod.linkFramework("IOSurface", .{});
         mod.linkFramework("Metal", .{});
