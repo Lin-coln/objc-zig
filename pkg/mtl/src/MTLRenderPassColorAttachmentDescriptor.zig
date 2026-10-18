@@ -1,5 +1,5 @@
 const objc = @import("objc");
-const mtl = @import("macos/mtl-abi");
+const mtl = @import("mtl-abi");
 const MTLTexture = @import("MTLTexture.zig").MTLTexture;
 
 pub const MTLRenderPassColorAttachmentDescriptor = opaque {

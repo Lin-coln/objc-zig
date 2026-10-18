@@ -1,5 +1,5 @@
 const objc = @import("objc");
-const mtl = @import("macos/mtl-abi");
+const mtl = @import("mtl-abi");
 const MTLRenderPipelineState = @import("MTLRenderPipelineState.zig").MTLRenderPipelineState;
 const MTLTexture = @import("MTLTexture.zig").MTLTexture;
 

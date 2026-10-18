@@ -5,7 +5,7 @@
 // translated as C. This C ABI subset follows the corresponding SDK headers.
 // TODO: Replace manual declarations with a small libclang-based extractor:
 // parse the official Objective-C headers, select the required symbols and their
-// dependencies, and emit a pure C header for addTranslateC (macos/mtl-abi).
+// dependencies, and emit a pure C header for addTranslateC (mtl-abi).
 // Extract enum types/values, record layouts, typedefs and C function prototypes;
 // keep Objective-C class/protocol/method wrappers outside the generated ABI.
 

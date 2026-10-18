@@ -1,6 +1,6 @@
 const std = @import("std");
 const objc = @import("objc");
-const mtl = @import("macos/mtl-abi");
+const mtl = @import("mtl-abi");
 const MTLRenderPassColorAttachmentDescriptorArray = @import("MTLRenderPassColorAttachmentDescriptorArray.zig").MTLRenderPassColorAttachmentDescriptorArray;
 
 pub const MTLRenderPassDescriptor = opaque {

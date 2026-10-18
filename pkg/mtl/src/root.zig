@@ -1,4 +1,4 @@
-pub const c = @import("macos/mtl-abi");
+pub const c = @import("mtl-abi");
 
 pub const MTLBlitCommandEncoder = @import("MTLBlitCommandEncoder.zig").MTLBlitCommandEncoder;
 pub const MTLCommandBuffer = @import("MTLCommandBuffer.zig").MTLCommandBuffer;

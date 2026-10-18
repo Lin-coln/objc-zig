@@ -1,5 +1,5 @@
 const objc = @import("objc");
-const ns = @import("objc/ns");
+const ns = @import("obzc-ns");
 const MTLFunction = @import("MTLFunction.zig").MTLFunction;
 
 pub const MTLLibrary = opaque {
