@@ -1,59 +1,11 @@
 const std = @import("std");
 const objc = @import("objc");
-const ns = @import("objc/ns");
-const macos = @import("macos");
-const VNRequest = @import("VNRequest.zig").VNRequest;
-const VNRecognizeTextRequest = @import("VNRecognizeTextRequest.zig").VNRecognizeTextRequest;
-
-pub const VNImageRequestHandler = opaque {
-    const Self = @This();
-    const h = objc.helpers.Object(Self);
-    const Options = ns.NSDictionary(ns.NSString, objc.rt.Object);
-
-    pub const retain = h.retain;
-    pub const release = h.release;
-
-    /// Retains the image source, which must not be modified while the handler is alive.
-    pub fn initWithData(data: *ns.NSData, options: *Options) *Self {
-        const initialize = h.method("initWithData:options:", fn (*ns.NSData, *Options) *Self);
-        return initialize(h.cls.alloc(), data, options);
-    }
-
-    /// Retains the image source, which must not be modified while the handler is alive.
-    pub fn initWithCVPixelBuffer(pixel_buffer: macos.CVPixelBufferRef, options: *Options) *Self {
-        const initialize = h.method("initWithCVPixelBuffer:options:", fn (macos.CVPixelBufferRef, *Options) *Self);
-        return initialize(h.cls.alloc(), pixel_buffer, options);
-    }
-
-    /// Runs the requests synchronously. An error is borrowed from the current autorelease pool.
-    pub fn performRequests(self: *Self, requests: *ns.NSArray(VNRequest), err: ?*?*ns.NSError) bool {
-        const perform = h.method("performRequests:error:", fn (*ns.NSArray(VNRequest), ?*?*ns.NSError) objc.c.BOOL);
-        return objc.utils.cast.bool(perform(self, requests, err));
-    }
-};
-
-test "VNImageRequestHandler: invalid image data fails without producing results" {
-    const pool = objc.AutoReleasePool.create();
-    defer pool.release();
-    const data = ns.NSData.init("not an image");
-    defer data.release();
-    const options = ns.NSDictionary(ns.NSString, objc.rt.Object).new();
-    defer options.release();
-    const handler = VNImageRequestHandler.initWithData(data, options);
-    defer handler.release();
-    const request = VNRecognizeTextRequest.new();
-    defer request.release();
-    const requests = ns.NSArray(VNRequest).init(&.{@ptrCast(request)});
-    defer requests.release();
-
-    var err: ?*ns.NSError = null;
-    try std.testing.expect(!handler.performRequests(requests, &err));
-    try std.testing.expect(request.results() == null);
-    if (err) |failure| {
-        try std.testing.expect(failure.domain().utf8String().len > 0);
-        try std.testing.expect(failure.localizedDescription().utf8String().len > 0);
-    }
-}
+const ns = @import("obzc-ns");
+const macos = @import("macos/abi");
+const vision = @import("obzc-vision");
+const VNRequest = vision.VNRequest;
+const VNRecognizeTextRequest = vision.VNRecognizeTextRequest;
+const VNImageRequestHandler = vision.VNImageRequestHandler;
 
 test "VNImageRequestHandler: perform text recognition on a pixel buffer" {
     const pool = objc.AutoReleasePool.create();

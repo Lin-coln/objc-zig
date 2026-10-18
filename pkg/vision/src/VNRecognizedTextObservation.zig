@@ -1,7 +1,7 @@
 const std = @import("std");
 const objc = @import("objc");
-const ns = @import("objc/ns");
-const macos = @import("macos");
+const ns = @import("obzc-ns");
+const macos = @import("macos/abi");
 const VNRecognizedText = @import("VNRecognizedText.zig").VNRecognizedText;
 
 pub const VNRecognizedTextObservation = opaque {

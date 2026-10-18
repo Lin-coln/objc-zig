@@ -1,5 +1,5 @@
 const objc = @import("objc");
-const ns = @import("objc/ns");
+const ns = @import("obzc-ns");
 
 pub const VNRecognizedText = opaque {
     const h = objc.helpers.Object(@This());
