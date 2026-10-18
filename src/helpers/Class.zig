@@ -8,14 +8,10 @@ pub fn Class(comptime T: type) type {
 
     return struct {
         /// Sends `alloc` to the class, returning an uninitialized instance to be sent an `init...` message.
-        pub fn alloc() *T {
-            return msgSend(?*T, "alloc", .{}).?;
-        }
+        pub const alloc = method("alloc", fn () *T);
 
         /// Sends `new` to the class, returning a newly allocated and initialized instance.
-        pub fn new() *T {
-            return msgSend(?*T, "new", .{}).?;
-        }
+        pub const new = method("new", fn () *T);
 
         /// Returns the Objective-C class bound to the wrapper type.
         pub fn getClass() *objc.rt.Class {

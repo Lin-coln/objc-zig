@@ -18,7 +18,7 @@ pub const NSString = opaque {
     pub const length = h.prop(usize, "length").getter;
 
     /// The returned slice is borrowed and remains valid only while the string is alive.
-    pub fn utf8String(self: *Self) [:0]const u8 {
+    pub fn utf8String(self: *Self) []const u8 {
         return std.mem.span(h.msgSend(self, [*:0]const u8, "UTF8String", .{}));
     }
 };
