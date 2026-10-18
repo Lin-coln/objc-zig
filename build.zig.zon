@@ -10,6 +10,7 @@
         "src",
         "ns",
         "sck",
+        "mtl",
         "tests",
         "translate",
     },

@@ -143,6 +143,26 @@ pub fn build(b: *std.Build) void {
         break :blk mod;
     };
 
+    const mtl = blk: {
+        const mod = b.addModule("objc/mtl", .{
+            .root_source_file = b.path("mtl/root.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "objc", .module = objc },
+                .{ .name = "objc/ns", .module = ns },
+                .{ .name = "macos", .module = macos },
+                .{ .name = "macos/mtl-abi", .module = mtl_abi },
+            },
+        });
+
+        mod.linkFramework("Metal", .{ .needed = true });
+
+        const tests = b.addTest(.{ .root_module = mod });
+        test_step.dependOn(&b.addRunArtifact(tests).step);
+        break :blk mod;
+    };
+
     const objc_tests = blk: {
         const mod = b.createModule(.{
             .root_source_file = b.path("tests/tests.zig"),
@@ -152,15 +172,14 @@ pub fn build(b: *std.Build) void {
                 .{ .name = "objc", .module = objc },
                 .{ .name = "objc/ns", .module = ns },
                 .{ .name = "objc/sck", .module = sck },
+                .{ .name = "objc/mtl", .module = mtl },
                 .{ .name = "macos", .module = macos },
-                .{ .name = "macos/mtl-abi", .module = mtl_abi },
             },
         });
 
         mod.linkFramework("CoreGraphics", .{});
         mod.linkFramework("CoreVideo", .{});
         mod.linkFramework("IOSurface", .{});
-        mod.linkFramework("Metal", .{});
         mod.linkFramework("Vision", .{});
 
         const tests = b.addTest(.{ .root_module = mod });
