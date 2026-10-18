@@ -16,6 +16,16 @@ pub fn build(b: *std.Build) void {
         break :blk mod;
     };
 
+    const mtl_abi = blk: {
+        const trans = b.addTranslateC(.{
+            .root_source_file = b.path("translate/metal.h"),
+            .target = target,
+            .optimize = optimize,
+        });
+        const mod = trans.addModule("macos/mtl-abi");
+        break :blk mod;
+    };
+
     const abi = blk: {
         const trans = b.addTranslateC(.{
             .root_source_file = b.path("translate/objc.h"),
@@ -117,6 +127,7 @@ pub fn build(b: *std.Build) void {
                 .{ .name = "objc", .module = objc },
                 .{ .name = "objc/ns", .module = ns },
                 .{ .name = "macos", .module = macos },
+                .{ .name = "macos/mtl-abi", .module = mtl_abi },
             },
         });
 
@@ -124,6 +135,8 @@ pub fn build(b: *std.Build) void {
         mod.linkFramework("CoreGraphics", .{});
         mod.linkFramework("CoreMedia", .{});
         mod.linkFramework("CoreVideo", .{});
+        mod.linkFramework("IOSurface", .{});
+        mod.linkFramework("Metal", .{});
 
         const tests = b.addTest(.{ .root_module = mod });
         test_step.dependOn(&b.addRunArtifact(tests).step);

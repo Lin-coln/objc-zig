@@ -8,4 +8,9 @@ comptime {
     _ = @import("sck/SCRunningApplication.zig");
     _ = @import("sck/SCContentFilter.zig");
     _ = @import("sck/SCStream.zig");
+
+    _ = @import("mtl/MTLDevice.zig");
+    _ = @import("mtl/MTLTextureDescriptor.zig");
+    _ = @import("mtl/MTLRenderPipelineDescriptor.zig");
+    _ = @import("mtl/MTLRenderPassDescriptor.zig");
 }
