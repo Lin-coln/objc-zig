@@ -1,10 +1,10 @@
 const std = @import("std");
-const objc = @import("../root.zig");
+const obzc = @import("../root.zig");
 const m = @import("method.zig");
 
 /// Class helpers for a wrapper whose type or type factory is named after its Objective-C class.
 pub fn Class(comptime T: type) type {
-    const class_name = comptime objc.utils.resolveTypeName(@typeName(T));
+    const class_name = comptime obzc.utils.resolveTypeName(@typeName(T));
 
     return struct {
         /// Sends `alloc` to the class, returning an uninitialized instance to be sent an `init...` message.
@@ -14,13 +14,13 @@ pub fn Class(comptime T: type) type {
         pub const new = method("new", fn () *T);
 
         /// Returns the Objective-C class bound to the wrapper type.
-        pub fn getClass() *objc.rt.Class {
-            return objc.rt.getClass(class_name).?;
+        pub fn getClass() *obzc.rt.Class {
+            return obzc.rt.getClass(class_name).?;
         }
 
         /// Sends the selector named `sel` to the class itself (a class method).
         pub fn msgSend(comptime Return: type, sel: [:0]const u8, args: anytype) Return {
-            return objc.rt.msgSend(getClass(), Return, objc.rt.Sel.registerName(sel), args);
+            return obzc.rt.msgSend(getClass(), Return, obzc.rt.Sel.registerName(sel), args);
         }
 
         /// Binds a class method to the signature `Shape`, accepting its arguments directly.
@@ -53,7 +53,7 @@ pub fn Class(comptime T: type) type {
 test "helpers.Class: class messages, new and alloc" {
     const NSMutableData = opaque {};
     const h = Class(NSMutableData);
-    const rt = objc.rt;
+    const rt = obzc.rt;
     const length = rt.Sel.registerName("length");
     const set_length = rt.Sel.registerName("setLength:");
 
@@ -72,10 +72,10 @@ test "helpers.Class: class messages, new and alloc" {
 }
 
 test "helpers.Class: methodWithCallback sends a block and forwards its result" {
-    const rt = objc.rt;
+    const rt = obzc.rt;
     const ZigHelpersBlockMethodTest = opaque {};
     const State = struct { value: i32, calls: usize = 0 };
-    const Completion = objc.Block(*State, fn (i32, f64) i32);
+    const Completion = obzc.Block(*State, fn (i32, f64) i32);
     const Methods = struct {
         var result: i32 = 0;
 
@@ -112,10 +112,10 @@ test "helpers.Class: methodWithCallback sends a block and forwards its result" {
 }
 
 test "helpers.Class: methodSync binds a completion method" {
-    const rt = objc.rt;
+    const rt = obzc.rt;
     const ZigHelpersClassSyncTest = opaque {};
     const State = struct {};
-    const Completion = objc.Block(*State, fn (?*rt.Object) void);
+    const Completion = obzc.Block(*State, fn (?*rt.Object) void);
     const Methods = struct {
         var received: i32 = 0;
 
@@ -135,7 +135,7 @@ test "helpers.Class: methodSync binds a completion method" {
 }
 
 test "helpers.Class: method forwards typed arguments and returns an object" {
-    const rt = objc.rt;
+    const rt = obzc.rt;
     const pool = rt.autoreleasePoolPush();
     defer rt.autoreleasePoolPop(pool);
     const NSMutableData = opaque {};

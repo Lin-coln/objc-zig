@@ -1,13 +1,13 @@
 const std = @import("std");
-const objc = @import("../root.zig");
+const obzc = @import("../root.zig");
 const Class = @import("Class.zig").Class;
 const m = @import("method.zig");
-const cast = objc.utils.cast;
+const cast = obzc.utils.cast;
 
 /// Returns a set of Objective-C object helpers bound to `T` (any opaque object type). Assemble a
 /// wrapper by picking the pieces you want:
 ///
-///     const h = objc.helpers.Object(Self);
+///     const h = obzc.helpers.Object(Self);
 ///     pub const release = h.release;
 ///     pub const width = h.prop(usize, "width").getter;
 ///
@@ -17,16 +17,16 @@ pub fn Object(comptime T: type) type {
         pub const cls = Class(T);
 
         pub fn retain(self: *T) *T {
-            return @ptrCast(objc.rt.retain(@ptrCast(self)));
+            return @ptrCast(obzc.rt.retain(@ptrCast(self)));
         }
 
         pub fn release(self: *T) void {
-            objc.rt.release(@ptrCast(self));
+            obzc.rt.release(@ptrCast(self));
         }
 
         /// Sends the selector named `sel` to the object.
         pub fn msgSend(self: *T, comptime Return: type, sel: [:0]const u8, args: anytype) Return {
-            return objc.rt.msgSend(self, Return, objc.rt.Sel.registerName(sel), args);
+            return obzc.rt.msgSend(self, Return, obzc.rt.Sel.registerName(sel), args);
         }
 
         /// Binds an instance method, prepending `*T` to the declared Shape.
@@ -59,7 +59,7 @@ pub fn Object(comptime T: type) type {
         fn MethodWithCallback(comptime name: [:0]const u8, comptime Shape: type) type {
             return struct {
                 const Binding = m.methodWithCallback(name, Shape, sendMethod);
-                pub const call = objc.utils.spreadArgsWithReceiverAndCallback(*T, Binding.Args, Binding.Callback, invoke);
+                pub const call = obzc.utils.spreadArgsWithReceiverAndCallback(*T, Binding.Args, Binding.Callback, invoke);
 
                 fn invoke(self: *T, ctx: anytype, args: Binding.Args, comptime handler: *const Binding.Callback(@TypeOf(ctx))) void {
                     Binding.invoke(ctx, .{self} ++ args, handler);
@@ -75,7 +75,7 @@ pub fn Object(comptime T: type) type {
 
             const selector = getter orelse name;
             if (P == bool) {
-                return cast.bool(msgSend(self, objc.c.BOOL, selector, .{}));
+                return cast.bool(msgSend(self, obzc.c.BOOL, selector, .{}));
             } else {
                 return msgSend(self, P, selector, .{});
             }
@@ -129,7 +129,7 @@ test "helpers.Object: method binds instance receivers and arguments" {
 }
 
 test "helpers.Object: methodWithCallback forwards instance receivers and arguments" {
-    const rt = objc.rt;
+    const rt = obzc.rt;
     const ZigHelpersInstanceCallbackTest = opaque {
         const h = Object(@This());
 
@@ -137,7 +137,7 @@ test "helpers.Object: methodWithCallback forwards instance receivers and argumen
         pub const performWithValue = h.methodWithCallback("performWithValue:completion:", fn (i32, fn (*rt.Object, i32) i32) void);
     };
     const State = struct { receiver: ?*rt.Object = null, calls: usize = 0, value: i32 = 7 };
-    const Completion = objc.Block(*State, fn (*rt.Object, i32) i32);
+    const Completion = obzc.Block(*State, fn (*rt.Object, i32) i32);
     const Methods = struct {
         var result: i32 = 0;
 
@@ -180,13 +180,13 @@ test "helpers.Object: methodWithCallback forwards instance receivers and argumen
 }
 
 test "helpers.Object: methodSync binds an instance receiver and returns a retained object" {
-    const rt = objc.rt;
+    const rt = obzc.rt;
     const ZigHelpersObjectSyncTest = opaque {
         const Self = @This();
         pub const perform = Object(Self).methodSync("perform:completion:", fn (i32) anyerror!*Self);
     };
     const State = struct {};
-    const Completion = objc.Block(*State, fn (?*ZigHelpersObjectSyncTest, ?*rt.Object) void);
+    const Completion = obzc.Block(*State, fn (?*ZigHelpersObjectSyncTest, ?*rt.Object) void);
     const Methods = struct {
         var received: i32 = 0;
 

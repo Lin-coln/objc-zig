@@ -1,5 +1,5 @@
 const std = @import("std");
-const objc = @import("objc");
+const obzc = @import("obzc");
 const ns = @import("obzc-ns");
 const macos = @import("macos/abi");
 const mtl = @import("mtl-abi");
@@ -13,7 +13,7 @@ const MTLRenderPipelineState = @import("MTLRenderPipelineState.zig").MTLRenderPi
 
 pub const MTLDevice = opaque {
     const Self = @This();
-    const h = objc.helpers.Object(Self);
+    const h = obzc.helpers.Object(Self);
 
     pub const retain = h.retain;
     pub const release = h.release;
@@ -31,7 +31,7 @@ pub const MTLDevice = opaque {
 };
 
 test "MTLDevice: failed shader compilation reports NSError" {
-    const pool = objc.AutoReleasePool.create();
+    const pool = obzc.AutoReleasePool.create();
     defer pool.release();
     const device = MTLDevice.createSystemDefaultDevice() orelse return error.SkipZigTest;
     defer device.release();

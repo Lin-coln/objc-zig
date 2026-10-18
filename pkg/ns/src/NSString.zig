@@ -1,9 +1,9 @@
 const std = @import("std");
-const objc = @import("objc");
+const obzc = @import("obzc");
 
 pub const NSString = opaque {
     const Self = @This();
-    const h = objc.helpers.Object(Self);
+    const h = obzc.helpers.Object(Self);
     const utf8_encoding: usize = 4; // NSUTF8StringEncoding in Foundation/NSString.h.
 
     pub const retain = h.retain;

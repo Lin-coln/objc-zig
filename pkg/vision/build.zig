@@ -5,7 +5,7 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
 
     const test_step = b.step("test", "Run Vision tests");
-    const objc = b.dependency("objc", .{ .target = target, .optimize = optimize }).module("objc");
+    const obzc = b.dependency("obzc", .{ .target = target, .optimize = optimize }).module("obzc");
     const ns = b.dependency("ns", .{ .target = target, .optimize = optimize }).module("obzc-ns");
     const macos = b.dependency("macos", .{ .target = target, .optimize = optimize }).module("abi");
 
@@ -15,7 +15,7 @@ pub fn build(b: *std.Build) void {
             .target = target,
             .optimize = optimize,
             .imports = &.{
-                .{ .name = "objc", .module = objc },
+                .{ .name = "obzc", .module = obzc },
                 .{ .name = "obzc-ns", .module = ns },
                 .{ .name = "macos/abi", .module = macos },
             },
@@ -34,7 +34,7 @@ pub fn build(b: *std.Build) void {
             .target = target,
             .optimize = optimize,
             .imports = &.{
-                .{ .name = "objc", .module = objc },
+                .{ .name = "obzc", .module = obzc },
                 .{ .name = "obzc-ns", .module = ns },
                 .{ .name = "obzc-vision", .module = vision },
                 .{ .name = "macos/abi", .module = macos },

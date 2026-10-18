@@ -1,5 +1,5 @@
 const std = @import("std");
-const objc = @import("objc");
+const obzc = @import("obzc");
 const ns = @import("obzc-ns");
 const mtl = @import("obzc-mtl");
 const c = mtl.c;
@@ -10,7 +10,7 @@ const MTLTextureDescriptor = mtl.MTLTextureDescriptor;
 const MTLRenderPassDescriptor = mtl.MTLRenderPassDescriptor;
 
 test "MTLDevice: compile, render, and copy textures through a command buffer" {
-    const pool = objc.AutoReleasePool.create();
+    const pool = obzc.AutoReleasePool.create();
     defer pool.release();
     const device = MTLDevice.createSystemDefaultDevice() orelse return error.SkipZigTest;
     defer device.release();

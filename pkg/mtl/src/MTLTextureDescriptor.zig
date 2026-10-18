@@ -1,10 +1,10 @@
 const std = @import("std");
-const objc = @import("objc");
+const obzc = @import("obzc");
 const mtl = @import("mtl-abi");
 
 pub const MTLTextureDescriptor = opaque {
     const Self = @This();
-    const h = objc.helpers.Object(Self);
+    const h = obzc.helpers.Object(Self);
 
     pub const retain = h.retain;
     pub const release = h.release;
@@ -12,8 +12,8 @@ pub const MTLTextureDescriptor = opaque {
 
     /// Returns an autoreleased descriptor; retain it to keep it beyond the current pool.
     pub fn texture2DDescriptor(pixel_format: mtl.MTLPixelFormat, width_value: usize, height_value: usize, mipmapped: bool) *Self {
-        const create = h.cls.method("texture2DDescriptorWithPixelFormat:width:height:mipmapped:", fn (mtl.MTLPixelFormat, usize, usize, objc.c.BOOL) *Self);
-        return create(pixel_format, width_value, height_value, objc.utils.cast.BOOL(mipmapped));
+        const create = h.cls.method("texture2DDescriptorWithPixelFormat:width:height:mipmapped:", fn (mtl.MTLPixelFormat, usize, usize, obzc.c.BOOL) *Self);
+        return create(pixel_format, width_value, height_value, obzc.utils.cast.BOOL(mipmapped));
     }
 
     pub const pixelFormat = h.prop(mtl.MTLPixelFormat, "pixelFormat").getter;
@@ -30,7 +30,7 @@ pub const MTLTextureDescriptor = opaque {
 };
 
 test "MTLTextureDescriptor: configure texture dimensions and storage" {
-    const pool = objc.AutoReleasePool.create();
+    const pool = obzc.AutoReleasePool.create();
     defer pool.release();
     const descriptor = MTLTextureDescriptor.texture2DDescriptor(mtl.MTLPixelFormatBGRA8Unorm, 32, 16, false);
     descriptor.setUsage(mtl.MTLTextureUsageShaderRead | mtl.MTLTextureUsageRenderTarget);

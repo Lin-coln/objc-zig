@@ -1,9 +1,9 @@
 const std = @import("std");
-const rt = @import("objc").rt;
-const c = @import("objc").c;
+const rt = @import("obzc").rt;
+const c = @import("obzc").c;
 
-const Block = @import("objc").Block;
-const block = @import("objc").helpers.block;
+const Block = @import("obzc").Block;
+const block = @import("obzc").helpers.block;
 const Object = rt.Object;
 const Sel = rt.Sel;
 

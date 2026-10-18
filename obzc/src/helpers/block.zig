@@ -1,5 +1,5 @@
 const std = @import("std");
-const objc = @import("../root.zig");
+const obzc = @import("../root.zig");
 
 /// Creates a stack block for a handler receiving `ctx` and zero to twelve block arguments.
 /// The context pointer must outlive every invocation, including heap copies.
@@ -38,14 +38,14 @@ pub fn initWithContext(
         }
     };
 
-    return Block.init(ctx, objc.utils.spreadArgs(Static.callback, .c));
+    return Block.init(ctx, obzc.utils.spreadArgs(Static.callback, .c));
 }
 
 fn BlockFromContextHandler(comptime Context: type, fn_info: std.lang.Type.Fn) type {
     var params: [fn_info.param_types.len - 1]type = undefined;
     for (fn_info.param_types[1..], 0..) |T, i| params[i] = T.?;
     const Function = @Fn(&params, &@splat(.{}), fn_info.return_type.?, .{});
-    return objc.Block(Context, Function);
+    return obzc.Block(Context, Function);
 }
 
 test "initWithContext: forwards three arguments and mutates context" {

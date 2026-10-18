@@ -1,5 +1,5 @@
 const std = @import("std");
-const objc = @import("objc");
+const obzc = @import("obzc");
 const ns = @import("obzc-ns");
 const macos = @import("macos/abi");
 const vision = @import("obzc-vision");
@@ -8,7 +8,7 @@ const VNRecognizeTextRequest = vision.VNRecognizeTextRequest;
 const VNImageRequestHandler = vision.VNImageRequestHandler;
 
 test "VNImageRequestHandler: perform text recognition on a pixel buffer" {
-    const pool = objc.AutoReleasePool.create();
+    const pool = obzc.AutoReleasePool.create();
     defer pool.release();
     var pixel_buffer: macos.CVPixelBufferRef = null;
     try std.testing.expectEqual(macos.kCVReturnSuccess, macos.CVPixelBufferCreate(
@@ -24,7 +24,7 @@ test "VNImageRequestHandler: perform text recognition on a pixel buffer" {
     const pixels: [*]u8 = @ptrCast(macos.CVPixelBufferGetBaseAddress(pixel_buffer).?);
     @memset(pixels[0..macos.CVPixelBufferGetDataSize(pixel_buffer)], 255);
     try std.testing.expectEqual(macos.kCVReturnSuccess, macos.CVPixelBufferUnlockBaseAddress(pixel_buffer, 0));
-    const options = ns.NSDictionary(ns.NSString, objc.rt.Object).new();
+    const options = ns.NSDictionary(ns.NSString, obzc.rt.Object).new();
     defer options.release();
     const handler = VNImageRequestHandler.initWithCVPixelBuffer(pixel_buffer, options);
     defer handler.release();
@@ -58,11 +58,11 @@ test "VNImageRequestHandler: perform text recognition on a pixel buffer" {
 }
 
 test "VNImageRequestHandler: recognize text candidates from encoded image data" {
-    const pool = objc.AutoReleasePool.create();
+    const pool = obzc.AutoReleasePool.create();
     defer pool.release();
     const data = ns.NSData.init(@embedFile("fixtures/text.png"));
     defer data.release();
-    const options = ns.NSDictionary(ns.NSString, objc.rt.Object).new();
+    const options = ns.NSDictionary(ns.NSString, obzc.rt.Object).new();
     defer options.release();
     const handler = VNImageRequestHandler.initWithData(data, options);
     defer handler.release();

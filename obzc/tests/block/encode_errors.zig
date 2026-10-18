@@ -1,4 +1,4 @@
-const objc = @import("objc");
+const obzc = @import("obzc");
 const case = @import("case");
 
 const Auto = struct { value: u8 };
@@ -33,5 +33,5 @@ const Cases = struct {
 };
 
 comptime {
-    _ = objc.Block(void, fn (@field(Cases, case.name)) void);
+    _ = obzc.Block(void, fn (@field(Cases, case.name)) void);
 }

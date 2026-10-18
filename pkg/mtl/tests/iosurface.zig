@@ -1,5 +1,5 @@
 const std = @import("std");
-const objc = @import("objc");
+const obzc = @import("obzc");
 const macos = @import("macos/abi");
 const mtl = @import("obzc-mtl");
 const c = mtl.c;
@@ -7,7 +7,7 @@ const MTLDevice = mtl.MTLDevice;
 const MTLTextureDescriptor = mtl.MTLTextureDescriptor;
 
 test "MTLDevice: create a texture backed by an IOSurface" {
-    const pool = objc.AutoReleasePool.create();
+    const pool = obzc.AutoReleasePool.create();
     defer pool.release();
     const device = MTLDevice.createSystemDefaultDevice() orelse return error.SkipZigTest;
     defer device.release();

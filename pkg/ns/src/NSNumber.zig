@@ -1,10 +1,10 @@
 const std = @import("std");
-const objc = @import("objc");
-const cast = objc.utils.cast;
+const obzc = @import("obzc");
+const cast = obzc.utils.cast;
 
 pub const NSNumber = opaque {
     const Self = @This();
-    const h = objc.helpers.Object(Self);
+    const h = obzc.helpers.Object(Self);
 
     pub const retain = h.retain;
     pub const release = h.release;

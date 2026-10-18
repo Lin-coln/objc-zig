@@ -1,11 +1,11 @@
 const std = @import("std");
-const objc = @import("objc");
+const obzc = @import("obzc");
 const ns = @import("obzc-ns");
 const macos = @import("macos/abi");
 const VNRecognizedText = @import("VNRecognizedText.zig").VNRecognizedText;
 
 pub const VNRecognizedTextObservation = opaque {
-    const h = objc.helpers.Object(@This());
+    const h = obzc.helpers.Object(@This());
 
     pub const retain = h.retain;
     pub const release = h.release;
@@ -18,9 +18,9 @@ pub const VNRecognizedTextObservation = opaque {
 };
 
 test "VNRecognizedTextObservation: read a bounding box and confidence" {
-    const pool = objc.AutoReleasePool.create();
+    const pool = obzc.AutoReleasePool.create();
     defer pool.release();
-    const create = objc.helpers.Class(VNRecognizedTextObservation).method(
+    const create = obzc.helpers.Class(VNRecognizedTextObservation).method(
         "observationWithBoundingBox:",
         fn (macos.CGRect) *VNRecognizedTextObservation,
     );

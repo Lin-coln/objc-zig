@@ -1,5 +1,5 @@
 const std = @import("std");
-const objc = @import("objc");
+const obzc = @import("obzc");
 const ns = @import("obzc-ns");
 const macos = @import("macos/abi");
 const VNRequest = @import("VNRequest.zig").VNRequest;
@@ -7,8 +7,8 @@ const VNRecognizeTextRequest = @import("VNRecognizeTextRequest.zig").VNRecognize
 
 pub const VNImageRequestHandler = opaque {
     const Self = @This();
-    const h = objc.helpers.Object(Self);
-    const Options = ns.NSDictionary(ns.NSString, objc.rt.Object);
+    const h = obzc.helpers.Object(Self);
+    const Options = ns.NSDictionary(ns.NSString, obzc.rt.Object);
 
     pub const retain = h.retain;
     pub const release = h.release;
@@ -27,17 +27,17 @@ pub const VNImageRequestHandler = opaque {
 
     /// Runs the requests synchronously. An error is borrowed from the current autorelease pool.
     pub fn performRequests(self: *Self, requests: *ns.NSArray(VNRequest), err: ?*?*ns.NSError) bool {
-        const perform = h.method("performRequests:error:", fn (*ns.NSArray(VNRequest), ?*?*ns.NSError) objc.c.BOOL);
-        return objc.utils.cast.bool(perform(self, requests, err));
+        const perform = h.method("performRequests:error:", fn (*ns.NSArray(VNRequest), ?*?*ns.NSError) obzc.c.BOOL);
+        return obzc.utils.cast.bool(perform(self, requests, err));
     }
 };
 
 test "VNImageRequestHandler: invalid image data fails without producing results" {
-    const pool = objc.AutoReleasePool.create();
+    const pool = obzc.AutoReleasePool.create();
     defer pool.release();
     const data = ns.NSData.init("not an image");
     defer data.release();
-    const options = ns.NSDictionary(ns.NSString, objc.rt.Object).new();
+    const options = ns.NSDictionary(ns.NSString, obzc.rt.Object).new();
     defer options.release();
     const handler = VNImageRequestHandler.initWithData(data, options);
     defer handler.release();

@@ -1,4 +1,4 @@
-const objc = @import("objc");
+const obzc = @import("obzc");
 const ns = @import("obzc-ns");
 const mtl = @import("mtl-abi");
 const MTLRenderPassDescriptor = @import("MTLRenderPassDescriptor.zig").MTLRenderPassDescriptor;
@@ -7,7 +7,7 @@ const MTLBlitCommandEncoder = @import("MTLBlitCommandEncoder.zig").MTLBlitComman
 
 pub const MTLCommandBuffer = opaque {
     const Self = @This();
-    const h = objc.helpers.Object(Self);
+    const h = obzc.helpers.Object(Self);
 
     pub const retain = h.retain;
     pub const release = h.release;

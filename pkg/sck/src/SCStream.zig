@@ -1,5 +1,5 @@
 const std = @import("std");
-const objc = @import("objc");
+const obzc = @import("obzc");
 const ns = @import("obzc-ns");
 const SCContentFilter = @import("SCContentFilter.zig").SCContentFilter;
 const SCStreamConfiguration = @import("SCStreamConfiguration.zig").SCStreamConfiguration;
@@ -16,7 +16,7 @@ pub const SCStreamOutputType = enum(isize) {
 
 pub const SCStream = opaque {
     const Self = @This();
-    const h = objc.helpers.Object(Self);
+    const h = obzc.helpers.Object(Self);
 
     pub const retain = h.retain;
     pub const release = h.release;
@@ -29,14 +29,14 @@ pub const SCStream = opaque {
 
     /// On failure, err receives a borrowed NSError when supplied by the SDK.
     pub fn addStreamOutput(self: *Self, output: *SCStreamOutput, output_type: SCStreamOutputType, sample_handler_queue: ?dispatch.queue_t, err: ?*?*ns.NSError) bool {
-        const add = h.method("addStreamOutput:type:sampleHandlerQueue:error:", fn (*SCStreamOutput, SCStreamOutputType, ?dispatch.queue_t, ?*?*ns.NSError) objc.c.BOOL);
-        return objc.utils.cast.bool(add(self, output, output_type, sample_handler_queue, err));
+        const add = h.method("addStreamOutput:type:sampleHandlerQueue:error:", fn (*SCStreamOutput, SCStreamOutputType, ?dispatch.queue_t, ?*?*ns.NSError) obzc.c.BOOL);
+        return obzc.utils.cast.bool(add(self, output, output_type, sample_handler_queue, err));
     }
 
     /// On failure, err receives a borrowed NSError when supplied by the SDK.
     pub fn removeStreamOutput(self: *Self, output: *SCStreamOutput, output_type: SCStreamOutputType, err: ?*?*ns.NSError) bool {
-        const remove = h.method("removeStreamOutput:type:error:", fn (*SCStreamOutput, SCStreamOutputType, ?*?*ns.NSError) objc.c.BOOL);
-        return objc.utils.cast.bool(remove(self, output, output_type, err));
+        const remove = h.method("removeStreamOutput:type:error:", fn (*SCStreamOutput, SCStreamOutputType, ?*?*ns.NSError) obzc.c.BOOL);
+        return obzc.utils.cast.bool(remove(self, output, output_type, err));
     }
 
     pub const startCapture = h.methodWithCallback("startCaptureWithCompletionHandler:", fn (fn (?*ns.NSError) void) void);

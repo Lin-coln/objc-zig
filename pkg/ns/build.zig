@@ -5,7 +5,7 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
 
     const test_step = b.step("test", "Run Foundation tests");
-    const objc = b.dependency("objc", .{ .target = target, .optimize = optimize }).module("objc");
+    const obzc = b.dependency("obzc", .{ .target = target, .optimize = optimize }).module("obzc");
 
     const ns = blk: {
         const mod = b.addModule("obzc-ns", .{
@@ -13,7 +13,7 @@ pub fn build(b: *std.Build) void {
             .target = target,
             .optimize = optimize,
             .imports = &.{
-                .{ .name = "objc", .module = objc },
+                .{ .name = "obzc", .module = obzc },
             },
         });
 

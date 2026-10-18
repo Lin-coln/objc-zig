@@ -1,5 +1,5 @@
 const std = @import("std");
-const objc = @import("objc");
+const obzc = @import("obzc");
 const ns = @import("obzc-ns");
 const macos = @import("macos/abi");
 const VNRecognizedTextObservation = @import("VNRecognizedTextObservation.zig").VNRecognizedTextObservation;
@@ -10,7 +10,7 @@ pub const VNRequestTextRecognitionLevel = enum(isize) {
 };
 
 pub const VNRecognizeTextRequest = opaque {
-    const h = objc.helpers.Object(@This());
+    const h = obzc.helpers.Object(@This());
 
     pub const retain = h.retain;
     pub const release = h.release;
@@ -32,7 +32,7 @@ pub const VNRecognizeTextRequest = opaque {
 };
 
 test "VNRecognizeTextRequest: configure recognition and region of interest" {
-    const pool = objc.AutoReleasePool.create();
+    const pool = obzc.AutoReleasePool.create();
     defer pool.release();
     const request = VNRecognizeTextRequest.new();
     defer request.release();

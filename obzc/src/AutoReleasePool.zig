@@ -1,15 +1,15 @@
 const std = @import("std");
-const objc = @import("root.zig");
+const obzc = @import("root.zig");
 
 pub const AutoReleasePool = opaque {
     const Self = @This();
 
     pub fn create() *Self {
-        return @ptrCast(objc.rt.autoreleasePoolPush());
+        return @ptrCast(obzc.rt.autoreleasePoolPush());
     }
 
     pub fn release(self: *Self) void {
-        objc.rt.autoreleasePoolPop(self);
+        obzc.rt.autoreleasePoolPop(self);
     }
 };
 
@@ -19,7 +19,7 @@ test "AutoReleasePool: create / release an empty pool" {
 }
 
 test "AutoReleasePool: nested pools drain independently and retained objects survive" {
-    const rt = objc.rt;
+    const rt = obzc.rt;
     const Probe = struct {
         var deallocations: usize = 0;
 

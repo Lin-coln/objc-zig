@@ -1,9 +1,9 @@
-const objc = @import("objc");
+const obzc = @import("obzc");
 const MTLCommandBuffer = @import("MTLCommandBuffer.zig").MTLCommandBuffer;
 
 pub const MTLCommandQueue = opaque {
     const Self = @This();
-    const h = objc.helpers.Object(Self);
+    const h = obzc.helpers.Object(Self);
 
     pub const retain = h.retain;
     pub const release = h.release;

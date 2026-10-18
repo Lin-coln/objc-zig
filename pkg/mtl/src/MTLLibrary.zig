@@ -1,10 +1,10 @@
-const objc = @import("objc");
+const obzc = @import("obzc");
 const ns = @import("obzc-ns");
 const MTLFunction = @import("MTLFunction.zig").MTLFunction;
 
 pub const MTLLibrary = opaque {
     const Self = @This();
-    const h = objc.helpers.Object(Self);
+    const h = obzc.helpers.Object(Self);
 
     pub const retain = h.retain;
     pub const release = h.release;

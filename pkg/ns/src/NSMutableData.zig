@@ -1,9 +1,9 @@
 const std = @import("std");
-const objc = @import("objc");
+const obzc = @import("obzc");
 
 pub const NSMutableData = opaque {
     const Self = @This();
-    const h = objc.helpers.Object(Self);
+    const h = obzc.helpers.Object(Self);
 
     pub const new = h.cls.new;
     pub const retain = h.retain;
