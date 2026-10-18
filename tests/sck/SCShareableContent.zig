@@ -1,5 +1,4 @@
 const std = @import("std");
-const dispatch = std.c.dispatch;
 const objc = @import("objc");
 const ns = @import("objc/ns");
 const macos = @import("macos");
@@ -20,31 +19,11 @@ pub const SCShareableContent = opaque {
         fn (fn (?*Self, ?*ns.NSError) void) void,
     );
 
-    /// Returns retained content, or null on failure. The caller must release the result.
-    pub fn getShareableContentSync() ?*Self {
-        const semaphore = dispatch.semaphore_create(0) orelse return null;
-        defer dispatch.release(semaphore.as_object());
-
-        const State = struct {
-            semaphore: dispatch.semaphore_t,
-            content: ?*Self = null,
-        };
-
-        var state: State = .{ .semaphore = semaphore };
-        // Keep the semaphore alive until the callback finishes signaling it.
-        dispatch.retain(semaphore.as_object());
-        getShareableContent(&state, struct {
-            fn f(s: *State, content: ?*Self, err: ?*ns.NSError) void {
-                const signal = s.semaphore;
-                defer dispatch.release(signal.as_object());
-
-                if (err == null) s.content = if (content) |value| value.retain() else null;
-                _ = dispatch.semaphore_signal(signal);
-            }
-        }.f);
-        _ = dispatch.semaphore_wait(semaphore, .FOREVER);
-        return state.content;
-    }
+    /// Returns retained content. The caller must release the result.
+    pub const getShareableContentSync = h.cls.methodSync(
+        "getShareableContentWithCompletionHandler:",
+        fn () anyerror!*Self,
+    );
 };
 
 test "SCShareableContent: getShareableContent invokes a Zig Block" {
@@ -91,7 +70,7 @@ test "SCShareableContent: getShareableContent invokes a Zig Block" {
 test "SCShareableContent: getShareableContentSync returns retained content" {
     if (!macos.CGPreflightScreenCaptureAccess()) return error.SkipZigTest;
 
-    const content = SCShareableContent.getShareableContentSync() orelse return error.ShareableContentFailed;
+    const content = try SCShareableContent.getShareableContentSync();
     defer content.release();
 
     const windows = content.windows();

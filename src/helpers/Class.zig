@@ -1,7 +1,6 @@
 const std = @import("std");
 const objc = @import("../root.zig");
-const bindMethod = @import("method.zig").method;
-const bindMethodWithCallback = @import("method.zig").methodWithCallback;
+const m = @import("method.zig");
 
 /// Class helpers for a wrapper whose type or type factory is named after its Objective-C class.
 pub fn Class(comptime T: type) type {
@@ -30,7 +29,7 @@ pub fn Class(comptime T: type) type {
             comptime name: [:0]const u8,
             comptime Shape: type,
         ) *const Shape {
-            return bindMethod(name, Shape, msgSend);
+            return m.method(name, Shape, msgSend);
         }
 
         /// Binds a void class method whose last Shape parameter is a block function type.
@@ -39,8 +38,14 @@ pub fn Class(comptime T: type) type {
         pub fn methodWithCallback(
             comptime name: [:0]const u8,
             comptime Shape: type,
-        ) @TypeOf(bindMethodWithCallback(name, Shape, msgSend).call) {
-            return bindMethodWithCallback(name, Shape, msgSend).call;
+        ) @TypeOf(m.methodWithCallback(name, Shape, msgSend).call) {
+            return m.methodWithCallback(name, Shape, msgSend).call;
+        }
+
+        /// Waits for a one-shot completion; Shape returns an error union with void or an object pointer.
+        /// Returned objects are retained. The completion must not require the blocked calling thread.
+        pub fn methodSync(comptime name: [:0]const u8, comptime Shape: type) *const Shape {
+            return m.methodSync(name, Shape, msgSend);
         }
     };
 }
@@ -104,6 +109,29 @@ test "helpers.Class: methodWithCallback sends a block and forwards its result" {
     perform_with_args(&state, 5, 2.5, Methods.complete);
     try std.testing.expectEqual(2, state.calls);
     try std.testing.expectEqual(30, Methods.result);
+}
+
+test "helpers.Class: methodSync binds a completion method" {
+    const rt = objc.rt;
+    const ZigHelpersClassSyncTest = opaque {};
+    const State = struct {};
+    const Completion = objc.Block(*State, fn (?*rt.Object) void);
+    const Methods = struct {
+        var received: i32 = 0;
+
+        fn perform(_: *rt.Class, _: *rt.Sel, value: i32, completion: *const Completion) callconv(.c) void {
+            received = value;
+            completion.invoke(completion, null);
+        }
+    };
+    const class = rt.allocateClassPair(rt.getClass("NSObject").?, "ZigHelpersClassSyncTest", 0).?;
+    rt.registerClassPair(class);
+    defer rt.disposeClassPair(class);
+    const metaclass = rt.getMetaClass("ZigHelpersClassSyncTest").?;
+    try std.testing.expect(metaclass.addMethod(rt.Sel.registerName("perform:completion:"), &Methods.perform, "v@:i@?"));
+    const perform = Class(ZigHelpersClassSyncTest).methodSync("perform:completion:", fn (i32) anyerror!void);
+    try perform(42);
+    try std.testing.expectEqual(42, Methods.received);
 }
 
 test "helpers.Class: method forwards typed arguments and returns an object" {

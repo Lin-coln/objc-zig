@@ -1,9 +1,7 @@
 const std = @import("std");
 const objc = @import("../root.zig");
 const Class = @import("Class.zig").Class;
-const bindMethod = @import("method.zig").method;
-const bindMethodWithCallback = @import("method.zig").methodWithCallback;
-const prependArgs = @import("method.zig").prependArgs;
+const m = @import("method.zig");
 const cast = objc.utils.cast;
 
 /// Returns a set of Objective-C object helpers bound to `T` (any opaque object type). Assemble a
@@ -32,15 +30,20 @@ pub fn Object(comptime T: type) type {
         }
 
         /// Binds an instance method, prepending `*T` to the declared Shape.
-        pub fn method(comptime name: [:0]const u8, comptime Shape: type) prependArgs(Shape, &.{*T}) {
-            const Static = struct {
-                fn send(comptime Return: type, sel: [:0]const u8, args: anytype) Return {
-                    var method_args: std.meta.ArgsTuple(Shape) = undefined;
-                    inline for (0..method_args.len) |i| method_args[i] = args[i + 1];
-                    return msgSend(args[0], Return, sel, method_args);
-                }
-            };
-            return bindMethod(name, prependArgs(Shape, &.{*T}), Static.send).*;
+        pub fn method(comptime name: [:0]const u8, comptime Shape: type) m.prependArgs(Shape, &.{*T}) {
+            return m.method(name, m.prependArgs(Shape, &.{*T}), sendMethod).*;
+        }
+
+        fn sendMethod(comptime Return: type, sel: [:0]const u8, args: anytype) Return {
+            var method_args: @Tuple(@typeInfo(@TypeOf(args)).@"struct".field_types[1..]) = undefined;
+            inline for (0..method_args.len) |i| method_args[i] = args[i + 1];
+            return msgSend(args[0], Return, sel, method_args);
+        }
+
+        /// Waits for a one-shot completion; Shape excludes self and returns an error union.
+        /// Returned objects are retained. The completion must not require the blocked calling thread.
+        pub fn methodSync(comptime name: [:0]const u8, comptime Shape: type) m.prependArgs(Shape, &.{*T}) {
+            return m.methodSync(name, m.prependArgs(Shape, &.{*T}), sendMethod).*;
         }
 
         /// Binds a void instance method whose last Shape parameter is a block function type.
@@ -55,17 +58,11 @@ pub fn Object(comptime T: type) type {
 
         fn MethodWithCallback(comptime name: [:0]const u8, comptime Shape: type) type {
             return struct {
-                const Binding = bindMethodWithCallback(name, Shape, send);
+                const Binding = m.methodWithCallback(name, Shape, sendMethod);
                 pub const call = objc.utils.spreadArgsWithReceiverAndCallback(*T, Binding.Args, Binding.Callback, invoke);
 
                 fn invoke(self: *T, ctx: anytype, args: Binding.Args, comptime handler: *const Binding.Callback(@TypeOf(ctx))) void {
                     Binding.invoke(ctx, .{self} ++ args, handler);
-                }
-
-                fn send(comptime Return: type, sel: [:0]const u8, args: anytype) Return {
-                    var method_args: @Tuple(@typeInfo(@TypeOf(args)).@"struct".field_types[1..]) = undefined;
-                    inline for (0..method_args.len) |i| method_args[i] = args[i + 1];
-                    return msgSend(args[0], Return, sel, method_args);
                 }
             };
         }
@@ -180,6 +177,42 @@ test "helpers.Object: methodWithCallback forwards instance receivers and argumen
     try std.testing.expectEqual(@as(*rt.Object, @ptrCast(second)), state.receiver.?);
     try std.testing.expectEqual(2, state.calls);
     try std.testing.expectEqual(19, Methods.result);
+}
+
+test "helpers.Object: methodSync binds an instance receiver and returns a retained object" {
+    const rt = objc.rt;
+    const ZigHelpersObjectSyncTest = opaque {
+        const Self = @This();
+        pub const perform = Object(Self).methodSync("perform:completion:", fn (i32) anyerror!*Self);
+    };
+    const State = struct {};
+    const Completion = objc.Block(*State, fn (?*ZigHelpersObjectSyncTest, ?*rt.Object) void);
+    const Methods = struct {
+        var received: i32 = 0;
+
+        fn perform(self: *ZigHelpersObjectSyncTest, _: *rt.Sel, value: i32, completion: *const Completion) callconv(.c) void {
+            received = value;
+            completion.invoke(completion, self, null);
+        }
+    };
+    const class = rt.allocateClassPair(rt.getClass("NSObject").?, "ZigHelpersObjectSyncTest", 0).?;
+    try std.testing.expect(class.addMethod(rt.Sel.registerName("perform:completion:"), &Methods.perform, "v@:i@?"));
+    rt.registerClassPair(class);
+    defer rt.disposeClassPair(class);
+    const h = Object(ZigHelpersObjectSyncTest);
+    const first = h.cls.new();
+    defer h.release(first);
+    const second = h.cls.new();
+    defer h.release(second);
+
+    const first_result = try first.perform(7);
+    defer h.release(first_result);
+    try std.testing.expectEqual(first, first_result);
+    try std.testing.expectEqual(7, Methods.received);
+    const second_result = try second.perform(12);
+    defer h.release(second_result);
+    try std.testing.expectEqual(second, second_result);
+    try std.testing.expectEqual(12, Methods.received);
 }
 
 test "helpers.Object: property / setProperty" {

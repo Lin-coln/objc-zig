@@ -1,6 +1,8 @@
 const std = @import("std");
 const block = @import("block.zig");
 const utils = @import("../utils/root.zig");
+const rt = @import("../rt/root.zig");
+const dispatch = std.c.dispatch;
 
 /// Prepends argument types to a fixed function signature, preserving its return type and attributes.
 pub fn prependArgs(comptime Shape: type, comptime Args: []const type) type {
@@ -104,6 +106,136 @@ pub fn methodWithCallback(
             return @Fn(&params, &@splat(.{}), fn_info.return_type.?, .{});
         }
     };
+}
+
+/// Waits for a one-shot completion using a dispatch semaphore.
+/// Shape returns an error union with void or a non-null Objective-C object pointer.
+/// Completion receives `(error)` or `(object, error)`; errors become `error.ObjectiveCError`.
+/// Returned objects are retained and must be released by the caller.
+/// The completion must be able to run while the calling thread is blocked.
+pub fn methodSync(
+    comptime name: [:0]const u8,
+    comptime Shape: type,
+    comptime sender: anytype,
+) *const Shape {
+    const fn_info = switch (@typeInfo(Shape)) {
+        .@"fn" => |info| info,
+        else => @compileError("methodSync Shape must be a function type"),
+    };
+    if (fn_info.is_generic or fn_info.attrs.varargs)
+        @compileError("methodSync Shape must have fixed, non-generic parameters");
+    const Return = fn_info.return_type.?;
+    const Payload = switch (@typeInfo(Return)) {
+        .error_union => |info| info.payload,
+        else => @compileError("methodSync Shape must return an error union"),
+    };
+    if (Payload != void) {
+        if (@typeInfo(Payload) != .pointer)
+            @compileError("methodSync result must be void or an Objective-C object pointer");
+        const pointer = @typeInfo(Payload).pointer;
+        if (pointer.size != .one or pointer.attrs.@"allowzero" or @typeInfo(pointer.child) != .@"opaque")
+            @compileError("methodSync result must be a non-null pointer to an opaque Objective-C object");
+    }
+
+    const Static = struct {
+        const State = struct {
+            semaphore: dispatch.semaphore_t,
+            result: Return = undefined,
+        };
+
+        fn call(args: std.meta.ArgsTuple(Shape)) Return {
+            const semaphore = dispatch.semaphore_create(0) orelse return error.SemaphoreCreationFailed;
+            defer dispatch.release(semaphore.as_object());
+            var state: State = .{ .semaphore = semaphore };
+            // Keep the semaphore alive until signal itself has returned on the callback thread.
+            dispatch.retain(semaphore.as_object());
+            const completion = block.initWithContext(&state, if (Payload == void) completeVoid else completeObject);
+            sender(void, name, args ++ .{&completion});
+            _ = dispatch.semaphore_wait(semaphore, .FOREVER);
+            return state.result;
+        }
+
+        fn completeVoid(state: *State, err: ?*rt.Object) void {
+            const semaphore = state.semaphore;
+            defer dispatch.release(semaphore.as_object());
+            state.result = if (err != null) error.ObjectiveCError else {};
+            _ = dispatch.semaphore_signal(semaphore);
+        }
+
+        fn completeObject(state: *State, value: ?Payload, err: ?*rt.Object) void {
+            const semaphore = state.semaphore;
+            defer dispatch.release(semaphore.as_object());
+            state.result = if (err != null) error.ObjectiveCError else blk: {
+                const object = value orelse {
+                    std.log.err("Objective-C completion for {s} returned nil without an error", .{name});
+                    @panic("Objective-C completion returned nil without an error");
+                };
+                break :blk @as(Payload, @ptrCast(rt.retain(@ptrCast(@constCast(object)))));
+            };
+            // Do not access state after signaling: the waiting call may already have returned.
+            _ = dispatch.semaphore_signal(semaphore);
+        }
+    };
+
+    return utils.spreadArgs(Static.call, fn_info.attrs.@"callconv");
+}
+
+test "methodSync: void completion and Objective-C errors" {
+    const Sender = struct {
+        fn send(comptime Return: type, _: [:0]const u8, args: anytype) Return {
+            const completion = args[1];
+            completion.invoke(completion, args[0]);
+        }
+    };
+    const bound = methodSync("complete:", fn (?*rt.Object) anyerror!void, Sender.send);
+    try bound(null);
+    const object = rt.msgSend(rt.getClass("NSObject").?, *rt.Object, rt.Sel.registerName("new"), .{});
+    defer rt.release(object);
+    try std.testing.expectError(error.ObjectiveCError, bound(object));
+}
+
+test "methodSync: asynchronous completion retains only successful results" {
+    const Methods = struct {
+        var deallocations: usize = 0;
+
+        fn dealloc(self: *rt.Object, _: *rt.Sel) callconv(.c) void {
+            deallocations += 1;
+            rt.msgSendSuper(self, rt.getClass("NSObject").?, void, rt.Sel.registerName("dealloc"), .{});
+        }
+    };
+    const class = rt.allocateClassPair(rt.getClass("NSObject").?, "ZigMethodSyncResultTest", 0).?;
+    try std.testing.expect(class.addMethod(rt.Sel.registerName("dealloc"), &Methods.dealloc, "v@:"));
+    rt.registerClassPair(class);
+    defer rt.disposeClassPair(class);
+
+    const Sender = struct {
+        var thread: std.Thread = undefined;
+
+        fn send(comptime Return: type, _: [:0]const u8, args: anytype) Return {
+            const copied = args[1].copy().?;
+            const Worker = struct {
+                fn run(completion: @TypeOf(copied), fail: bool) void {
+                    defer completion.release();
+                    const object = rt.msgSend(rt.getClass("ZigMethodSyncResultTest").?, *rt.Object, rt.Sel.registerName("new"), .{});
+                    defer rt.release(object);
+                    completion.invoke(completion, object, if (fail) object else null);
+                }
+            };
+            thread = std.Thread.spawn(.{}, Worker.run, .{ copied, args[0] }) catch @panic("cannot start completion thread");
+        }
+    };
+    const bound = methodSync("complete:", fn (bool) anyerror!*rt.Object, Sender.send);
+    Methods.deallocations = 0;
+    const result = try bound(false);
+    Sender.thread.join();
+    try std.testing.expectEqual(0, Methods.deallocations);
+    try std.testing.expectEqual(class, result.getClass());
+    rt.release(result);
+    try std.testing.expectEqual(1, Methods.deallocations);
+
+    try std.testing.expectError(error.ObjectiveCError, bound(true));
+    Sender.thread.join();
+    try std.testing.expectEqual(2, Methods.deallocations);
 }
 
 test "method: non-null pointers use nullable message returns" {
