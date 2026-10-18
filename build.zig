@@ -6,26 +6,6 @@ pub fn build(b: *std.Build) void {
 
     const test_step = b.step("test", "Run Objective-C tests");
 
-    const macos = blk: {
-        const trans = b.addTranslateC(.{
-            .root_source_file = b.path("translate/macos.h"),
-            .target = target,
-            .optimize = optimize,
-        });
-        const mod = trans.addModule("macos");
-        break :blk mod;
-    };
-
-    const mtl_abi = blk: {
-        const trans = b.addTranslateC(.{
-            .root_source_file = b.path("translate/metal.h"),
-            .target = target,
-            .optimize = optimize,
-        });
-        const mod = trans.addModule("macos/mtl-abi");
-        break :blk mod;
-    };
-
     const abi = blk: {
         const trans = b.addTranslateC(.{
             .root_source_file = b.path("translate/objc.h"),
@@ -101,9 +81,9 @@ pub fn build(b: *std.Build) void {
         break :blk mod;
     };
 
-    const ns = blk: {
-        const mod = b.addModule("objc/ns", .{
-            .root_source_file = b.path("ns/root.zig"),
+    const objc_tests = blk: {
+        const mod = b.createModule(.{
+            .root_source_file = b.path("tests/tests.zig"),
             .target = target,
             .optimize = optimize,
             .imports = &.{
@@ -112,75 +92,6 @@ pub fn build(b: *std.Build) void {
         });
 
         mod.linkFramework("Foundation", .{ .needed = true });
-
-        const tests = b.addTest(.{ .root_module = mod });
-        test_step.dependOn(&b.addRunArtifact(tests).step);
-        break :blk mod;
-    };
-
-    const sck = blk: {
-        const options: std.Build.Module.CreateOptions = .{
-            .root_source_file = b.path("sck/root.zig"),
-            .target = target,
-            .optimize = optimize,
-            .imports = &.{
-                .{ .name = "objc", .module = objc },
-                .{ .name = "objc/ns", .module = ns },
-                .{ .name = "macos", .module = macos },
-            },
-        };
-
-        const mod = b.addModule("objc/sck", options);
-        mod.linkFramework("ScreenCaptureKit", .{ .needed = true });
-
-        const test_mod = b.createModule(options);
-        test_mod.linkFramework("ScreenCaptureKit", .{ .needed = true });
-        test_mod.linkFramework("CoreGraphics", .{});
-        test_mod.linkFramework("CoreMedia", .{});
-
-        const tests = b.addTest(.{ .root_module = test_mod });
-        test_step.dependOn(&b.addRunArtifact(tests).step);
-        break :blk mod;
-    };
-
-    const mtl = blk: {
-        const mod = b.addModule("objc/mtl", .{
-            .root_source_file = b.path("mtl/root.zig"),
-            .target = target,
-            .optimize = optimize,
-            .imports = &.{
-                .{ .name = "objc", .module = objc },
-                .{ .name = "objc/ns", .module = ns },
-                .{ .name = "macos", .module = macos },
-                .{ .name = "macos/mtl-abi", .module = mtl_abi },
-            },
-        });
-
-        mod.linkFramework("Metal", .{ .needed = true });
-
-        const tests = b.addTest(.{ .root_module = mod });
-        test_step.dependOn(&b.addRunArtifact(tests).step);
-        break :blk mod;
-    };
-
-    const objc_tests = blk: {
-        const mod = b.createModule(.{
-            .root_source_file = b.path("tests/tests.zig"),
-            .target = target,
-            .optimize = optimize,
-            .imports = &.{
-                .{ .name = "objc", .module = objc },
-                .{ .name = "objc/ns", .module = ns },
-                .{ .name = "objc/sck", .module = sck },
-                .{ .name = "objc/mtl", .module = mtl },
-                .{ .name = "macos", .module = macos },
-            },
-        });
-
-        mod.linkFramework("CoreGraphics", .{});
-        mod.linkFramework("CoreVideo", .{});
-        mod.linkFramework("IOSurface", .{});
-        mod.linkFramework("Vision", .{});
 
         const tests = b.addTest(.{ .root_module = mod });
         test_step.dependOn(&b.addRunArtifact(tests).step);
