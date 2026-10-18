@@ -122,6 +122,8 @@ pub fn build(b: *std.Build) void {
 
         mod.linkFramework("ScreenCaptureKit", .{});
         mod.linkFramework("CoreGraphics", .{});
+        mod.linkFramework("CoreMedia", .{});
+        mod.linkFramework("CoreVideo", .{});
 
         const tests = b.addTest(.{ .root_module = mod });
         test_step.dependOn(&b.addRunArtifact(tests).step);

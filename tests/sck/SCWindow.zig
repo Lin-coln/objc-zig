@@ -11,6 +11,7 @@ pub const SCWindow = opaque {
     pub const release = h.release;
 
     pub const windowID = h.prop(macos.CGWindowID, "windowID").getter;
+    pub const frame = h.prop(macos.CGRect, "frame").getter;
     pub const owningApplication = h.prop(?*SCRunningApplication, "owningApplication").getter;
     pub const title = h.prop(?*ns.NSString, "title").getter;
 };

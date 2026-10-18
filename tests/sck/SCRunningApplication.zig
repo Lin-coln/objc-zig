@@ -1,4 +1,5 @@
 const objc = @import("objc");
+const ns = @import("objc/ns");
 
 pub const SCRunningApplication = opaque {
     const Self = @This();
@@ -6,4 +7,7 @@ pub const SCRunningApplication = opaque {
 
     pub const retain = h.retain;
     pub const release = h.release;
+
+    /// The returned name is borrowed from the application.
+    pub const applicationName = h.prop(*ns.NSString, "applicationName").getter;
 };

@@ -6,4 +6,6 @@ comptime {
     _ = @import("sck/SCShareableContent.zig");
     _ = @import("sck/SCWindow.zig");
     _ = @import("sck/SCRunningApplication.zig");
+    _ = @import("sck/SCContentFilter.zig");
+    _ = @import("sck/SCStream.zig");
 }
