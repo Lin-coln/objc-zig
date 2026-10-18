@@ -1,0 +1,14 @@
+.{
+    .name = .obzc_ns,
+    .version = "0.1.0",
+    .fingerprint = 0x6acde28223fb0ed7,
+    .minimum_zig_version = "0.17.0",
+    .dependencies = .{
+        .objc = .{ .path = "../.." },
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+}
