@@ -1,7 +1,7 @@
 const std = @import("std");
 const objc = @import("objc");
-const ns = @import("objc/ns");
-const macos = @import("macos");
+const ns = @import("obzc-ns");
+const macos = @import("macos/abi");
 const SCWindow = @import("SCWindow.zig").SCWindow;
 
 pub const SCShareableContent = opaque {

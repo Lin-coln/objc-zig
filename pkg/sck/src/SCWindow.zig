@@ -1,6 +1,6 @@
 const objc = @import("objc");
-const ns = @import("objc/ns");
-const macos = @import("macos");
+const ns = @import("obzc-ns");
+const macos = @import("macos/abi");
 const SCRunningApplication = @import("SCRunningApplication.zig").SCRunningApplication;
 
 pub const SCWindow = opaque {

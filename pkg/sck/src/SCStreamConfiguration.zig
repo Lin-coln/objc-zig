@@ -1,6 +1,6 @@
 const std = @import("std");
 const objc = @import("objc");
-const macos = @import("macos");
+const macos = @import("macos/abi");
 
 /// SCCaptureResolutionType from ScreenCaptureKit/SCStream.h.
 pub const SCCaptureResolutionType = enum(isize) {

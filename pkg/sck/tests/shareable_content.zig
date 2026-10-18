@@ -1,6 +1,6 @@
 const std = @import("std");
-const macos = @import("macos");
-const sck = @import("objc/sck");
+const macos = @import("macos/abi");
+const sck = @import("obzc-sck");
 const SCShareableContent = sck.SCShareableContent;
 
 test "SCShareableContent: getShareableContentSync returns retained content" {

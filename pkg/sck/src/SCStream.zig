@@ -1,6 +1,6 @@
 const std = @import("std");
 const objc = @import("objc");
-const ns = @import("objc/ns");
+const ns = @import("obzc-ns");
 const SCContentFilter = @import("SCContentFilter.zig").SCContentFilter;
 const SCStreamConfiguration = @import("SCStreamConfiguration.zig").SCStreamConfiguration;
 const SCStreamDelegate = @import("SCStreamDelegate.zig").SCStreamDelegate;

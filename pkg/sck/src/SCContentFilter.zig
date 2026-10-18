@@ -1,6 +1,6 @@
 const std = @import("std");
 const objc = @import("objc");
-const macos = @import("macos");
+const macos = @import("macos/abi");
 const SCWindow = @import("SCWindow.zig").SCWindow;
 const SCShareableContent = @import("SCShareableContent.zig").SCShareableContent;
 
