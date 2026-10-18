@@ -137,6 +137,7 @@ pub fn build(b: *std.Build) void {
         mod.linkFramework("CoreVideo", .{});
         mod.linkFramework("IOSurface", .{});
         mod.linkFramework("Metal", .{});
+        mod.linkFramework("Vision", .{});
 
         const tests = b.addTest(.{ .root_module = mod });
         test_step.dependOn(&b.addRunArtifact(tests).step);

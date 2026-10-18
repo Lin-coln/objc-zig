@@ -13,4 +13,7 @@ comptime {
     _ = @import("mtl/MTLTextureDescriptor.zig");
     _ = @import("mtl/MTLRenderPipelineDescriptor.zig");
     _ = @import("mtl/MTLRenderPassDescriptor.zig");
+
+    _ = @import("vision/VNRecognizeTextRequest.zig");
+    _ = @import("vision/VNImageRequestHandler.zig");
 }
