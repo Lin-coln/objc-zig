@@ -1,6 +1,7 @@
 const std = @import("std");
 const objc = @import("../root.zig");
 const bindMethod = @import("method.zig").method;
+const bindMethodWithCallback = @import("method.zig").methodWithCallback;
 
 /// Class helpers for a wrapper whose type or type factory is named after its Objective-C class.
 pub fn Class(comptime T: type) type {
@@ -38,53 +39,8 @@ pub fn Class(comptime T: type) type {
         pub fn methodWithCallback(
             comptime name: [:0]const u8,
             comptime Shape: type,
-        ) @TypeOf(MethodWithCallback(name, Shape).call) {
-            return MethodWithCallback(name, Shape).call;
-        }
-
-        fn MethodWithCallback(comptime name: [:0]const u8, comptime Shape: type) type {
-            const shape_info = switch (@typeInfo(Shape)) {
-                .@"fn" => |info| info,
-                else => @compileError("methodWithCallback Shape must be a function type"),
-            };
-            if (shape_info.attrs.varargs)
-                @compileError("methodWithCallback Shape cannot have C variadic parameters");
-            if (shape_info.return_type != void)
-                @compileError("methodWithCallback Shape must return void");
-            if (shape_info.param_types.len == 0)
-                @compileError("methodWithCallback Shape must end with a block function type");
-
-            const last = shape_info.param_types.len - 1;
-            const Function = shape_info.param_types[last] orelse
-                @compileError("methodWithCallback Shape must end with a known block function type");
-            if (@typeInfo(Function) != .@"fn")
-                @compileError("methodWithCallback Shape must end with a block function type");
-            const fn_info = @typeInfo(Function).@"fn";
-            if (fn_info.is_generic or fn_info.attrs.varargs)
-                @compileError("methodWithCallback requires fixed, non-generic block parameters");
-
-            const Args = blk: {
-                var params: [last]type = undefined;
-                for (shape_info.param_types[0..last], 0..) |Param, i| params[i] = Param orelse
-                    @compileError("methodWithCallback Shape parameters must have explicit types");
-                break :blk @Tuple(&params);
-            };
-
-            return struct {
-                pub const call = objc.utils.spreadArgsWithContext(Args, Callback, invoke);
-
-                fn invoke(ctx: anytype, args: Args, comptime handler: *const Callback(@TypeOf(ctx))) void {
-                    const blk = objc.helpers.block.initWithContext(ctx, handler.*);
-                    msgSend(void, name, args ++ .{&blk});
-                }
-
-                fn Callback(comptime Context: type) type {
-                    var params: [fn_info.param_types.len + 1]type = undefined;
-                    params[0] = Context;
-                    for (fn_info.param_types, 1..) |Param, i| params[i] = Param.?;
-                    return @Fn(&params, &@splat(.{}), fn_info.return_type.?, .{});
-                }
-            };
+        ) @TypeOf(bindMethodWithCallback(name, Shape, msgSend).call) {
+            return bindMethodWithCallback(name, Shape, msgSend).call;
         }
     };
 }

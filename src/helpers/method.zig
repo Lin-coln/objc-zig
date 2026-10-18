@@ -1,4 +1,5 @@
 const std = @import("std");
+const block = @import("block.zig");
 const utils = @import("../utils/root.zig");
 
 /// Prepends argument types to a fixed function signature, preserving its return type and attributes.
@@ -49,6 +50,60 @@ pub fn method(
     };
 
     return utils.spreadArgs(Static.call, fn_info.attrs.@"callconv");
+}
+
+/// Binds a void message whose last Shape parameter is a block function type.
+/// `call` takes context, ordinary arguments, then a comptime handler.
+/// `invoke` also accepts a prefixed argument tuple for receiver adapters.
+/// The context must outlive every invocation of the block handler.
+pub fn methodWithCallback(
+    comptime name: [:0]const u8,
+    comptime Shape: type,
+    comptime sender: anytype,
+) type {
+    const shape_info = switch (@typeInfo(Shape)) {
+        .@"fn" => |info| info,
+        else => @compileError("methodWithCallback Shape must be a function type"),
+    };
+    if (shape_info.attrs.varargs)
+        @compileError("methodWithCallback Shape cannot have C variadic parameters");
+    if (shape_info.return_type != void)
+        @compileError("methodWithCallback Shape must return void");
+    if (shape_info.param_types.len == 0)
+        @compileError("methodWithCallback Shape must end with a block function type");
+
+    const last = shape_info.param_types.len - 1;
+    const Function = shape_info.param_types[last] orelse
+        @compileError("methodWithCallback Shape must end with a known block function type");
+    if (@typeInfo(Function) != .@"fn")
+        @compileError("methodWithCallback Shape must end with a block function type");
+    const fn_info = @typeInfo(Function).@"fn";
+    if (fn_info.is_generic or fn_info.attrs.varargs)
+        @compileError("methodWithCallback requires fixed, non-generic block parameters");
+
+    const MethodArgs = blk: {
+        var params: [last]type = undefined;
+        for (shape_info.param_types[0..last], 0..) |Param, i| params[i] = Param orelse
+            @compileError("methodWithCallback Shape parameters must have explicit types");
+        break :blk @Tuple(&params);
+    };
+
+    return struct {
+        pub const Args = MethodArgs;
+        pub const call = utils.spreadArgsWithCallback(Args, Callback, invoke);
+
+        pub fn invoke(ctx: anytype, args: anytype, comptime handler: *const Callback(@TypeOf(ctx))) void {
+            const blk = block.initWithContext(ctx, handler.*);
+            sender(void, name, args ++ .{&blk});
+        }
+
+        pub fn Callback(comptime Context: type) type {
+            var params: [fn_info.param_types.len + 1]type = undefined;
+            params[0] = Context;
+            for (fn_info.param_types, 1..) |Param, i| params[i] = Param.?;
+            return @Fn(&params, &@splat(.{}), fn_info.return_type.?, .{});
+        }
+    };
 }
 
 test "method: non-null pointers use nullable message returns" {
