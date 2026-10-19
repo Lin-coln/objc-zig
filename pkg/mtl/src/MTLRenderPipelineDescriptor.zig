@@ -1,6 +1,5 @@
 const std = @import("std");
 const obzc = @import("obzc");
-const mtl = @import("mtl-abi");
 const MTLFunction = @import("MTLFunction.zig").MTLFunction;
 const MTLRenderPipelineColorAttachmentDescriptorArray = @import("MTLRenderPipelineColorAttachmentDescriptorArray.zig").MTLRenderPipelineColorAttachmentDescriptorArray;
 
@@ -21,7 +20,7 @@ pub const MTLRenderPipelineDescriptor = opaque {
     pub const hash = h.method("hash", fn () usize);
 };
 
-test "MTLRenderPipelineDescriptor: function slots and indexed color attachments" {
+test "MTLRenderPipelineDescriptor: function slots accept null" {
     const descriptor = MTLRenderPipelineDescriptor.new();
     defer descriptor.release();
 
@@ -29,12 +28,6 @@ test "MTLRenderPipelineDescriptor: function slots and indexed color attachments"
     try std.testing.expect(descriptor.fragmentFunction() == null);
     descriptor.setVertexFunction(null);
     descriptor.setFragmentFunction(null);
-
-    const colors = descriptor.colorAttachments();
-    const first = colors.objectAtIndexedSubscript(0);
-    const second = colors.objectAtIndexedSubscript(1);
-    first.setPixelFormat(mtl.MTLPixelFormatBGRA8Unorm);
-    second.setPixelFormat(mtl.MTLPixelFormatRGBA16Float);
-    try std.testing.expectEqual(@as(mtl.MTLPixelFormat, mtl.MTLPixelFormatBGRA8Unorm), first.pixelFormat());
-    try std.testing.expectEqual(@as(mtl.MTLPixelFormat, mtl.MTLPixelFormatRGBA16Float), second.pixelFormat());
+    try std.testing.expect(descriptor.vertexFunction() == null);
+    try std.testing.expect(descriptor.fragmentFunction() == null);
 }

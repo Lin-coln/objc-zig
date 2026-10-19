@@ -1,3 +1,4 @@
+const std = @import("std");
 const obzc = @import("obzc");
 const mtl = @import("mtl-abi");
 
@@ -10,3 +11,26 @@ pub const MTLFunction = opaque {
 
     pub const functionType = h.method("functionType", fn () mtl.MTLFunctionType);
 };
+
+test "MTLFunction: functionType identifies a compute function" {
+    const ns = @import("obzc-ns");
+    const MTLDevice = @import("MTLDevice.zig").MTLDevice;
+    const pool = obzc.AutoReleasePool.create();
+    defer pool.release();
+    const device = MTLDevice.createSystemDefaultDevice() orelse return error.SkipZigTest;
+    defer device.release();
+    const source = ns.NSString.init("kernel void compute() {}").?;
+    defer source.release();
+    var compile_error: ?*ns.NSError = null;
+    const library = device.newLibrary(source, null, &compile_error) orelse {
+        if (compile_error) |err| err.log();
+        return error.ShaderCompilationFailed;
+    };
+    defer library.release();
+    const name = ns.NSString.init("compute").?;
+    defer name.release();
+    const function = library.newFunction(name).?;
+    defer function.release();
+
+    try std.testing.expectEqual(@as(mtl.MTLFunctionType, mtl.MTLFunctionTypeKernel), function.functionType());
+}

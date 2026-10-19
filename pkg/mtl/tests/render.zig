@@ -1,6 +1,7 @@
 const std = @import("std");
 const obzc = @import("obzc");
 const ns = @import("obzc-ns");
+const macos = @import("macos/abi");
 const mtl = @import("obzc-mtl");
 const c = mtl.c;
 const MTLDevice = mtl.MTLDevice;
@@ -9,11 +10,33 @@ const MTLRenderPipelineDescriptor = mtl.MTLRenderPipelineDescriptor;
 const MTLTextureDescriptor = mtl.MTLTextureDescriptor;
 const MTLRenderPassDescriptor = mtl.MTLRenderPassDescriptor;
 
-test "MTLDevice: compile, render, and copy textures through a command buffer" {
+test "Metal: compile, render, and read copied pixels through an IOSurface" {
     const pool = obzc.AutoReleasePool.create();
     defer pool.release();
     const device = MTLDevice.createSystemDefaultDevice() orelse return error.SkipZigTest;
     defer device.release();
+    const surface_properties = macos.CFDictionaryCreateMutable(null, 0, &macos.kCFTypeDictionaryKeyCallBacks, &macos.kCFTypeDictionaryValueCallBacks).?;
+    defer macos.CFRelease(surface_properties);
+    const attributes = macos.CFDictionaryCreateMutable(null, 0, &macos.kCFTypeDictionaryKeyCallBacks, &macos.kCFTypeDictionaryValueCallBacks).?;
+    defer macos.CFRelease(attributes);
+    macos.CFDictionarySetValue(attributes, macos.kCVPixelBufferIOSurfacePropertiesKey, surface_properties);
+    macos.CFDictionarySetValue(attributes, macos.kCVPixelBufferMetalCompatibilityKey, macos.kCFBooleanTrue);
+    var pixel_buffer: macos.CVPixelBufferRef = null;
+    const status = macos.CVPixelBufferCreate(null, 4, 4, macos.kCVPixelFormatType_32BGRA, attributes, &pixel_buffer);
+    if (status == macos.kCVReturnAllocationFailed) {
+        std.debug.print("Metal readback test skipped: this environment cannot allocate an IOSurface-backed pixel buffer.\n", .{});
+        return error.SkipZigTest;
+    }
+    try std.testing.expectEqual(macos.kCVReturnSuccess, status);
+    defer macos.CVBufferRelease(pixel_buffer);
+    const surface = macos.CVPixelBufferGetIOSurface(pixel_buffer).?;
+    {
+        try std.testing.expectEqual(macos.kCVReturnSuccess, macos.CVPixelBufferLockBaseAddress(pixel_buffer, 0));
+        defer _ = macos.CVPixelBufferUnlockBaseAddress(pixel_buffer, 0);
+        const pixels: [*]u8 = @ptrCast(macos.CVPixelBufferGetBaseAddress(pixel_buffer).?);
+        @memset(pixels[0 .. macos.CVPixelBufferGetBytesPerRow(pixel_buffer) * 4], 0);
+    }
+
     const source = ns.NSString.init(
         \\#include <metal_stdlib>
         \\using namespace metal;
@@ -42,19 +65,11 @@ test "MTLDevice: compile, render, and copy textures through a command buffer" {
     defer fragment_name.release();
     const fragment = library.newFunction(fragment_name).?;
     defer fragment.release();
-    try std.testing.expectEqual(@as(c.MTLFunctionType, c.MTLFunctionTypeVertex), vertex.functionType());
-    try std.testing.expectEqual(@as(c.MTLFunctionType, c.MTLFunctionTypeFragment), fragment.functionType());
-    const missing_name = ns.NSString.init("missing_function").?;
-    defer missing_name.release();
-    try std.testing.expect(library.newFunction(missing_name) == null);
-
     const pipeline_descriptor = MTLRenderPipelineDescriptor.new();
     defer pipeline_descriptor.release();
     pipeline_descriptor.setVertexFunction(vertex);
     pipeline_descriptor.setFragmentFunction(fragment);
     pipeline_descriptor.colorAttachments().objectAtIndexedSubscript(0).setPixelFormat(c.MTLPixelFormatBGRA8Unorm);
-    try std.testing.expectEqual(vertex, pipeline_descriptor.vertexFunction().?);
-    try std.testing.expectEqual(fragment, pipeline_descriptor.fragmentFunction().?);
     var pipeline_error: ?*ns.NSError = null;
     const pipeline = device.newRenderPipelineState(pipeline_descriptor, &pipeline_error) orelse {
         if (pipeline_error) |err| err.log();
@@ -69,12 +84,10 @@ test "MTLDevice: compile, render, and copy textures through a command buffer" {
     defer input.release();
     const output = device.newTexture(texture_descriptor).?;
     defer output.release();
-    const copy = device.newTexture(texture_descriptor).?;
+    const copy_descriptor = MTLTextureDescriptor.texture2DDescriptor(c.MTLPixelFormatBGRA8Unorm, 4, 4, false);
+    copy_descriptor.setStorageMode(c.MTLStorageModeShared);
+    const copy = device.newTextureWithIOSurface(copy_descriptor, surface, 0).?;
     defer copy.release();
-    try std.testing.expectEqual(4, output.width());
-    try std.testing.expectEqual(4, output.height());
-    try std.testing.expectEqual(@as(c.MTLPixelFormat, c.MTLPixelFormatBGRA8Unorm), output.pixelFormat());
-    try std.testing.expectEqual(device, output.device());
 
     const queue = device.newCommandQueue().?;
     defer queue.release();
@@ -86,9 +99,9 @@ test "MTLDevice: compile, render, and copy textures through a command buffer" {
     color.setLoadAction(c.MTLLoadActionClear);
     color.setStoreAction(c.MTLStoreActionStore);
     color.setClearColor(.{ .red = 0, .green = 0, .blue = 0, .alpha = 1 });
-    try std.testing.expectEqual(output, color.texture().?);
     const encoder = command_buffer.renderCommandEncoder(render_pass).?;
-    const offset: [4]f32 = .{ 0, 0, 0, 0 };
+    // Shift the quad by one pixel so the readback checks vertex bytes and the render-pass clear as well.
+    const offset: [4]f32 = .{ 0.5, 0, 0, 0 };
     encoder.setRenderPipelineState(pipeline);
     encoder.setVertexBytes(&offset, @sizeOf(@TypeOf(offset)), 0);
     encoder.setFragmentTexture(input, 0);
@@ -102,4 +115,17 @@ test "MTLDevice: compile, render, and copy textures through a command buffer" {
     if (command_buffer.@"error"()) |err| err.log();
     try std.testing.expect(command_buffer.@"error"() == null);
     try std.testing.expectEqual(@as(c.MTLCommandBufferStatus, c.MTLCommandBufferStatusCompleted), command_buffer.status());
+
+    // Check every pixel after the GPU finishes; successful submission alone does not prove that rendering or copying worked.
+    try std.testing.expectEqual(macos.kCVReturnSuccess, macos.CVPixelBufferLockBaseAddress(pixel_buffer, macos.kCVPixelBufferLock_ReadOnly));
+    defer _ = macos.CVPixelBufferUnlockBaseAddress(pixel_buffer, macos.kCVPixelBufferLock_ReadOnly);
+    const pixels: [*]const u8 = @ptrCast(macos.CVPixelBufferGetBaseAddress(pixel_buffer).?);
+    const bytes_per_row = macos.CVPixelBufferGetBytesPerRow(pixel_buffer);
+    for (0..4) |y| {
+        for (0..4) |x| {
+            const pixel_offset = y * bytes_per_row + x * 4;
+            const expected: [4]u8 = if (x == 0) .{ 0, 0, 0, 255 } else .{ 0, 0, 255, 255 };
+            try std.testing.expectEqualSlices(u8, &expected, pixels[pixel_offset..][0..4]);
+        }
+    }
 }

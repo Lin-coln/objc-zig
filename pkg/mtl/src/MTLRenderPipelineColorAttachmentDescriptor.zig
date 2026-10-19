@@ -1,3 +1,4 @@
+const std = @import("std");
 const obzc = @import("obzc");
 const mtl = @import("mtl-abi");
 
@@ -12,3 +13,13 @@ pub const MTLRenderPipelineColorAttachmentDescriptor = opaque {
     pub const pixelFormat = h.prop(mtl.MTLPixelFormat, "pixelFormat").getter;
     pub const setPixelFormat = h.prop(mtl.MTLPixelFormat, "pixelFormat").setter;
 };
+
+test "MTLRenderPipelineColorAttachmentDescriptor: pixelFormat can be changed" {
+    const descriptor = MTLRenderPipelineColorAttachmentDescriptor.new();
+    defer descriptor.release();
+
+    descriptor.setPixelFormat(mtl.MTLPixelFormatBGRA8Unorm);
+    try std.testing.expectEqual(@as(mtl.MTLPixelFormat, mtl.MTLPixelFormatBGRA8Unorm), descriptor.pixelFormat());
+    descriptor.setPixelFormat(mtl.MTLPixelFormatRGBA16Float);
+    try std.testing.expectEqual(@as(mtl.MTLPixelFormat, mtl.MTLPixelFormatRGBA16Float), descriptor.pixelFormat());
+}
