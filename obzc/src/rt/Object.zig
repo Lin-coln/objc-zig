@@ -31,6 +31,12 @@ pub const Object = opaque {
         return @ptrCast(c.object_getInstanceVariable(@ptrCast(self), name, out_value));
     }
 
+    /// Sets the named ivar, returning its metadata or null if it does not exist.
+    /// Known ownership rules apply; ivars with unknown ownership are assigned without retaining.
+    pub fn setInstanceVariable(self: *Object, name: [:0]const u8, value: ?*anyopaque) ?*Ivar {
+        return @ptrCast(c.object_setInstanceVariable(@ptrCast(self), name, value));
+    }
+
     pub fn getIvar(self: *Object, ivar_handle: *Ivar) ?*Object {
         return @ptrCast(c.object_getIvar(@ptrCast(self), @ptrCast(ivar_handle)));
     }
@@ -62,6 +68,37 @@ test "Object: NSNumber class inspection" {
 
     try std.testing.expectEqualStrings(number.getClass().getName(), number.getClassName());
     try std.testing.expect(!number.isClass());
+}
+
+test "Object: setInstanceVariable" {
+    const rt = @import("root.zig");
+    const Sub = rt.allocateClassPair(rt.getClass("NSObject").?, "NativeObjcObjectContextTest", 0).?;
+    try std.testing.expect(Sub.addIvar("_context", @sizeOf(*anyopaque), std.math.log2_int(usize, @alignOf(*anyopaque)), "^v"));
+    rt.registerClassPair(Sub);
+    defer rt.disposeClassPair(Sub);
+
+    const obj = rt.msgSend(Sub, ?*Object, rt.Sel.registerName("new"), .{}).?;
+    defer rt.release(obj);
+    const ivar = Sub.getInstanceVariable("_context").?;
+    var first: usize = 7;
+    var second: usize = 9;
+    var raw: ?*anyopaque = null;
+
+    try std.testing.expectEqual(ivar, obj.setInstanceVariable("_context", &first).?);
+    try std.testing.expectEqual(ivar, obj.getInstanceVariable("_context", &raw).?);
+    try std.testing.expectEqual(@as(?*anyopaque, &first), raw);
+
+    try std.testing.expectEqual(ivar, obj.setInstanceVariable("_context", &second).?);
+    _ = obj.getInstanceVariable("_context", &raw);
+    try std.testing.expectEqual(@as(?*anyopaque, &second), raw);
+
+    try std.testing.expectEqual(null, obj.setInstanceVariable("_missing", &first));
+    _ = obj.getInstanceVariable("_context", &raw);
+    try std.testing.expectEqual(@as(?*anyopaque, &second), raw);
+
+    try std.testing.expectEqual(ivar, obj.setInstanceVariable("_context", null).?);
+    _ = obj.getInstanceVariable("_context", &raw);
+    try std.testing.expectEqual(null, raw);
 }
 
 test "Object: getIvar / setIvar / getInstanceVariable / copy / dispose" {
