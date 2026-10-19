@@ -10,7 +10,7 @@ pub fn build(b: *std.Build) void {
     const ns = b.dependency("ns", .{ .target = target, .optimize = optimize }).module("obzc-ns");
 
     const vision = blk: {
-        const mod = b.addModule("obzc-vision", .{
+        const opts: std.Build.Module.CreateOptions = .{
             .root_source_file = b.path("src/root.zig"),
             .target = target,
             .optimize = optimize,
@@ -19,11 +19,16 @@ pub fn build(b: *std.Build) void {
                 .{ .name = "obzc-ns", .module = ns },
                 .{ .name = "macos/abi", .module = macos_abi },
             },
-        });
+        };
 
+        const mod = b.addModule("obzc-vision", opts);
         mod.linkFramework("Vision", .{ .needed = true });
 
-        const tests = b.addTest(.{ .root_module = mod });
+        const test_mod = b.createModule(opts);
+        test_mod.linkFramework("Vision", .{ .needed = true });
+        test_mod.linkFramework("CoreVideo", .{});
+
+        const tests = b.addTest(.{ .root_module = test_mod });
         test_step.dependOn(&b.addRunArtifact(tests).step);
         break :blk mod;
     };
@@ -37,11 +42,8 @@ pub fn build(b: *std.Build) void {
                 .{ .name = "obzc", .module = obzc },
                 .{ .name = "obzc-ns", .module = ns },
                 .{ .name = "obzc-vision", .module = vision },
-                .{ .name = "macos/abi", .module = macos_abi },
             },
         });
-
-        mod.linkFramework("CoreVideo", .{});
 
         const tests = b.addTest(.{ .root_module = mod });
         test_step.dependOn(&b.addRunArtifact(tests).step);
