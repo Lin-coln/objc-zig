@@ -22,11 +22,7 @@ test "MTLLibrary: newFunction finds a named function and returns null for a miss
     defer device.release();
     const source = ns.NSString.init("kernel void available() {}").?;
     defer source.release();
-    var compile_error: ?*ns.NSError = null;
-    const library = device.newLibrary(source, null, &compile_error) orelse {
-        if (compile_error) |err| err.log();
-        return error.ShaderCompilationFailed;
-    };
+    const library = try device.newLibrary(source, null);
     defer library.release();
 
     const name = ns.NSString.init("available").?;

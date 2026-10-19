@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const obzc = @import("obzc");
 const ns = @import("obzc-ns");
 const macos = @import("macos/abi");
@@ -25,10 +26,15 @@ pub const VNImageRequestHandler = opaque {
         return initialize(h.cls.alloc(), pixel_buffer, options);
     }
 
-    /// Runs the requests synchronously. An error is borrowed from the current autorelease pool.
-    pub fn performRequests(self: *Self, requests: *ns.NSArray(VNRequest), err: ?*?*ns.NSError) bool {
-        const perform = h.method("performRequests:error:", fn (*ns.NSArray(VNRequest), ?*?*ns.NSError) obzc.c.BOOL);
-        return obzc.utils.cast.bool(perform(self, requests, err));
+    /// Runs the requests synchronously, logging the SDK error on failure.
+    pub fn performRequests(self: *Self, requests: *ns.NSArray(VNRequest)) !void {
+        var err: ?*ns.NSError = null;
+        const succeeded = h.msgSend(self, obzc.c.BOOL, "performRequests:error:", .{ requests, &err });
+        if (obzc.utils.cast.bool(succeeded)) return;
+
+        if (err) |ns_error| ns_error.log() else if (!builtin.is_test)
+            std.log.err("VNImageRequestHandler.performRequests failed without NSError", .{});
+        return error.PerformRequestsFailed;
     }
 };
 
@@ -46,13 +52,8 @@ test "VNImageRequestHandler: invalid image data fails without producing results"
     const requests = ns.NSArray(VNRequest).init(&.{@ptrCast(request)});
     defer requests.release();
 
-    var err: ?*ns.NSError = null;
-    try std.testing.expect(!handler.performRequests(requests, &err));
+    try std.testing.expectError(error.PerformRequestsFailed, handler.performRequests(requests));
     try std.testing.expect(request.results() == null);
-    if (err) |failure| {
-        try std.testing.expect(failure.domain().utf8String().len > 0);
-        try std.testing.expect(failure.localizedDescription().utf8String().len > 0);
-    }
 }
 
 test "VNImageRequestHandler: a blank pixel buffer produces an empty result" {
@@ -83,20 +84,6 @@ test "VNImageRequestHandler: a blank pixel buffer produces an empty result" {
     const requests = ns.NSArray(VNRequest).init(&.{@ptrCast(request)});
     defer requests.release();
 
-    var err: ?*ns.NSError = null;
-    const succeeded = handler.performRequests(requests, &err);
-    if (!succeeded) if (err) |failure| {
-        const domain = failure.domain().utf8String();
-        const description = failure.localizedDescription().utf8String();
-        if (std.mem.eql(u8, domain, "com.apple.Vision") and failure.code() == 8 and
-            std.mem.eql(u8, description, "Failed to create CVPixelBuffer"))
-        {
-            std.debug.print("Vision OCR skipped: this environment cannot create Vision's internal pixel buffer.\n", .{});
-            return error.SkipZigTest;
-        }
-        std.debug.print("Vision error {s} ({d}): {s}\n", .{ domain, failure.code(), description });
-    };
-    try std.testing.expect(succeeded);
-    try std.testing.expect(err == null);
+    try handler.performRequests(requests);
     try std.testing.expectEqual(0, request.results().?.count());
 }

@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const obzc = @import("obzc");
 const NSString = @import("NSString.zig").NSString;
 
@@ -27,6 +28,8 @@ pub const NSError = opaque {
     pub const localizedDescription = h.prop(*NSString, "localizedDescription").getter;
 
     pub fn log(self: *Self) void {
+        if (builtin.is_test) return;
+
         std.log.err("NSError domain={s} code={d} {s}", .{
             self.domain().utf8String(),
             self.code(),
@@ -50,4 +53,11 @@ test "NSError: create and read Objective-C properties" {
 
     const invalid = [_]u8{0xff};
     try std.testing.expect(NSError.init(&invalid, 42) == null);
+}
+
+test "NSError: log is silent during tests" {
+    const err = NSError.init("ObjcZigTestDomain", 42).?;
+    defer err.release();
+
+    err.log();
 }

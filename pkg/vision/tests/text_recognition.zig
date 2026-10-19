@@ -30,7 +30,7 @@ test "text recognition: encoded image data produces readable candidates" {
     defer requests.release();
 
     // The handler must keep the image source alive after its caller releases it.
-    try expectPerformed(handler, requests);
+    try handler.performRequests(requests);
     const results = request.results().?;
     try std.testing.expect(results.count() > 0);
     var candidate_count: usize = 0;
@@ -53,22 +53,4 @@ test "text recognition: encoded image data produces readable candidates" {
         }
     }
     try std.testing.expect(candidate_count > 0);
-}
-
-fn expectPerformed(handler: *VNImageRequestHandler, requests: *ns.NSArray(VNRequest)) !void {
-    var err: ?*ns.NSError = null;
-    const succeeded = handler.performRequests(requests, &err);
-    if (!succeeded) if (err) |failure| {
-        const domain = failure.domain().utf8String();
-        const description = failure.localizedDescription().utf8String();
-        if (std.mem.eql(u8, domain, "com.apple.Vision") and failure.code() == 8 and
-            std.mem.eql(u8, description, "Failed to create CVPixelBuffer"))
-        {
-            std.debug.print("Vision OCR skipped: this environment cannot create Vision's internal pixel buffer.\n", .{});
-            return error.SkipZigTest;
-        }
-        std.debug.print("Vision error {s} ({d}): {s}\n", .{ domain, failure.code(), description });
-    };
-    try std.testing.expect(succeeded);
-    try std.testing.expect(err == null);
 }

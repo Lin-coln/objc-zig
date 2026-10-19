@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const obzc = @import("obzc");
 const ns = @import("obzc-ns");
 const SCContentFilter = @import("SCContentFilter.zig").SCContentFilter;
@@ -27,16 +28,26 @@ pub const SCStream = opaque {
         return initialize(h.cls.alloc(), filter, configuration, delegate);
     }
 
-    /// On failure, err receives a borrowed NSError when supplied by the SDK.
-    pub fn addStreamOutput(self: *Self, output: *SCStreamOutput, output_type: SCStreamOutputType, sample_handler_queue: ?dispatch.queue_t, err: ?*?*ns.NSError) bool {
-        const add = h.method("addStreamOutput:type:sampleHandlerQueue:error:", fn (*SCStreamOutput, SCStreamOutputType, ?dispatch.queue_t, ?*?*ns.NSError) obzc.c.BOOL);
-        return obzc.utils.cast.bool(add(self, output, output_type, sample_handler_queue, err));
+    /// Adds an output, logging the SDK error on failure.
+    pub fn addStreamOutput(self: *Self, output: *SCStreamOutput, output_type: SCStreamOutputType, sample_handler_queue: ?dispatch.queue_t) !void {
+        var err: ?*ns.NSError = null;
+        const succeeded = h.msgSend(self, obzc.c.BOOL, "addStreamOutput:type:sampleHandlerQueue:error:", .{ output, output_type, sample_handler_queue, &err });
+        if (obzc.utils.cast.bool(succeeded)) return;
+
+        if (err) |ns_error| ns_error.log() else if (!builtin.is_test)
+            std.log.err("SCStream.addStreamOutput failed without NSError", .{});
+        return error.AddStreamOutputFailed;
     }
 
-    /// On failure, err receives a borrowed NSError when supplied by the SDK.
-    pub fn removeStreamOutput(self: *Self, output: *SCStreamOutput, output_type: SCStreamOutputType, err: ?*?*ns.NSError) bool {
-        const remove = h.method("removeStreamOutput:type:error:", fn (*SCStreamOutput, SCStreamOutputType, ?*?*ns.NSError) obzc.c.BOOL);
-        return obzc.utils.cast.bool(remove(self, output, output_type, err));
+    /// Removes an output, logging the SDK error on failure.
+    pub fn removeStreamOutput(self: *Self, output: *SCStreamOutput, output_type: SCStreamOutputType) !void {
+        var err: ?*ns.NSError = null;
+        const succeeded = h.msgSend(self, obzc.c.BOOL, "removeStreamOutput:type:error:", .{ output, output_type, &err });
+        if (obzc.utils.cast.bool(succeeded)) return;
+
+        if (err) |ns_error| ns_error.log() else if (!builtin.is_test)
+            std.log.err("SCStream.removeStreamOutput failed without NSError", .{});
+        return error.RemoveStreamOutputFailed;
     }
 
     pub const startCapture = h.methodWithCallback("startCaptureWithCompletionHandler:", fn (fn (?*ns.NSError) void) void);

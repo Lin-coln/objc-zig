@@ -51,11 +51,7 @@ test "Metal: compile, render, and read copied pixels through an IOSurface" {
     defer source.release();
     const options = MTLCompileOptions.new();
     defer options.release();
-    var compile_error: ?*ns.NSError = null;
-    const library = device.newLibrary(source, options, &compile_error) orelse {
-        if (compile_error) |err| err.log();
-        return error.ShaderCompilationFailed;
-    };
+    const library = try device.newLibrary(source, options);
     defer library.release();
     const vertex_name = ns.NSString.init("vertex_main").?;
     defer vertex_name.release();
@@ -70,11 +66,7 @@ test "Metal: compile, render, and read copied pixels through an IOSurface" {
     pipeline_descriptor.setVertexFunction(vertex);
     pipeline_descriptor.setFragmentFunction(fragment);
     pipeline_descriptor.colorAttachments().objectAtIndexedSubscript(0).setPixelFormat(c.MTLPixelFormatBGRA8Unorm);
-    var pipeline_error: ?*ns.NSError = null;
-    const pipeline = device.newRenderPipelineState(pipeline_descriptor, &pipeline_error) orelse {
-        if (pipeline_error) |err| err.log();
-        return error.PipelineCreationFailed;
-    };
+    const pipeline = try device.newRenderPipelineState(pipeline_descriptor);
     defer pipeline.release();
 
     const texture_descriptor = MTLTextureDescriptor.texture2DDescriptor(c.MTLPixelFormatBGRA8Unorm, 4, 4, false);
