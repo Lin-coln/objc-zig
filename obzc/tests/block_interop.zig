@@ -1,9 +1,10 @@
 const std = @import("std");
-const rt = @import("obzc").rt;
-const c = @import("obzc").c;
+const obzc = @import("obzc");
+const rt = obzc.rt;
+const c = obzc.c;
 
-const Block = @import("obzc").Block;
-const block = @import("obzc").helpers.block;
+const Block = obzc.Block;
+const block = obzc.helpers.block;
 const Object = rt.Object;
 const Sel = rt.Sel;
 
@@ -51,6 +52,47 @@ test "NSArray sorting invokes a Zig Block comparator" {
     }.f;
     var compare_block = Compare.init({}, &compare);
     const sorted = rt.msgSend(array, ?*Object, Sel.registerName("sortedArrayUsingComparator:"), .{&compare_block}).?;
-    const first = rt.msgSend(sorted, ?*Object, Sel.registerName("firstObject"), .{}).?;
-    try std.testing.expectEqual(10, rt.msgSend(first, c_int, Sel.registerName("intValue"), .{}));
+    const expected = [_]c_int{ 10, 20, 30 };
+    try std.testing.expectEqual(expected.len, rt.msgSend(sorted, usize, Sel.registerName("count"), .{}));
+    for (expected, 0..) |value, index| {
+        const number = rt.msgSend(sorted, ?*Object, Sel.registerName("objectAtIndex:"), .{index}).?;
+        try std.testing.expectEqual(value, rt.msgSend(number, c_int, Sel.registerName("intValue"), .{}));
+    }
+}
+
+test "NSBlockOperation copies a Zig callback and invokes it after registration returns" {
+    const NSBlockOperation = opaque {
+        const h = obzc.helpers.Object(@This());
+
+        pub const new = h.cls.new;
+        pub const release = h.release;
+        pub const addExecutionBlock = h.methodWithCallback("addExecutionBlock:", fn (fn () void) void);
+        pub const start = h.method("start", fn () void);
+    };
+    const State = struct { value: i32 = 7, observed: i32 = 0, calls: usize = 0 };
+    const Callback = struct {
+        noinline fn register(operation: *NSBlockOperation, state: *State) void {
+            // Foundation must copy the helper's stack block before this call returns.
+            operation.addExecutionBlock(state, complete);
+        }
+
+        fn complete(state: *State) void {
+            state.observed = state.value;
+            state.calls += 1;
+        }
+    };
+
+    const pool = rt.autoreleasePoolPush();
+    defer rt.autoreleasePoolPop(pool);
+    var state: State = .{};
+    const operation = NSBlockOperation.new();
+    defer operation.release();
+
+    Callback.register(operation, &state);
+    try std.testing.expectEqual(0, state.calls);
+    state.value = 19;
+
+    operation.start();
+    try std.testing.expectEqual(1, state.calls);
+    try std.testing.expectEqual(19, state.observed);
 }
