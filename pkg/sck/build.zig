@@ -5,26 +5,26 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
 
     const test_step = b.step("test", "Run ScreenCaptureKit tests");
+    const macos_abi = b.dependency("macos", .{ .target = target, .optimize = optimize }).module("abi");
     const obzc = b.dependency("obzc", .{ .target = target, .optimize = optimize }).module("obzc");
     const ns = b.dependency("ns", .{ .target = target, .optimize = optimize }).module("obzc-ns");
-    const macos = b.dependency("macos", .{ .target = target, .optimize = optimize }).module("abi");
 
     const sck = blk: {
-        const options: std.Build.Module.CreateOptions = .{
+        const opts: std.Build.Module.CreateOptions = .{
             .root_source_file = b.path("src/root.zig"),
             .target = target,
             .optimize = optimize,
             .imports = &.{
                 .{ .name = "obzc", .module = obzc },
                 .{ .name = "obzc-ns", .module = ns },
-                .{ .name = "macos/abi", .module = macos },
+                .{ .name = "macos/abi", .module = macos_abi },
             },
         };
 
-        const mod = b.addModule("obzc-sck", options);
+        const mod = b.addModule("obzc-sck", opts);
         mod.linkFramework("ScreenCaptureKit", .{ .needed = true });
 
-        const test_mod = b.createModule(options);
+        const test_mod = b.createModule(opts);
         test_mod.linkFramework("ScreenCaptureKit", .{ .needed = true });
         test_mod.linkFramework("CoreGraphics", .{});
         test_mod.linkFramework("CoreMedia", .{});
@@ -34,14 +34,14 @@ pub fn build(b: *std.Build) void {
         break :blk mod;
     };
 
-    const integration_tests = blk: {
+    const tests = blk: {
         const mod = b.createModule(.{
             .root_source_file = b.path("tests/tests.zig"),
             .target = target,
             .optimize = optimize,
             .imports = &.{
                 .{ .name = "obzc-sck", .module = sck },
-                .{ .name = "macos/abi", .module = macos },
+                .{ .name = "macos/abi", .module = macos_abi },
             },
         });
 
@@ -52,5 +52,5 @@ pub fn build(b: *std.Build) void {
         break :blk mod;
     };
 
-    _ = integration_tests;
+    _ = tests;
 }

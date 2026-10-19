@@ -4,7 +4,7 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const macos = blk: {
+    const abi = blk: {
         const trans = b.addTranslateC(.{
             .root_source_file = b.path("translate/macos.h"),
             .target = target,
@@ -14,5 +14,5 @@ pub fn build(b: *std.Build) void {
         break :blk mod;
     };
 
-    _ = macos;
+    _ = abi;
 }

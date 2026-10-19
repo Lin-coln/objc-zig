@@ -5,9 +5,9 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
 
     const test_step = b.step("test", "Run Vision tests");
+    const macos_abi = b.dependency("macos", .{ .target = target, .optimize = optimize }).module("abi");
     const obzc = b.dependency("obzc", .{ .target = target, .optimize = optimize }).module("obzc");
     const ns = b.dependency("ns", .{ .target = target, .optimize = optimize }).module("obzc-ns");
-    const macos = b.dependency("macos", .{ .target = target, .optimize = optimize }).module("abi");
 
     const vision = blk: {
         const mod = b.addModule("obzc-vision", .{
@@ -17,7 +17,7 @@ pub fn build(b: *std.Build) void {
             .imports = &.{
                 .{ .name = "obzc", .module = obzc },
                 .{ .name = "obzc-ns", .module = ns },
-                .{ .name = "macos/abi", .module = macos },
+                .{ .name = "macos/abi", .module = macos_abi },
             },
         });
 
@@ -28,7 +28,7 @@ pub fn build(b: *std.Build) void {
         break :blk mod;
     };
 
-    const integration_tests = blk: {
+    const tests = blk: {
         const mod = b.createModule(.{
             .root_source_file = b.path("tests/tests.zig"),
             .target = target,
@@ -37,7 +37,7 @@ pub fn build(b: *std.Build) void {
                 .{ .name = "obzc", .module = obzc },
                 .{ .name = "obzc-ns", .module = ns },
                 .{ .name = "obzc-vision", .module = vision },
-                .{ .name = "macos/abi", .module = macos },
+                .{ .name = "macos/abi", .module = macos_abi },
             },
         });
 
@@ -48,5 +48,5 @@ pub fn build(b: *std.Build) void {
         break :blk mod;
     };
 
-    _ = integration_tests;
+    _ = tests;
 }

@@ -5,11 +5,11 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
 
     const test_step = b.step("test", "Run Metal tests");
+    const macos_abi = b.dependency("macos", .{ .target = target, .optimize = optimize }).module("abi");
     const obzc = b.dependency("obzc", .{ .target = target, .optimize = optimize }).module("obzc");
     const ns = b.dependency("ns", .{ .target = target, .optimize = optimize }).module("obzc-ns");
-    const macos = b.dependency("macos", .{ .target = target, .optimize = optimize }).module("abi");
 
-    const abi = blk: {
+    const mtl_abi = blk: {
         const trans = b.addTranslateC(.{
             .root_source_file = b.path("translate/metal.h"),
             .target = target,
@@ -27,8 +27,8 @@ pub fn build(b: *std.Build) void {
             .imports = &.{
                 .{ .name = "obzc", .module = obzc },
                 .{ .name = "obzc-ns", .module = ns },
-                .{ .name = "macos/abi", .module = macos },
-                .{ .name = "mtl-abi", .module = abi },
+                .{ .name = "macos/abi", .module = macos_abi },
+                .{ .name = "mtl-abi", .module = mtl_abi },
             },
         });
 
@@ -39,7 +39,7 @@ pub fn build(b: *std.Build) void {
         break :blk mod;
     };
 
-    const integration_tests = blk: {
+    const tests = blk: {
         const mod = b.createModule(.{
             .root_source_file = b.path("tests/tests.zig"),
             .target = target,
@@ -48,7 +48,7 @@ pub fn build(b: *std.Build) void {
                 .{ .name = "obzc", .module = obzc },
                 .{ .name = "obzc-ns", .module = ns },
                 .{ .name = "obzc-mtl", .module = mtl },
-                .{ .name = "macos/abi", .module = macos },
+                .{ .name = "macos/abi", .module = macos_abi },
             },
         });
 
@@ -60,5 +60,5 @@ pub fn build(b: *std.Build) void {
         break :blk mod;
     };
 
-    _ = integration_tests;
+    _ = tests;
 }

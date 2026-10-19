@@ -6,7 +6,7 @@ pub fn build(b: *std.Build) void {
 
     const test_step = b.step("test", "Run Objective-C tests");
 
-    const abi = blk: {
+    const objc_abi = blk: {
         const trans = b.addTranslateC(.{
             .root_source_file = b.path("translate/objc.h"),
             .target = target,
@@ -17,71 +17,30 @@ pub fn build(b: *std.Build) void {
     };
 
     const obzc = blk: {
-        const options: std.Build.Module.CreateOptions = .{
+        const opts: std.Build.Module.CreateOptions = .{
             .root_source_file = b.path("src/root.zig"),
             .target = target,
             .optimize = optimize,
             .imports = &.{
-                .{ .name = "objc-abi", .module = abi },
+                .{ .name = "objc-abi", .module = objc_abi },
             },
         };
 
-        const mod = b.addModule("obzc", options);
+        const mod = b.addModule("obzc", opts);
         mod.linkSystemLibrary("objc", .{});
 
-        const test_mod = b.createModule(options);
+        const test_mod = b.createModule(opts);
         test_mod.linkSystemLibrary("objc", .{});
         test_mod.linkFramework("Foundation", .{ .needed = true });
 
         const tests = b.addTest(.{ .root_module = test_mod });
         test_step.dependOn(&b.addRunArtifact(tests).step);
 
-        // Match the diagnostic's first line; details may change independently.
-        const error_cases = .{
-            .{ "integer", "u7" },
-            .{ "zero_integer", "u0" },
-            .{ "float", "f16" },
-            .{ "vector", "@Vector(2, f32)" },
-            .{ "auto_struct", "struct Auto" },
-            .{ "auto_struct_pointer", "struct Auto" },
-            .{ "plain_union", "union Plain" },
-            .{ "packed_union", "union Packed" },
-            .{ "union_pointer", "union Plain" },
-            .{ "slice", "slice of u8" },
-            .{ "optional_value", "?u32" },
-            .{ "optional_slice", "?[]const u8" },
-            .{ "optional_c_pointer", "?[*c]u8" },
-            .{ "optional_allowzero", "?*allowzero i32" },
-            .{ "nested_optional", "??*i32" },
-            .{ "array_element", "?u32" },
-            .{ "struct_alignment_lowered", "struct Lowered" },
-            .{ "struct_alignment_raised", "struct Raised" },
-            .{ "union_alignment", "union AlignedUnion" },
-            .{ "nested_alignment", "struct Lowered" },
-        };
-        inline for (error_cases) |case| {
-            const case_options = b.addOptions();
-            case_options.addOption([]const u8, "name", case[0]);
-            const fixture = b.createModule(.{
-                .root_source_file = b.path("tests/block/encode_errors.zig"),
-                .target = target,
-                .optimize = optimize,
-                .imports = &.{
-                    .{ .name = "obzc", .module = mod },
-                    .{ .name = "case", .module = case_options.createModule() },
-                },
-            });
-            const failure = b.addObject(.{
-                .name = b.fmt("encode-error-{s}", .{case[0]}),
-                .root_module = fixture,
-            });
-            failure.expect_errors = .{ .contains = b.fmt("cannot encode {s}:", .{case[1]}) };
-            test_step.dependOn(&failure.step);
-        }
         break :blk mod;
     };
+    test_step.dependOn(addCompileErrorTests(b, target, optimize, obzc));
 
-    const obzc_tests = blk: {
+    const tests = blk: {
         const mod = b.createModule(.{
             .root_source_file = b.path("tests/tests.zig"),
             .target = target,
@@ -98,5 +57,57 @@ pub fn build(b: *std.Build) void {
         break :blk mod;
     };
 
-    _ = obzc_tests;
+    _ = tests;
+}
+
+fn addCompileErrorTests(
+    b: *std.Build,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    obzc: *std.Build.Module,
+) *std.Build.Step {
+    const step = b.step("test-compile-errors", "Check compile-time validation errors");
+    // Check the type-specific diagnostic; explanations may change independently.
+    const error_cases = .{
+        .{ "integer", "u7" },
+        .{ "zero_integer", "u0" },
+        .{ "float", "f16" },
+        .{ "vector", "@Vector(2, f32)" },
+        .{ "auto_struct", "struct Auto" },
+        .{ "auto_struct_pointer", "struct Auto" },
+        .{ "plain_union", "union Plain" },
+        .{ "packed_union", "union Packed" },
+        .{ "union_pointer", "union Plain" },
+        .{ "slice", "slice of u8" },
+        .{ "optional_value", "?u32" },
+        .{ "optional_slice", "?[]const u8" },
+        .{ "optional_c_pointer", "?[*c]u8" },
+        .{ "optional_allowzero", "?*allowzero i32" },
+        .{ "nested_optional", "??*i32" },
+        .{ "array_element", "?u32" },
+        .{ "struct_alignment_lowered", "struct Lowered" },
+        .{ "struct_alignment_raised", "struct Raised" },
+        .{ "union_alignment", "union AlignedUnion" },
+        .{ "nested_alignment", "struct Lowered" },
+    };
+    inline for (error_cases) |case| {
+        const case_options = b.addOptions();
+        case_options.addOption([]const u8, "name", case[0]);
+        const fixture = b.createModule(.{
+            .root_source_file = b.path("tests/block/encode_errors.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "obzc", .module = obzc },
+                .{ .name = "case", .module = case_options.createModule() },
+            },
+        });
+        const failure = b.addObject(.{
+            .name = b.fmt("encode-error-{s}", .{case[0]}),
+            .root_module = fixture,
+        });
+        failure.expect_errors = .{ .contains = b.fmt("cannot encode {s}:", .{case[1]}) };
+        step.dependOn(&failure.step);
+    }
+    return step;
 }
