@@ -36,3 +36,11 @@ test "NSArray: create and read objects" {
     try std.testing.expectEqualStrings("first", array.objectAtIndex(0).utf8String());
     try std.testing.expectEqualStrings("second", array.objectAtIndex(1).utf8String());
 }
+
+test "NSArray: initialize an empty array" {
+    const NSString = @import("NSString.zig").NSString;
+    const array = NSArray(NSString).init(&.{});
+    defer array.release();
+
+    try std.testing.expectEqual(0, array.count());
+}
