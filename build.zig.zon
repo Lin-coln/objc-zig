@@ -3,9 +3,18 @@
     .version = "0.1.0",
     .fingerprint = 0xaadcc77454f6fcc6,
     .minimum_zig_version = "0.17.0",
-    .dependencies = .{},
+    .dependencies = .{
+        .obzc = .{ .path = "obzc" },
+        .ns = .{ .path = "pkg/ns" },
+        .sck = .{ .path = "pkg/sck" },
+        .mtl = .{ .path = "pkg/mtl" },
+        .vision = .{ .path = "pkg/vision" },
+    },
     .paths = .{
         "build.zig",
         "build.zig.zon",
+        "obzc",
+        "pkg",
+        "shared",
     },
 }
