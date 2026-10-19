@@ -6,7 +6,8 @@ const SCContentFilter = sck.SCContentFilter;
 const SCStreamConfiguration = sck.SCStreamConfiguration;
 const SCStream = sck.SCStream;
 
-test "SCStream: initialize and update configuration" {
+test "SCStream: update a window capture stream with a new configuration" {
+    // Compile the remaining bindings without starting a capture session.
     std.testing.refAllDecls(SCStream);
     if (!macos.CGPreflightScreenCaptureAccess()) return error.SkipZigTest;
     // Initialize CoreGraphics in this command-line test process before creating a filter.
@@ -23,6 +24,10 @@ test "SCStream: initialize and update configuration" {
     configuration.setHeight(72);
     const stream = SCStream.init(filter, configuration, null);
     defer stream.release();
-    configuration.setQueueDepth(4);
-    try stream.updateConfigurationSync(configuration);
+    const updated = SCStreamConfiguration.new();
+    defer updated.release();
+    updated.setWidth(256);
+    updated.setHeight(144);
+    updated.setQueueDepth(4);
+    try stream.updateConfigurationSync(updated);
 }
