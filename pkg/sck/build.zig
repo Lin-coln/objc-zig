@@ -40,12 +40,14 @@ pub fn build(b: *std.Build) void {
             .target = target,
             .optimize = optimize,
             .imports = &.{
+                .{ .name = "obzc", .module = obzc },
                 .{ .name = "obzc-sck", .module = sck },
                 .{ .name = "macos/abi", .module = macos_abi },
             },
         });
 
         mod.linkFramework("CoreGraphics", .{});
+        mod.linkFramework("CoreMedia", .{});
 
         const tests = b.addTest(.{ .root_module = mod });
         test_step.dependOn(&b.addRunArtifact(tests).step);
