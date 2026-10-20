@@ -13,7 +13,7 @@ pub fn Method(comptime T: type, comptime Helper: anytype) type {
         const Self = @This();
         const call = if (has_receiver) callWithReceiver(Helper).call else Helper.call;
 
-        pub const method = createMethodHelper(T, call, has_receiver).method;
+        pub const method = createMethodHelper(T, Helper).method;
 
         pub const methodWithCallback = createCallbackHelper(T, Helper).withCallback;
 
@@ -83,7 +83,7 @@ pub fn Method(comptime T: type, comptime Helper: anytype) type {
                 }
             };
 
-            return utils.spreadArgs(Static.call, .{ .convention = fn_info.attrs.@"callconv" }).*;
+            return utils.spreadArgs(Static.call, .{ .convention = fn_info.attrs.@"callconv" });
         }
     };
 }
@@ -98,17 +98,16 @@ fn callWithReceiver(comptime Helper: type) type {
     };
 }
 
-fn createMethodHelper(
-    comptime T: type,
-    comptime call: anytype,
-    comptime has_receiver: bool,
-) type {
+fn createMethodHelper(comptime T: type, comptime Helper: type) type {
+    const has_receiver = @typeInfo(@TypeOf(Helper.call)).@"fn".param_types[0] == *T;
+    const ofs_r: usize = if (has_receiver) 1 else 0;
+
     return struct {
-        pub const method = if (has_receiver) method_r else method_0;
-        fn method_r(comptime name: [:0]const u8, comptime Shape: type) prependArgs(Shape, &.{*T}) {
-            return method_0(name, prependArgs(Shape, &.{*T}));
+        pub fn method(comptime name: [:0]const u8, comptime Shape: type) @TypeOf(of(name, Shape).func) {
+            return of(name, Shape).func;
         }
-        fn method_0(comptime name: [:0]const u8, comptime Shape: type) Shape {
+
+        fn of(comptime name: [:0]const u8, comptime Shape: type) type {
             const fn_info = switch (@typeInfo(Shape)) {
                 .@"fn" => |info| info,
                 else => @compileError("method Shape must be a function type"),
@@ -117,27 +116,39 @@ fn createMethodHelper(
                 @compileError("method Shape must have fixed, non-generic parameters");
 
             const Return = fn_info.return_type.?;
-            const Static = struct {
-                fn invoke(args: std.meta.ArgsTuple(Shape)) Return {
-                    return call(Return, name, args);
+            const Signature = if (has_receiver) prependArgs(Shape, &.{*T}) else Shape;
+
+            return struct {
+                pub const func: Signature = utils.spreadArgs(invoke, .{
+                    .convention = fn_info.attrs.@"callconv",
+                });
+
+                fn invoke(args: std.meta.ArgsTuple(Signature)) Return {
+                    var method_args: std.meta.ArgsTuple(Shape) = undefined;
+                    inline for (0..method_args.len) |i| method_args[i] = args[ofs_r + i];
+
+                    if (comptime has_receiver) {
+                        return Helper.call(args[0], Return, name, method_args);
+                    } else {
+                        return Helper.call(Return, name, method_args);
+                    }
                 }
             };
-
-            return utils.spreadArgs(Static.invoke, .{ .convention = fn_info.attrs.@"callconv" }).*;
         }
     };
 }
 
 fn createCallbackHelper(comptime T: type, comptime Helper: type) type {
     const has_receiver = @typeInfo(@TypeOf(Helper.call)).@"fn".param_types[0] == *T;
+    const ofs_r: usize = if (has_receiver) 1 else 0;
 
     return struct {
-        pub fn withCallback(comptime name: [:0]const u8, comptime Shape: type) @TypeOf(WithCallback(name, Shape).func) {
-            return WithCallback(name, Shape).func;
+        pub fn withCallback(comptime name: [:0]const u8, comptime Shape: type) @TypeOf(of(name, Shape).func) {
+            return of(name, Shape).func;
         }
-        fn WithCallback(comptime name: [:0]const u8, comptime Shape: type) type {
+
+        fn of(comptime name: [:0]const u8, comptime Shape: type) type {
             const Resolved = resolveTypesFromCallbackShape(Shape);
-            const ofs_r = if (has_receiver) 1 else 0;
             return struct {
                 pub const func = utils.spreadArgs(invoke, .{
                     // fn(receiver, ctx, ...args_and_callback)
@@ -290,6 +301,65 @@ test "methodSync: asynchronous completion retains only successful results" {
     try std.testing.expectError(error.ObjectiveCError, bound(true));
     Helper.thread.join();
     try std.testing.expectEqual(2, Methods.deallocations);
+}
+
+test "method: Shape preserves parameter types and contextual initialization" {
+    const Payload = extern struct { value: c_ulong = 3 };
+    const Receiver = struct { base: c_ulong };
+    const ClassHelper = struct {
+        pub fn call(comptime Return: type, _: [:0]const u8, args: anytype) Return {
+            return args[0] + args[1].value;
+        }
+    };
+    const ObjectHelper = struct {
+        pub fn call(self: *Receiver, comptime Return: type, _: [:0]const u8, args: anytype) Return {
+            return self.base + args[0] + args[1].value;
+        }
+    };
+    const Shape = fn (c_ulong, Payload) c_ulong;
+    const class_method = Method(Receiver, ClassHelper).method("value:payload:", Shape);
+    const object_method = Method(Receiver, ObjectHelper).method("value:payload:", Shape);
+    try std.testing.expect(@TypeOf(class_method) == Shape);
+    try std.testing.expect(@TypeOf(object_method) == fn (*Receiver, c_ulong, Payload) c_ulong);
+
+    const value: c_int = 4;
+    try std.testing.expectEqual(@as(c_ulong, 7), class_method(value, .{}));
+    try std.testing.expectEqual(@as(c_ulong, 9), class_method(value, .{ .value = 5 }));
+    var receiver: Receiver = .{ .base = 10 };
+    try std.testing.expectEqual(@as(c_ulong, 17), object_method(&receiver, value, .{}));
+    try std.testing.expectEqual(@as(c_ulong, 19), object_method(&receiver, value, .{ .value = 5 }));
+}
+
+test "methodWithCallback: class and instance bindings preserve constant coercion" {
+    const State = struct { value: c_ulong = 0 };
+    const Receiver = struct { base: c_ulong };
+    const ClassHelper = struct {
+        pub fn call(comptime Return: type, _: [:0]const u8, args: anytype) Return {
+            const completion = args[1];
+            completion.invoke(completion, args[0]);
+        }
+    };
+    const ObjectHelper = struct {
+        pub fn call(self: *Receiver, comptime Return: type, _: [:0]const u8, args: anytype) Return {
+            const completion = args[1];
+            completion.invoke(completion, self.base + args[0]);
+        }
+    };
+    const Completion = struct {
+        fn call(state: *State, value: c_ulong) void {
+            state.value = value;
+        }
+    };
+    const Shape = fn (c_ulong, fn (c_ulong) void) void;
+    const class_method = Method(Receiver, ClassHelper).methodWithCallback("value:completion:", Shape);
+    const object_method = Method(Receiver, ObjectHelper).methodWithCallback("value:completion:", Shape);
+    const value: c_int = 4;
+    var state: State = .{};
+    class_method(&state, value, &Completion.call);
+    try std.testing.expectEqual(@as(c_ulong, 4), state.value);
+    var receiver: Receiver = .{ .base = 10 };
+    object_method(&receiver, &state, value, &Completion.call);
+    try std.testing.expectEqual(@as(c_ulong, 14), state.value);
 }
 
 test "method: non-null pointer returns are preserved" {

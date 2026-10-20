@@ -1,9 +1,11 @@
 const std = @import("std");
 
 /// Adapts a single-tuple handler to separate parameters, preserving their order.
+/// Returns a function value for both fixed and generic handlers.
 /// Fixed tuple handlers retain their parameter types and requested calling convention.
-/// Generic tuple handlers require an arity and produce an `anytype` entry point.
-/// Function values and types remain comptime-only; other values retain runtime parameter semantics.
+/// Generic tuple handlers require an arity and use an inline `anytype` entry point.
+/// Inlining preserves values known at the call site, including constants and comptime callbacks.
+/// Generic arguments retain their inferred types; use a fixed tuple for contextual parameter types.
 /// Supports zero to fifteen parameters.
 pub fn spreadArgs(
     comptime handler: anytype,
@@ -15,7 +17,7 @@ pub fn spreadArgs(
     const fn_info = @typeInfo(@TypeOf(handler)).@"fn";
     const arity = options.arity orelse @typeInfo(fn_info.param_types[0].?).@"struct".field_types.len;
     const Static = Functions(handler, arity, options.convention);
-    return if (fn_info.is_generic) Static.generic else &Static.call;
+    return if (fn_info.is_generic) Static.generic else Static.call;
 }
 
 fn FunctionFromTupleHandler(comptime handler: anytype, comptime options: anytype) type {
@@ -47,7 +49,7 @@ fn FunctionFromTupleHandler(comptime handler: anytype, comptime options: anytype
         if (arity != tuple_info.field_types.len)
             @compileError("spreadArgs arity must match the handler tuple length");
     }
-    return *const @Fn(tuple_info.field_types, &@splat(.{}), fn_info.return_type.?, .{ .@"callconv" = options.convention });
+    return @Fn(tuple_info.field_types, &@splat(.{}), fn_info.return_type.?, .{ .@"callconv" = options.convention });
 }
 
 fn Functions(comptime handler: anytype, comptime arity: usize, comptime convention: std.lang.CallingConvention) type {
@@ -59,7 +61,7 @@ fn Functions(comptime handler: anytype, comptime arity: usize, comptime conventi
                 return handler(.{});
             }
 
-            fn generic() @TypeOf(handler(.{})) {
+            inline fn generic() @TypeOf(handler(.{})) {
                 return handler(.{});
             }
         },
@@ -68,7 +70,7 @@ fn Functions(comptime handler: anytype, comptime arity: usize, comptime conventi
                 return handler(.{arg0});
             }
 
-            fn generic(arg0: anytype) @TypeOf(handler(.{arg0})) {
+            inline fn generic(arg0: anytype) @TypeOf(handler(.{arg0})) {
                 return handler(.{arg0});
             }
         },
@@ -77,7 +79,7 @@ fn Functions(comptime handler: anytype, comptime arity: usize, comptime conventi
                 return handler(.{ arg0, arg1 });
             }
 
-            fn generic(arg0: anytype, arg1: anytype) @TypeOf(handler(.{ arg0, arg1 })) {
+            inline fn generic(arg0: anytype, arg1: anytype) @TypeOf(handler(.{ arg0, arg1 })) {
                 return handler(.{ arg0, arg1 });
             }
         },
@@ -86,7 +88,7 @@ fn Functions(comptime handler: anytype, comptime arity: usize, comptime conventi
                 return handler(.{ arg0, arg1, arg2 });
             }
 
-            fn generic(arg0: anytype, arg1: anytype, arg2: anytype) @TypeOf(handler(.{ arg0, arg1, arg2 })) {
+            inline fn generic(arg0: anytype, arg1: anytype, arg2: anytype) @TypeOf(handler(.{ arg0, arg1, arg2 })) {
                 return handler(.{ arg0, arg1, arg2 });
             }
         },
@@ -100,7 +102,7 @@ fn Functions(comptime handler: anytype, comptime arity: usize, comptime conventi
                 return handler(.{ arg0, arg1, arg2, arg3 });
             }
 
-            fn generic(
+            inline fn generic(
                 arg0: anytype,
                 arg1: anytype,
                 arg2: anytype,
@@ -120,7 +122,7 @@ fn Functions(comptime handler: anytype, comptime arity: usize, comptime conventi
                 return handler(.{ arg0, arg1, arg2, arg3, arg4 });
             }
 
-            fn generic(
+            inline fn generic(
                 arg0: anytype,
                 arg1: anytype,
                 arg2: anytype,
@@ -142,7 +144,7 @@ fn Functions(comptime handler: anytype, comptime arity: usize, comptime conventi
                 return handler(.{ arg0, arg1, arg2, arg3, arg4, arg5 });
             }
 
-            fn generic(
+            inline fn generic(
                 arg0: anytype,
                 arg1: anytype,
                 arg2: anytype,
@@ -166,7 +168,7 @@ fn Functions(comptime handler: anytype, comptime arity: usize, comptime conventi
                 return handler(.{ arg0, arg1, arg2, arg3, arg4, arg5, arg6 });
             }
 
-            fn generic(
+            inline fn generic(
                 arg0: anytype,
                 arg1: anytype,
                 arg2: anytype,
@@ -192,7 +194,7 @@ fn Functions(comptime handler: anytype, comptime arity: usize, comptime conventi
                 return handler(.{ arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7 });
             }
 
-            fn generic(
+            inline fn generic(
                 arg0: anytype,
                 arg1: anytype,
                 arg2: anytype,
@@ -220,7 +222,7 @@ fn Functions(comptime handler: anytype, comptime arity: usize, comptime conventi
                 return handler(.{ arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8 });
             }
 
-            fn generic(
+            inline fn generic(
                 arg0: anytype,
                 arg1: anytype,
                 arg2: anytype,
@@ -250,7 +252,7 @@ fn Functions(comptime handler: anytype, comptime arity: usize, comptime conventi
                 return handler(.{ arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9 });
             }
 
-            fn generic(
+            inline fn generic(
                 arg0: anytype,
                 arg1: anytype,
                 arg2: anytype,
@@ -282,7 +284,7 @@ fn Functions(comptime handler: anytype, comptime arity: usize, comptime conventi
                 return handler(.{ arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10 });
             }
 
-            fn generic(
+            inline fn generic(
                 arg0: anytype,
                 arg1: anytype,
                 arg2: anytype,
@@ -316,7 +318,7 @@ fn Functions(comptime handler: anytype, comptime arity: usize, comptime conventi
                 return handler(.{ arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11 });
             }
 
-            fn generic(
+            inline fn generic(
                 arg0: anytype,
                 arg1: anytype,
                 arg2: anytype,
@@ -352,7 +354,7 @@ fn Functions(comptime handler: anytype, comptime arity: usize, comptime conventi
                 return handler(.{ arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12 });
             }
 
-            fn generic(
+            inline fn generic(
                 arg0: anytype,
                 arg1: anytype,
                 arg2: anytype,
@@ -390,7 +392,7 @@ fn Functions(comptime handler: anytype, comptime arity: usize, comptime conventi
                 return handler(.{ arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13 });
             }
 
-            fn generic(
+            inline fn generic(
                 arg0: anytype,
                 arg1: anytype,
                 arg2: anytype,
@@ -430,7 +432,7 @@ fn Functions(comptime handler: anytype, comptime arity: usize, comptime conventi
                 return handler(.{ arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14 });
             }
 
-            fn generic(
+            inline fn generic(
                 arg0: anytype,
                 arg1: anytype,
                 arg2: anytype,
@@ -485,10 +487,10 @@ test "spreadArgs: mixed parameter types, struct return and calling convention" {
     };
     const value: i32 = 7;
     const function = spreadArgs(Handler.call, .{ .convention = .c });
-    try std.testing.expect(@TypeOf(function) == *const fn (*const i32, f64, u8) callconv(.c) Result);
+    try std.testing.expect(@TypeOf(function) == fn (*const i32, f64, u8) callconv(.c) Result);
     try std.testing.expectEqual(17.0, function(&value, 2.0, 3).value);
     const automatic = spreadArgs(Handler.call, .{});
-    try std.testing.expect(@TypeOf(automatic) == *const fn (*const i32, f64, u8) Result);
+    try std.testing.expect(@TypeOf(automatic) == fn (*const i32, f64, u8) Result);
     try std.testing.expectEqual(17.0, automatic(&value, 2.0, 3).value);
 }
 
@@ -547,4 +549,26 @@ test "spreadArgs: generic zero through fifteen parameters preserve order" {
         }
         try std.testing.expectEqual(expected, @call(.auto, function, args));
     }
+}
+
+test "spreadArgs: generic forwarding preserves constants and comptime function pointers" {
+    const Handler = struct {
+        fn add(context: *c_ulong, value: c_ulong) c_ulong {
+            return context.* + value;
+        }
+
+        fn apply(context: *c_ulong, value: c_ulong, comptime function: *const fn (*c_ulong, c_ulong) c_ulong) c_ulong {
+            return function(context, value);
+        }
+
+        fn call(args: anytype) c_ulong {
+            return apply(args[0], args[1], args[2]);
+        }
+    };
+    const function = spreadArgs(Handler.call, .{ .arity = 3 });
+    var context: c_ulong = 7;
+    const constant: c_int = 5;
+    try std.testing.expectEqual(@as(c_ulong, 12), function(&context, constant, &Handler.add));
+    context += 1;
+    try std.testing.expectEqual(@as(c_ulong, 16), function(&context, context, Handler.add));
 }
