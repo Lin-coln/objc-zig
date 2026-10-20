@@ -29,6 +29,11 @@ pub fn Object(comptime T: type) type {
             return obzc.rt.msgSend(self, Return, obzc.rt.Sel.registerName(sel), args);
         }
 
+        /// Sends an instance message directly, preserving the declared return type.
+        pub fn call(self: *T, comptime Return: type, name: [:0]const u8, args: anytype) Return {
+            return msgSend(self, Return, name, args);
+        }
+
         /// Binds an instance method, prepending `*T` to the declared Shape.
         pub fn method(comptime name: [:0]const u8, comptime Shape: type) m.prependArgs(Shape, &.{*T}) {
             return m.method(name, m.prependArgs(Shape, &.{*T}), sendMethod).*;
@@ -106,6 +111,23 @@ pub fn Object(comptime T: type) type {
             };
         }
     };
+}
+
+test "helpers.Object: call forwards instance receivers and arguments" {
+    const NSNumber = opaque {
+        pub const call = Object(@This()).call;
+    };
+    const h = Object(NSNumber);
+    const pool = obzc.rt.autoreleasePoolPush();
+    defer obzc.rt.autoreleasePoolPop(pool);
+
+    const first = h.cls.msgSend(*NSNumber, "numberWithInteger:", .{@as(isize, 7)});
+    const second = h.cls.msgSend(*NSNumber, "numberWithInteger:", .{@as(isize, 12)});
+    try std.testing.expectEqual(7, first.call(isize, "integerValue", .{}));
+    try std.testing.expectEqual(12, second.call(isize, "integerValue", .{}));
+    try std.testing.expectEqual(obzc.c.NO, first.call(obzc.c.BOOL, "isEqualToNumber:", .{second}));
+    try std.testing.expectEqual(obzc.c.YES, first.call(obzc.c.BOOL, "isEqualToNumber:", .{first}));
+    try std.testing.expectEqual(first, first.call(?*NSNumber, "self", .{}).?);
 }
 
 test "helpers.Object: method binds instance receivers and arguments" {

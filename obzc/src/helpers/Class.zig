@@ -23,6 +23,11 @@ pub fn Class(comptime T: type) type {
             return obzc.rt.msgSend(getClass(), Return, obzc.rt.Sel.registerName(sel), args);
         }
 
+        /// Sends a class message directly, preserving the declared return type.
+        pub fn call(comptime Return: type, name: [:0]const u8, args: anytype) Return {
+            return msgSend(Return, name, args);
+        }
+
         /// Binds a class method to the signature `Shape`, accepting its arguments directly.
         /// Supports up to thirteen method arguments through `utils.spreadArgs`.
         pub fn method(
@@ -48,6 +53,17 @@ pub fn Class(comptime T: type) type {
             return m.methodSync(name, Shape, msgSend);
         }
     };
+}
+
+test "helpers.Class: call forwards class arguments and preserves nullable returns" {
+    const NSNumber = opaque {};
+    const NSObject = opaque {};
+    const pool = obzc.rt.autoreleasePoolPush();
+    defer obzc.rt.autoreleasePoolPop(pool);
+
+    const number = Class(NSNumber).call(*NSNumber, "numberWithInteger:", .{@as(isize, 42)});
+    try std.testing.expectEqual(42, obzc.helpers.Object(NSNumber).msgSend(number, isize, "integerValue", .{}));
+    try std.testing.expectEqual(null, Class(NSObject).call(?*obzc.rt.Class, "superclass", .{}));
 }
 
 test "helpers.Class: class messages, new and alloc" {
