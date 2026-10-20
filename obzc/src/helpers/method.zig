@@ -11,18 +11,11 @@ pub fn Method(comptime T: type, comptime Helper: anytype) type {
 
     return struct {
         const Self = @This();
-        const m = createMethodHelper(call, has_receiver);
         const call = if (has_receiver) callWithReceiver(Helper).call else Helper.call;
 
-        pub const method = if (has_receiver) method1 else method0;
-        const method0 = m.method;
-        fn method1(comptime name: [:0]const u8, comptime Shape: type) prependArgs(Shape, &.{*T}) {
-            return method0(name, prependArgs(Shape, &.{*T}));
-        }
+        pub const method = createMethodHelper(T, call, has_receiver).method;
 
-        /// Binds a completion method; calls take context, ordinary arguments, then a function value.
-        /// Instance calls prepend `*T`. Captured context must outlive every block invocation.
-        pub const methodWithCallback = m.withCallback;
+        pub const methodWithCallback = createCallbackHelper(T, Helper).withCallback;
 
         /// Waits for a one-shot completion using a dispatch semaphore.
         /// Prepends `*T` for instance methods. Shape returns an error union with void or an object pointer.
@@ -105,9 +98,17 @@ fn callWithReceiver(comptime Helper: type) type {
     };
 }
 
-fn createMethodHelper(comptime call: anytype, comptime has_receiver: bool) type {
+fn createMethodHelper(
+    comptime T: type,
+    comptime call: anytype,
+    comptime has_receiver: bool,
+) type {
     return struct {
-        pub fn method(comptime name: [:0]const u8, comptime Shape: type) Shape {
+        pub const method = if (has_receiver) method_r else method_0;
+        fn method_r(comptime name: [:0]const u8, comptime Shape: type) prependArgs(Shape, &.{*T}) {
+            return method_0(name, prependArgs(Shape, &.{*T}));
+        }
+        fn method_0(comptime name: [:0]const u8, comptime Shape: type) Shape {
             const fn_info = switch (@typeInfo(Shape)) {
                 .@"fn" => |info| info,
                 else => @compileError("method Shape must be a function type"),
@@ -124,27 +125,37 @@ fn createMethodHelper(comptime call: anytype, comptime has_receiver: bool) type 
 
             return utils.spreadArgs(Static.invoke, .{ .convention = fn_info.attrs.@"callconv" }).*;
         }
+    };
+}
 
+fn createCallbackHelper(comptime T: type, comptime Helper: type) type {
+    const has_receiver = @typeInfo(@TypeOf(Helper.call)).@"fn".param_types[0] == *T;
+
+    return struct {
         pub fn withCallback(comptime name: [:0]const u8, comptime Shape: type) @TypeOf(WithCallback(name, Shape).func) {
             return WithCallback(name, Shape).func;
         }
         fn WithCallback(comptime name: [:0]const u8, comptime Shape: type) type {
             const Resolved = resolveTypesFromCallbackShape(Shape);
-            const context_index: usize = @intFromBool(has_receiver);
+            const ofs_r = if (has_receiver) 1 else 0;
             return struct {
                 pub const func = utils.spreadArgs(invoke, .{
-                    .arity = @typeInfo(Shape).@"fn".param_types.len + 1 + context_index,
+                    // fn(receiver, ctx, ...args_and_callback)
+                    .arity = ofs_r + 1 + @typeInfo(Shape).@"fn".param_types.len,
                 });
 
                 fn invoke(args: anytype) void {
-                    const ctx = args[context_index];
+                    const ctx = args[ofs_r];
                     const handler: *const Resolved.Callback(@TypeOf(ctx)) = args[args.len - 1];
                     var method_args: Resolved.Args = undefined;
-                    inline for (0..method_args.len) |i|
-                        method_args[i] = args[context_index + 1 + i];
+                    inline for (0..method_args.len) |i| method_args[i] = args[ofs_r + 1 + i];
                     const blk = block.initWithContext(ctx, handler.*);
-                    const receiver_args = if (has_receiver) .{args[0]} else .{};
-                    call(void, name, receiver_args ++ method_args ++ .{&blk});
+
+                    if (comptime has_receiver) {
+                        Helper.call(args[0], void, name, method_args ++ .{&blk});
+                    } else {
+                        Helper.call(void, name, method_args ++ .{&blk});
+                    }
                 }
             };
         }
