@@ -38,7 +38,7 @@ pub fn initWithContext(
         }
     };
 
-    return Block.init(ctx, obzc.utils.spreadArgs(Static.callback, .c));
+    return Block.init(ctx, obzc.utils.spreadArgs(Static.callback, .{ .convention = .c }));
 }
 
 fn BlockFromContextHandler(comptime Context: type, fn_info: std.lang.Type.Fn) type {

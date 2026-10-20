@@ -11,86 +11,25 @@ pub fn Method(comptime T: type, comptime Helper: anytype) type {
 
     return struct {
         const Self = @This();
+        const m = createMethodHelper(call, has_receiver);
         const call = if (has_receiver) callWithReceiver(Helper).call else Helper.call;
 
         pub const method = if (has_receiver) method1 else method0;
-        const method0 = createMethodHelper(call).method;
+        const method0 = m.method;
         fn method1(comptime name: [:0]const u8, comptime Shape: type) prependArgs(Shape, &.{*T}) {
             return method0(name, prependArgs(Shape, &.{*T}));
         }
 
-        /// Binds a void message whose last Shape parameter is a block function type.
-        /// Takes context, ordinary arguments, then a comptime handler, preceded by `*T` for instance methods.
-        /// The context must outlive every invocation of the block handler.
-        pub fn methodWithCallback(
-            comptime name: [:0]const u8,
-            comptime Shape: type,
-        ) @TypeOf(MethodWithCallback(name, Shape).call) {
-            return MethodWithCallback(name, Shape).call;
-        }
-
-        fn MethodWithCallback(comptime name: [:0]const u8, comptime Shape: type) type {
-            const shape_info = switch (@typeInfo(Shape)) {
-                .@"fn" => |info| info,
-                else => @compileError("methodWithCallback Shape must be a function type"),
-            };
-            if (shape_info.attrs.varargs)
-                @compileError("methodWithCallback Shape cannot have C variadic parameters");
-            if (shape_info.return_type != void)
-                @compileError("methodWithCallback Shape must return void");
-            if (shape_info.param_types.len == 0)
-                @compileError("methodWithCallback Shape must end with a block function type");
-
-            const last = shape_info.param_types.len - 1;
-            const Function = shape_info.param_types[last] orelse
-                @compileError("methodWithCallback Shape must end with a known block function type");
-            if (@typeInfo(Function) != .@"fn")
-                @compileError("methodWithCallback Shape must end with a block function type");
-            const fn_info = @typeInfo(Function).@"fn";
-            if (fn_info.is_generic or fn_info.attrs.varargs)
-                @compileError("methodWithCallback requires fixed, non-generic block parameters");
-
-            const MethodArgs = blk: {
-                var params: [last]type = undefined;
-                for (shape_info.param_types[0..last], 0..) |Param, i| params[i] = Param orelse
-                    @compileError("methodWithCallback Shape parameters must have explicit types");
-                break :blk @Tuple(&params);
-            };
-
-            return struct {
-                pub const Args = MethodArgs;
-                pub const call = if (has_receiver)
-                    utils.spreadArgsWithReceiverAndCallback(*T, Args, Callback, invokeInstance)
-                else
-                    utils.spreadArgsWithCallback(Args, Callback, invoke);
-
-                fn invokeInstance(self: *T, ctx: anytype, args: Args, comptime handler: *const Callback(@TypeOf(ctx))) void {
-                    invoke(ctx, .{self} ++ args, handler);
-                }
-
-                fn invoke(ctx: anytype, args: anytype, comptime handler: *const Callback(@TypeOf(ctx))) void {
-                    const blk = block.initWithContext(ctx, handler.*);
-                    Self.call(void, name, args ++ .{&blk});
-                }
-
-                pub fn Callback(comptime Context: type) type {
-                    var params: [fn_info.param_types.len + 1]type = undefined;
-                    params[0] = Context;
-                    for (fn_info.param_types, 1..) |Param, i| params[i] = Param.?;
-                    return @Fn(&params, &@splat(.{}), fn_info.return_type.?, .{});
-                }
-            };
-        }
+        /// Binds a completion method; calls take context, ordinary arguments, then a function value.
+        /// Instance calls prepend `*T`. Captured context must outlive every block invocation.
+        pub const methodWithCallback = m.withCallback;
 
         /// Waits for a one-shot completion using a dispatch semaphore.
         /// Prepends `*T` for instance methods. Shape returns an error union with void or an object pointer.
         /// Completion receives `(error)` or `(object, error)`; errors become `error.ObjectiveCError`.
         /// Returned objects are retained and must be released by the caller.
         /// The completion must be able to run while the calling thread is blocked.
-        pub fn methodSync(
-            comptime name: [:0]const u8,
-            comptime Shape: type,
-        ) if (has_receiver) prependArgs(Shape, &.{*T}) else Shape {
+        pub fn methodSync(comptime name: [:0]const u8, comptime Shape: type) if (has_receiver) prependArgs(Shape, &.{*T}) else Shape {
             const Signature = if (has_receiver) prependArgs(Shape, &.{*T}) else Shape;
             const fn_info = switch (@typeInfo(Signature)) {
                 .@"fn" => |info| info,
@@ -151,7 +90,7 @@ pub fn Method(comptime T: type, comptime Helper: anytype) type {
                 }
             };
 
-            return utils.spreadArgs(Static.call, fn_info.attrs.@"callconv").*;
+            return utils.spreadArgs(Static.call, .{ .convention = fn_info.attrs.@"callconv" }).*;
         }
     };
 }
@@ -166,7 +105,7 @@ fn callWithReceiver(comptime Helper: type) type {
     };
 }
 
-fn createMethodHelper(comptime call: anytype) type {
+fn createMethodHelper(comptime call: anytype, comptime has_receiver: bool) type {
     return struct {
         pub fn method(comptime name: [:0]const u8, comptime Shape: type) Shape {
             const fn_info = switch (@typeInfo(Shape)) {
@@ -183,7 +122,70 @@ fn createMethodHelper(comptime call: anytype) type {
                 }
             };
 
-            return utils.spreadArgs(Static.invoke, fn_info.attrs.@"callconv").*;
+            return utils.spreadArgs(Static.invoke, .{ .convention = fn_info.attrs.@"callconv" }).*;
+        }
+
+        pub fn withCallback(comptime name: [:0]const u8, comptime Shape: type) @TypeOf(WithCallback(name, Shape).func) {
+            return WithCallback(name, Shape).func;
+        }
+        fn WithCallback(comptime name: [:0]const u8, comptime Shape: type) type {
+            const Resolved = resolveTypesFromCallbackShape(Shape);
+            const context_index: usize = @intFromBool(has_receiver);
+            return struct {
+                pub const func = utils.spreadArgs(invoke, .{
+                    .arity = @typeInfo(Shape).@"fn".param_types.len + 1 + context_index,
+                });
+
+                fn invoke(args: anytype) void {
+                    const ctx = args[context_index];
+                    const handler: *const Resolved.Callback(@TypeOf(ctx)) = args[args.len - 1];
+                    var method_args: Resolved.Args = undefined;
+                    inline for (0..method_args.len) |i|
+                        method_args[i] = args[context_index + 1 + i];
+                    const blk = block.initWithContext(ctx, handler.*);
+                    const receiver_args = if (has_receiver) .{args[0]} else .{};
+                    call(void, name, receiver_args ++ method_args ++ .{&blk});
+                }
+            };
+        }
+    };
+}
+
+fn resolveTypesFromCallbackShape(comptime Shape: type) type {
+    const shape_info = switch (@typeInfo(Shape)) {
+        .@"fn" => |info| info,
+        else => @compileError("methodWithCallback Shape must be a function type"),
+    };
+    if (shape_info.attrs.varargs)
+        @compileError("methodWithCallback Shape cannot have C variadic parameters");
+    if (shape_info.return_type != void)
+        @compileError("methodWithCallback Shape must return void");
+    if (shape_info.param_types.len == 0)
+        @compileError("methodWithCallback Shape must end with a block function type");
+
+    const last = shape_info.param_types.len - 1;
+    const Function = shape_info.param_types[last] orelse
+        @compileError("methodWithCallback Shape must end with a known block function type");
+    if (@typeInfo(Function) != .@"fn")
+        @compileError("methodWithCallback Shape must end with a block function type");
+    const fn_info = @typeInfo(Function).@"fn";
+    if (fn_info.is_generic or fn_info.attrs.varargs)
+        @compileError("methodWithCallback requires fixed, non-generic block parameters");
+
+    const MethodArgs = blk: {
+        var params: [last]type = undefined;
+        for (shape_info.param_types[0..last], 0..) |Param, i| params[i] = Param orelse
+            @compileError("methodWithCallback Shape parameters must have explicit types");
+        break :blk @Tuple(&params);
+    };
+
+    return struct {
+        pub const Args = MethodArgs;
+        pub fn Callback(comptime Context: type) type {
+            var params: [fn_info.param_types.len + 1]type = undefined;
+            params[0] = Context;
+            for (fn_info.param_types, 1..) |Param, i| params[i] = Param.?;
+            return @Fn(&params, &@splat(.{}), fn_info.return_type.?, .{});
         }
     };
 }

@@ -31,11 +31,11 @@ pub fn Class(comptime T: type) type {
         }
 
         /// Binds a class method to the signature `Shape`, accepting its arguments directly.
-        /// Supports up to thirteen method arguments through `utils.spreadArgs`.
+        /// Supports up to fifteen method arguments through `utils.spreadArgs`.
         pub const method = m.method;
 
         /// Binds a void class method whose last Shape parameter is a block function type.
-        /// The returned function takes context, the preceding arguments, then a comptime handler.
+        /// The returned function takes context, the preceding arguments, then a handler function value.
         /// Captured context must outlive every invocation of the block handler.
         pub const methodWithCallback = m.methodWithCallback;
 
