@@ -10,7 +10,6 @@ pub fn Method(comptime T: type, comptime Helper: anytype) type {
     const has_receiver = @typeInfo(@TypeOf(Helper.call)).@"fn".param_types[0] == *T;
 
     return struct {
-        const Self = @This();
         const call = if (has_receiver) callWithReceiver(Helper).call else Helper.call;
 
         /// Binds a method to Shape, prepending `*T` for an instance receiver.
@@ -27,69 +26,7 @@ pub fn Method(comptime T: type, comptime Helper: anytype) type {
         /// Completion receives `(error)` or `(object, error)`; errors become `error.ObjectiveCError`.
         /// Returned objects are retained and must be released by the caller.
         /// The completion must be able to run while the calling thread is blocked.
-        pub fn withSync(comptime name: [:0]const u8, comptime Shape: type) if (has_receiver) prependArgs(Shape, &.{*T}) else Shape {
-            const Signature = if (has_receiver) prependArgs(Shape, &.{*T}) else Shape;
-            const fn_info = switch (@typeInfo(Signature)) {
-                .@"fn" => |info| info,
-                else => @compileError("withSync Shape must be a function type"),
-            };
-            if (fn_info.is_generic or fn_info.attrs.varargs)
-                @compileError("withSync Shape must have fixed, non-generic parameters");
-            const Return = fn_info.return_type.?;
-            const Payload = switch (@typeInfo(Return)) {
-                .error_union => |info| info.payload,
-                else => @compileError("withSync Shape must return an error union"),
-            };
-            if (Payload != void) {
-                if (@typeInfo(Payload) != .pointer)
-                    @compileError("withSync result must be void or an Objective-C object pointer");
-                const pointer = @typeInfo(Payload).pointer;
-                if (pointer.size != .one or pointer.attrs.@"allowzero" or @typeInfo(pointer.child) != .@"opaque")
-                    @compileError("withSync result must be a non-null pointer to an opaque Objective-C object");
-            }
-
-            const Static = struct {
-                const State = struct {
-                    semaphore: dispatch.semaphore_t,
-                    result: Return = undefined,
-                };
-
-                fn call(args: std.meta.ArgsTuple(Signature)) Return {
-                    const semaphore = dispatch.semaphore_create(0) orelse return error.SemaphoreCreationFailed;
-                    defer dispatch.release(semaphore.as_object());
-                    var state: State = .{ .semaphore = semaphore };
-                    // Keep the semaphore alive until signal itself has returned on the callback thread.
-                    dispatch.retain(semaphore.as_object());
-                    const completion = block.initWithContext(&state, if (Payload == void) completeVoid else completeObject);
-                    Self.call(void, name, args ++ .{&completion});
-                    _ = dispatch.semaphore_wait(semaphore, .FOREVER);
-                    return state.result;
-                }
-
-                fn completeVoid(state: *State, err: ?*rt.Object) void {
-                    const semaphore = state.semaphore;
-                    defer dispatch.release(semaphore.as_object());
-                    state.result = if (err != null) error.ObjectiveCError else {};
-                    _ = dispatch.semaphore_signal(semaphore);
-                }
-
-                fn completeObject(state: *State, value: ?Payload, err: ?*rt.Object) void {
-                    const semaphore = state.semaphore;
-                    defer dispatch.release(semaphore.as_object());
-                    state.result = if (err != null) error.ObjectiveCError else blk: {
-                        const object = value orelse {
-                            std.log.err("Objective-C completion for {s} returned nil without an error", .{name});
-                            @panic("Objective-C completion returned nil without an error");
-                        };
-                        break :blk @as(Payload, @ptrCast(rt.retain(@ptrCast(@constCast(object)))));
-                    };
-                    // Do not access state after signaling: the waiting call may already have returned.
-                    _ = dispatch.semaphore_signal(semaphore);
-                }
-            };
-
-            return utils.spreadArgs(Static.call, .{ .convention = fn_info.attrs.@"callconv" });
-        }
+        pub const withSync = createSyncHelper(T, Helper).withSync;
     };
 }
 
@@ -172,6 +109,90 @@ fn createCallbackHelper(comptime T: type, comptime Helper: type) type {
                     } else {
                         Helper.call(void, name, method_args ++ .{&blk});
                     }
+                }
+            };
+        }
+    };
+}
+
+fn createSyncHelper(comptime T: type, comptime Helper: type) type {
+    const has_receiver = @typeInfo(@TypeOf(Helper.call)).@"fn".param_types[0] == *T;
+    const ofs_r: usize = if (has_receiver) 1 else 0;
+
+    return struct {
+        pub fn withSync(comptime name: [:0]const u8, comptime Shape: type) @TypeOf(of(name, Shape).func) {
+            return of(name, Shape).func;
+        }
+
+        fn of(comptime name: [:0]const u8, comptime Shape: type) type {
+            const Signature = if (has_receiver) prependArgs(Shape, &.{*T}) else Shape;
+            const fn_info = switch (@typeInfo(Signature)) {
+                .@"fn" => |info| info,
+                else => @compileError("withSync Shape must be a function type"),
+            };
+            if (fn_info.is_generic or fn_info.attrs.varargs)
+                @compileError("withSync Shape must have fixed, non-generic parameters");
+            const Return = fn_info.return_type.?;
+            const Payload = switch (@typeInfo(Return)) {
+                .error_union => |info| info.payload,
+                else => @compileError("withSync Shape must return an error union"),
+            };
+            if (Payload != void) {
+                if (@typeInfo(Payload) != .pointer)
+                    @compileError("withSync result must be void or an Objective-C object pointer");
+                const pointer = @typeInfo(Payload).pointer;
+                if (pointer.size != .one or pointer.attrs.@"allowzero" or @typeInfo(pointer.child) != .@"opaque")
+                    @compileError("withSync result must be a non-null pointer to an opaque Objective-C object");
+            }
+
+            return struct {
+                pub const func: Signature = utils.spreadArgs(invoke, .{
+                    .convention = fn_info.attrs.@"callconv",
+                });
+
+                const State = struct {
+                    semaphore: dispatch.semaphore_t,
+                    result: Return = undefined,
+                };
+
+                fn invoke(args: std.meta.ArgsTuple(Signature)) Return {
+                    var method_args: std.meta.ArgsTuple(Shape) = undefined;
+                    inline for (0..method_args.len) |i| method_args[i] = args[ofs_r + i];
+
+                    const semaphore = dispatch.semaphore_create(0) orelse return error.SemaphoreCreationFailed;
+                    defer dispatch.release(semaphore.as_object());
+                    var state: State = .{ .semaphore = semaphore };
+                    // Keep the semaphore alive until signal itself has returned on the callback thread.
+                    dispatch.retain(semaphore.as_object());
+                    const completion = block.initWithContext(&state, if (Payload == void) completeVoid else completeObject);
+                    if (comptime has_receiver) {
+                        Helper.call(args[0], void, name, method_args ++ .{&completion});
+                    } else {
+                        Helper.call(void, name, method_args ++ .{&completion});
+                    }
+                    _ = dispatch.semaphore_wait(semaphore, .FOREVER);
+                    return state.result;
+                }
+
+                fn completeVoid(state: *State, err: ?*rt.Object) void {
+                    const semaphore = state.semaphore;
+                    defer dispatch.release(semaphore.as_object());
+                    state.result = if (err != null) error.ObjectiveCError else {};
+                    _ = dispatch.semaphore_signal(semaphore);
+                }
+
+                fn completeObject(state: *State, value: ?Payload, err: ?*rt.Object) void {
+                    const semaphore = state.semaphore;
+                    defer dispatch.release(semaphore.as_object());
+                    state.result = if (err != null) error.ObjectiveCError else blk: {
+                        const object = value orelse {
+                            std.log.err("Objective-C completion for {s} returned nil without an error", .{name});
+                            @panic("Objective-C completion returned nil without an error");
+                        };
+                        break :blk @as(Payload, @ptrCast(rt.retain(@ptrCast(@constCast(object)))));
+                    };
+                    // Do not access state after signaling: the waiting call may already have returned.
+                    _ = dispatch.semaphore_signal(semaphore);
                 }
             };
         }
