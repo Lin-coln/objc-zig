@@ -3,17 +3,18 @@ const obzc = @import("../root.zig");
 const Method = @import("method.zig").Method;
 
 /// Class helpers for a wrapper whose type or type factory is named after its Objective-C class.
+/// Define class methods through `h.m.of`, `h.m.withCallback`, or `h.m.withSync`.
 pub fn Class(comptime T: type) type {
     const class_name = comptime obzc.utils.resolveTypeName(@typeName(T));
 
     return struct {
-        const m = Method(T, @This());
+        pub const m = Method(T, @This());
 
         /// Sends `alloc` to the class, returning an uninitialized instance to be sent an `init...` message.
-        pub const alloc = method("alloc", fn () *T);
+        pub const alloc = m.of("alloc", fn () *T);
 
         /// Sends `new` to the class, returning a newly allocated and initialized instance.
-        pub const new = method("new", fn () *T);
+        pub const new = m.of("new", fn () *T);
 
         /// Returns the Objective-C class bound to the wrapper type.
         pub fn getClass() *obzc.rt.Class {
@@ -30,19 +31,6 @@ pub fn Class(comptime T: type) type {
         pub fn call(comptime Return: type, name: [:0]const u8, args: anytype) Return {
             return @import("call.zig").call(getClass(), Return, name, args);
         }
-
-        /// Binds a class method to the signature `Shape`, accepting its arguments directly.
-        /// Supports up to fifteen method arguments through `utils.spreadArgs`.
-        pub const method = m.method;
-
-        /// Binds a void class method whose last Shape parameter is a block function type.
-        /// The returned function takes context, the preceding arguments, then a handler function value.
-        /// Captured context must outlive every invocation of the block handler.
-        pub const methodWithCallback = m.methodWithCallback;
-
-        /// Waits for a one-shot completion; Shape returns an error union with void or an object pointer.
-        /// Returned objects are retained. The completion must not require the blocked calling thread.
-        pub const methodSync = m.methodSync;
     };
 }
 
@@ -57,20 +45,20 @@ test "helpers.Class: call forwards class arguments and preserves nullable return
     try std.testing.expectEqual(null, Class(NSObject).call(?*obzc.rt.Class, "superclass", .{}));
 }
 
-test "helpers.Class: call and method convert bool arguments and returns" {
+test "helpers.Class: call and m.of convert bool arguments and returns" {
     const NSNumber = opaque {};
     const h = Class(NSNumber);
     const object = obzc.helpers.Object(NSNumber);
     const pool = obzc.rt.autoreleasePoolPush();
     defer obzc.rt.autoreleasePoolPop(pool);
 
-    const create = h.method("numberWithBool:", fn (bool) *NSNumber);
+    const create = h.m.of("numberWithBool:", fn (bool) *NSNumber);
     const yes = create(true);
     const no = h.call(*NSNumber, "numberWithBool:", .{false});
     try std.testing.expect(object.call(yes, bool, "boolValue", .{}));
     try std.testing.expect(!object.call(no, bool, "boolValue", .{}));
 
-    const responds = h.method("instancesRespondToSelector:", fn (*obzc.rt.Sel) bool);
+    const responds = h.m.of("instancesRespondToSelector:", fn (*obzc.rt.Sel) bool);
     try std.testing.expect(responds(obzc.rt.Sel.registerName("boolValue")));
     try std.testing.expect(!h.call(bool, "instancesRespondToSelector:", .{obzc.rt.Sel.registerName("obzcMissingBoolMethod")}));
 }
@@ -96,7 +84,7 @@ test "helpers.Class: class messages, new and alloc" {
     try std.testing.expectEqual(9, rt.msgSend(initialized, usize, length, .{}));
 }
 
-test "helpers.Class: methodWithCallback sends a block and forwards its result" {
+test "helpers.Class: m.withCallback sends a block and forwards its result" {
     const rt = obzc.rt;
     const ZigHelpersBlockMethodTest = opaque {};
     const State = struct { value: i32, calls: usize = 0 };
@@ -124,19 +112,19 @@ test "helpers.Class: methodWithCallback sends a block and forwards its result" {
     try std.testing.expect(metaclass.addMethod(rt.Sel.registerName("performWithCompletion:"), &Methods.perform, "v@:@?"));
     try std.testing.expect(metaclass.addMethod(rt.Sel.registerName("performWithValue:scale:completion:"), &Methods.performWithArgs, "v@:id@?"));
 
-    const perform = Class(ZigHelpersBlockMethodTest).methodWithCallback("performWithCompletion:", fn (fn (i32, f64) i32) void);
+    const perform = Class(ZigHelpersBlockMethodTest).m.withCallback("performWithCompletion:", fn (fn (i32, f64) i32) void);
     var state: State = .{ .value = 7 };
     perform(&state, Methods.complete);
     try std.testing.expectEqual(1, state.calls);
     try std.testing.expectEqual(20, Methods.result);
 
-    const perform_with_args = Class(ZigHelpersBlockMethodTest).methodWithCallback("performWithValue:scale:completion:", fn (i32, f64, fn (i32, f64) i32) void);
+    const perform_with_args = Class(ZigHelpersBlockMethodTest).m.withCallback("performWithValue:scale:completion:", fn (i32, f64, fn (i32, f64) i32) void);
     perform_with_args(&state, 5, 2.5, Methods.complete);
     try std.testing.expectEqual(2, state.calls);
     try std.testing.expectEqual(30, Methods.result);
 }
 
-test "helpers.Class: methodSync binds a completion method" {
+test "helpers.Class: m.withSync binds a completion method" {
     const rt = obzc.rt;
     const ZigHelpersClassSyncTest = opaque {};
     const State = struct {};
@@ -154,21 +142,21 @@ test "helpers.Class: methodSync binds a completion method" {
     defer rt.disposeClassPair(class);
     const metaclass = rt.getMetaClass("ZigHelpersClassSyncTest").?;
     try std.testing.expect(metaclass.addMethod(rt.Sel.registerName("perform:completion:"), &Methods.perform, "v@:i@?"));
-    const perform = Class(ZigHelpersClassSyncTest).methodSync("perform:completion:", fn (i32) anyerror!void);
+    const perform = Class(ZigHelpersClassSyncTest).m.withSync("perform:completion:", fn (i32) anyerror!void);
     try std.testing.expect(@TypeOf(perform) == fn (i32) anyerror!void);
     try perform(42);
     try std.testing.expectEqual(42, Methods.received);
 }
 
-test "helpers.Class: method forwards typed arguments and returns an object" {
+test "helpers.Class: m.of forwards typed arguments and returns an object" {
     const rt = obzc.rt;
     const pool = rt.autoreleasePoolPush();
     defer rt.autoreleasePoolPop(pool);
     const NSMutableData = opaque {};
-    const create = Class(NSMutableData).method("dataWithLength:", fn (usize) *rt.Object);
+    const create = Class(NSMutableData).m.of("dataWithLength:", fn (usize) *rt.Object);
     try std.testing.expect(@TypeOf(create) == fn (usize) *rt.Object);
     const data = create(7);
     try std.testing.expectEqual(7, rt.msgSend(data, usize, rt.Sel.registerName("length"), .{}));
-    const get_class = Class(NSMutableData).method("class", fn () *rt.Class);
+    const get_class = Class(NSMutableData).m.of("class", fn () *rt.Class);
     try std.testing.expectEqual(rt.getClass("NSMutableData").?, get_class());
 }

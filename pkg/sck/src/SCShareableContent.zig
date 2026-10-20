@@ -14,13 +14,13 @@ pub const SCShareableContent = opaque {
     pub const windows = h.prop(*ns.NSArray(SCWindow), "windows").getter;
 
     /// The context pointer must remain valid until the completion handler returns.
-    pub const getShareableContent = h.cls.methodWithCallback(
+    pub const getShareableContent = h.cls.m.withCallback(
         "getShareableContentWithCompletionHandler:",
         fn (fn (?*Self, ?*ns.NSError) void) void,
     );
 
     /// Returns retained content. The caller must release the result.
-    pub const getShareableContentSync = h.cls.methodSync(
+    pub const getShareableContentSync = h.cls.m.withSync(
         "getShareableContentWithCompletionHandler:",
         fn () anyerror!*Self,
     );

@@ -13,14 +13,14 @@ pub fn NSDictionary(comptime Key: type, comptime Value: type) type {
         /// Copies the keys and retains the values. Keys must conform to NSCopying.
         pub fn init(objects: []const *Value, keys: []const *Key) *Self {
             std.debug.assert(objects.len == keys.len);
-            const initialize = h.method("initWithObjects:forKeys:count:", fn ([*]const *Value, [*]const *Key, usize) *Self);
+            const initialize = h.m.of("initWithObjects:forKeys:count:", fn ([*]const *Value, [*]const *Key, usize) *Self);
             return initialize(h.cls.alloc(), objects.ptr, keys.ptr, objects.len);
         }
 
         pub const count = h.prop(usize, "count").getter;
 
         /// Returns a borrowed value, or null when the key is absent.
-        pub const objectForKey = h.method("objectForKey:", fn (*Key) ?*Value);
+        pub const objectForKey = h.m.of("objectForKey:", fn (*Key) ?*Value);
     };
 }
 

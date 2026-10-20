@@ -16,13 +16,13 @@ pub const VNImageRequestHandler = opaque {
 
     /// Retains the image source, which must not be modified while the handler is alive.
     pub fn initWithData(data: *ns.NSData, options: *Options) *Self {
-        const initialize = h.method("initWithData:options:", fn (*ns.NSData, *Options) *Self);
+        const initialize = h.m.of("initWithData:options:", fn (*ns.NSData, *Options) *Self);
         return initialize(h.cls.alloc(), data, options);
     }
 
     /// Retains the image source, which must not be modified while the handler is alive.
     pub fn initWithCVPixelBuffer(pixel_buffer: macos.CVPixelBufferRef, options: *Options) *Self {
-        const initialize = h.method("initWithCVPixelBuffer:options:", fn (macos.CVPixelBufferRef, *Options) *Self);
+        const initialize = h.m.of("initWithCVPixelBuffer:options:", fn (macos.CVPixelBufferRef, *Options) *Self);
         return initialize(h.cls.alloc(), pixel_buffer, options);
     }
 

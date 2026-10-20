@@ -66,8 +66,8 @@ test "NSBlockOperation copies a Zig callback and invokes it after registration r
 
         pub const new = h.cls.new;
         pub const release = h.release;
-        pub const addExecutionBlock = h.methodWithCallback("addExecutionBlock:", fn (fn () void) void);
-        pub const start = h.method("start", fn () void);
+        pub const addExecutionBlock = h.m.withCallback("addExecutionBlock:", fn (fn () void) void);
+        pub const start = h.m.of("start", fn () void);
     };
     const State = struct { value: i32 = 7, observed: i32 = 0, calls: usize = 0 };
     const Callback = struct {

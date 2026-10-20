@@ -11,7 +11,7 @@ pub const MTLLibrary = opaque {
     pub const release = h.release;
 
     /// Returns an owned function, or null when the name is absent.
-    pub const newFunction = h.method("newFunctionWithName:", fn (*ns.NSString) ?*MTLFunction);
+    pub const newFunction = h.m.of("newFunctionWithName:", fn (*ns.NSString) ?*MTLFunction);
 };
 
 test "MTLLibrary: newFunction finds a named function and returns null for a missing name" {

@@ -13,34 +13,39 @@ pub fn Method(comptime T: type, comptime Helper: anytype) type {
         const Self = @This();
         const call = if (has_receiver) callWithReceiver(Helper).call else Helper.call;
 
-        pub const method = createMethodHelper(T, Helper).method;
+        /// Binds a method to Shape, prepending `*T` for an instance receiver.
+        /// Shape excludes the receiver; the returned function accepts separate arguments.
+        pub const of = createMethodHelper(T, Helper).method;
 
-        pub const methodWithCallback = createCallbackHelper(T, Helper).withCallback;
+        /// Binds a void method whose final Shape parameter is a block function type.
+        /// Call with receiver (for instances), context, method arguments, then the handler.
+        /// Captured context must outlive every invocation of the block handler.
+        pub const withCallback = createCallbackHelper(T, Helper).withCallback;
 
         /// Waits for a one-shot completion using a dispatch semaphore.
         /// Prepends `*T` for instance methods. Shape returns an error union with void or an object pointer.
         /// Completion receives `(error)` or `(object, error)`; errors become `error.ObjectiveCError`.
         /// Returned objects are retained and must be released by the caller.
         /// The completion must be able to run while the calling thread is blocked.
-        pub fn methodSync(comptime name: [:0]const u8, comptime Shape: type) if (has_receiver) prependArgs(Shape, &.{*T}) else Shape {
+        pub fn withSync(comptime name: [:0]const u8, comptime Shape: type) if (has_receiver) prependArgs(Shape, &.{*T}) else Shape {
             const Signature = if (has_receiver) prependArgs(Shape, &.{*T}) else Shape;
             const fn_info = switch (@typeInfo(Signature)) {
                 .@"fn" => |info| info,
-                else => @compileError("methodSync Shape must be a function type"),
+                else => @compileError("withSync Shape must be a function type"),
             };
             if (fn_info.is_generic or fn_info.attrs.varargs)
-                @compileError("methodSync Shape must have fixed, non-generic parameters");
+                @compileError("withSync Shape must have fixed, non-generic parameters");
             const Return = fn_info.return_type.?;
             const Payload = switch (@typeInfo(Return)) {
                 .error_union => |info| info.payload,
-                else => @compileError("methodSync Shape must return an error union"),
+                else => @compileError("withSync Shape must return an error union"),
             };
             if (Payload != void) {
                 if (@typeInfo(Payload) != .pointer)
-                    @compileError("methodSync result must be void or an Objective-C object pointer");
+                    @compileError("withSync result must be void or an Objective-C object pointer");
                 const pointer = @typeInfo(Payload).pointer;
                 if (pointer.size != .one or pointer.attrs.@"allowzero" or @typeInfo(pointer.child) != .@"opaque")
-                    @compileError("methodSync result must be a non-null pointer to an opaque Objective-C object");
+                    @compileError("withSync result must be a non-null pointer to an opaque Objective-C object");
             }
 
             const Static = struct {
@@ -110,10 +115,10 @@ fn createMethodHelper(comptime T: type, comptime Helper: type) type {
         fn of(comptime name: [:0]const u8, comptime Shape: type) type {
             const fn_info = switch (@typeInfo(Shape)) {
                 .@"fn" => |info| info,
-                else => @compileError("method Shape must be a function type"),
+                else => @compileError("of Shape must be a function type"),
             };
             if (fn_info.is_generic or fn_info.attrs.varargs)
-                @compileError("method Shape must have fixed, non-generic parameters");
+                @compileError("of Shape must have fixed, non-generic parameters");
 
             const Return = fn_info.return_type.?;
             const Signature = if (has_receiver) prependArgs(Shape, &.{*T}) else Shape;
@@ -176,28 +181,28 @@ fn createCallbackHelper(comptime T: type, comptime Helper: type) type {
 fn resolveTypesFromCallbackShape(comptime Shape: type) type {
     const shape_info = switch (@typeInfo(Shape)) {
         .@"fn" => |info| info,
-        else => @compileError("methodWithCallback Shape must be a function type"),
+        else => @compileError("withCallback Shape must be a function type"),
     };
     if (shape_info.attrs.varargs)
-        @compileError("methodWithCallback Shape cannot have C variadic parameters");
+        @compileError("withCallback Shape cannot have C variadic parameters");
     if (shape_info.return_type != void)
-        @compileError("methodWithCallback Shape must return void");
+        @compileError("withCallback Shape must return void");
     if (shape_info.param_types.len == 0)
-        @compileError("methodWithCallback Shape must end with a block function type");
+        @compileError("withCallback Shape must end with a block function type");
 
     const last = shape_info.param_types.len - 1;
     const Function = shape_info.param_types[last] orelse
-        @compileError("methodWithCallback Shape must end with a known block function type");
+        @compileError("withCallback Shape must end with a known block function type");
     if (@typeInfo(Function) != .@"fn")
-        @compileError("methodWithCallback Shape must end with a block function type");
+        @compileError("withCallback Shape must end with a block function type");
     const fn_info = @typeInfo(Function).@"fn";
     if (fn_info.is_generic or fn_info.attrs.varargs)
-        @compileError("methodWithCallback requires fixed, non-generic block parameters");
+        @compileError("withCallback requires fixed, non-generic block parameters");
 
     const MethodArgs = blk: {
         var params: [last]type = undefined;
         for (shape_info.param_types[0..last], 0..) |Param, i| params[i] = Param orelse
-            @compileError("methodWithCallback Shape parameters must have explicit types");
+            @compileError("withCallback Shape parameters must have explicit types");
         break :blk @Tuple(&params);
     };
 
@@ -243,7 +248,7 @@ test "call: class and instance messages" {
     try std.testing.expectEqual(rt.getClass("NSMutableData").?, class.call(*rt.Class, "class", .{}));
 }
 
-test "methodSync: void completion and Objective-C errors" {
+test "withSync: void completion and Objective-C errors" {
     const Helper = struct {
         pub fn call(comptime Return: type, _: [:0]const u8, args: anytype) Return {
             const completion = args[1];
@@ -251,14 +256,14 @@ test "methodSync: void completion and Objective-C errors" {
         }
     };
     const m = Method(rt.Object, Helper);
-    const bound = m.methodSync("complete:", fn (?*rt.Object) anyerror!void);
+    const bound = m.withSync("complete:", fn (?*rt.Object) anyerror!void);
     try bound(null);
     const object = rt.msgSend(rt.getClass("NSObject").?, *rt.Object, rt.Sel.registerName("new"), .{});
     defer rt.release(object);
     try std.testing.expectError(error.ObjectiveCError, bound(object));
 }
 
-test "methodSync: asynchronous completion retains only successful results" {
+test "withSync: asynchronous completion retains only successful results" {
     const Methods = struct {
         var deallocations: usize = 0;
 
@@ -289,7 +294,7 @@ test "methodSync: asynchronous completion retains only successful results" {
         }
     };
     const m = Method(rt.Object, Helper);
-    const bound = m.methodSync("complete:", fn (bool) anyerror!*rt.Object);
+    const bound = m.withSync("complete:", fn (bool) anyerror!*rt.Object);
     Methods.deallocations = 0;
     const result = try bound(false);
     Helper.thread.join();
@@ -303,7 +308,7 @@ test "methodSync: asynchronous completion retains only successful results" {
     try std.testing.expectEqual(2, Methods.deallocations);
 }
 
-test "method: Shape preserves parameter types and contextual initialization" {
+test "of: Shape preserves parameter types and contextual initialization" {
     const Payload = extern struct { value: c_ulong = 3 };
     const Receiver = struct { base: c_ulong };
     const ClassHelper = struct {
@@ -317,8 +322,8 @@ test "method: Shape preserves parameter types and contextual initialization" {
         }
     };
     const Shape = fn (c_ulong, Payload) c_ulong;
-    const class_method = Method(Receiver, ClassHelper).method("value:payload:", Shape);
-    const object_method = Method(Receiver, ObjectHelper).method("value:payload:", Shape);
+    const class_method = Method(Receiver, ClassHelper).of("value:payload:", Shape);
+    const object_method = Method(Receiver, ObjectHelper).of("value:payload:", Shape);
     try std.testing.expect(@TypeOf(class_method) == Shape);
     try std.testing.expect(@TypeOf(object_method) == fn (*Receiver, c_ulong, Payload) c_ulong);
 
@@ -330,7 +335,7 @@ test "method: Shape preserves parameter types and contextual initialization" {
     try std.testing.expectEqual(@as(c_ulong, 19), object_method(&receiver, value, .{ .value = 5 }));
 }
 
-test "methodWithCallback: class and instance bindings preserve constant coercion" {
+test "withCallback: class and instance bindings preserve constant coercion" {
     const State = struct { value: c_ulong = 0 };
     const Receiver = struct { base: c_ulong };
     const ClassHelper = struct {
@@ -351,8 +356,8 @@ test "methodWithCallback: class and instance bindings preserve constant coercion
         }
     };
     const Shape = fn (c_ulong, fn (c_ulong) void) void;
-    const class_method = Method(Receiver, ClassHelper).methodWithCallback("value:completion:", Shape);
-    const object_method = Method(Receiver, ObjectHelper).methodWithCallback("value:completion:", Shape);
+    const class_method = Method(Receiver, ClassHelper).withCallback("value:completion:", Shape);
+    const object_method = Method(Receiver, ObjectHelper).withCallback("value:completion:", Shape);
     const value: c_int = 4;
     var state: State = .{};
     class_method(&state, value, &Completion.call);
@@ -362,7 +367,7 @@ test "methodWithCallback: class and instance bindings preserve constant coercion
     try std.testing.expectEqual(@as(c_ulong, 14), state.value);
 }
 
-test "method: non-null pointer returns are preserved" {
+test "of: non-null pointer returns are preserved" {
     const Helper = struct {
         pub fn call(comptime Return: type, _: [:0]const u8, args: anytype) Return {
             if (Return != @TypeOf(args[0])) @compileError("unexpected message return type");
@@ -380,12 +385,12 @@ test "method: non-null pointer returns are preserved" {
     inline for (cases) |pointer| {
         const T = @TypeOf(pointer);
         const Shape = fn (T) T;
-        const bound = m.method("pointer", Shape);
+        const bound = m.of("pointer", Shape);
         try std.testing.expectEqual(pointer, bound(pointer));
     }
 }
 
-test "method: nullable, zero-allowing and scalar returns are preserved" {
+test "of: nullable, zero-allowing and scalar returns are preserved" {
     const Helper = struct {
         pub fn call(comptime Return: type, _: [:0]const u8, args: anytype) Return {
             if (Return != @TypeOf(args[0])) @compileError("unexpected message return type");
@@ -402,7 +407,7 @@ test "method: nullable, zero-allowing and scalar returns are preserved" {
     };
     inline for (cases) |value| {
         const T = @TypeOf(value);
-        const bound = m.method("value", fn (T) T);
+        const bound = m.of("value", fn (T) T);
         try std.testing.expectEqual(value, bound(value));
     }
 }

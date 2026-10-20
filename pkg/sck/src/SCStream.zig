@@ -24,7 +24,7 @@ pub const SCStream = opaque {
 
     /// Creates an owned stream. The delegate is optional and borrowed by this call.
     pub fn init(filter: *SCContentFilter, configuration: *SCStreamConfiguration, delegate: ?*SCStreamDelegate) *Self {
-        const initialize = h.method("initWithFilter:configuration:delegate:", fn (*SCContentFilter, *SCStreamConfiguration, ?*SCStreamDelegate) *Self);
+        const initialize = h.m.of("initWithFilter:configuration:delegate:", fn (*SCContentFilter, *SCStreamConfiguration, ?*SCStreamDelegate) *Self);
         return initialize(h.cls.alloc(), filter, configuration, delegate);
     }
 
@@ -50,12 +50,12 @@ pub const SCStream = opaque {
         return error.RemoveStreamOutputFailed;
     }
 
-    pub const startCapture = h.methodWithCallback("startCaptureWithCompletionHandler:", fn (fn (?*ns.NSError) void) void);
-    pub const stopCapture = h.methodWithCallback("stopCaptureWithCompletionHandler:", fn (fn (?*ns.NSError) void) void);
-    pub const updateConfiguration = h.methodWithCallback("updateConfiguration:completionHandler:", fn (*SCStreamConfiguration, fn (?*ns.NSError) void) void);
+    pub const startCapture = h.m.withCallback("startCaptureWithCompletionHandler:", fn (fn (?*ns.NSError) void) void);
+    pub const stopCapture = h.m.withCallback("stopCaptureWithCompletionHandler:", fn (fn (?*ns.NSError) void) void);
+    pub const updateConfiguration = h.m.withCallback("updateConfiguration:completionHandler:", fn (*SCStreamConfiguration, fn (?*ns.NSError) void) void);
 
     /// Waits for completion. The calling thread must not be needed to deliver the callback.
-    pub const startCaptureSync = h.methodSync("startCaptureWithCompletionHandler:", fn () anyerror!void);
-    pub const stopCaptureSync = h.methodSync("stopCaptureWithCompletionHandler:", fn () anyerror!void);
-    pub const updateConfigurationSync = h.methodSync("updateConfiguration:completionHandler:", fn (*SCStreamConfiguration) anyerror!void);
+    pub const startCaptureSync = h.m.withSync("startCaptureWithCompletionHandler:", fn () anyerror!void);
+    pub const stopCaptureSync = h.m.withSync("stopCaptureWithCompletionHandler:", fn () anyerror!void);
+    pub const updateConfigurationSync = h.m.withSync("updateConfiguration:completionHandler:", fn (*SCStreamConfiguration) anyerror!void);
 };

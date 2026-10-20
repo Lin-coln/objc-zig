@@ -9,5 +9,5 @@ pub const MTLCommandQueue = opaque {
     pub const release = h.release;
 
     /// Returns an autoreleased command buffer, or null on allocation failure.
-    pub const commandBuffer = h.method("commandBuffer", fn () ?*MTLCommandBuffer);
+    pub const commandBuffer = h.m.of("commandBuffer", fn () ?*MTLCommandBuffer);
 };

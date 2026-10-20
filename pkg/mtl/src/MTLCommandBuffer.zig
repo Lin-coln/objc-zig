@@ -13,11 +13,11 @@ pub const MTLCommandBuffer = opaque {
     pub const release = h.release;
 
     /// Returned encoders are autoreleased and must finish before another encoder starts.
-    pub const renderCommandEncoder = h.method("renderCommandEncoderWithDescriptor:", fn (*MTLRenderPassDescriptor) ?*MTLRenderCommandEncoder);
-    pub const blitCommandEncoder = h.method("blitCommandEncoder", fn () ?*MTLBlitCommandEncoder);
-    pub const commit = h.method("commit", fn () void);
-    pub const waitUntilCompleted = h.method("waitUntilCompleted", fn () void);
-    pub const status = h.method("status", fn () mtl.MTLCommandBufferStatus);
+    pub const renderCommandEncoder = h.m.of("renderCommandEncoderWithDescriptor:", fn (*MTLRenderPassDescriptor) ?*MTLRenderCommandEncoder);
+    pub const blitCommandEncoder = h.m.of("blitCommandEncoder", fn () ?*MTLBlitCommandEncoder);
+    pub const commit = h.m.of("commit", fn () void);
+    pub const waitUntilCompleted = h.m.of("waitUntilCompleted", fn () void);
+    pub const status = h.m.of("status", fn () mtl.MTLCommandBufferStatus);
     /// Borrowed error describing a failed command buffer.
-    pub const @"error" = h.method("error", fn () ?*ns.NSError);
+    pub const @"error" = h.m.of("error", fn () ?*ns.NSError);
 };

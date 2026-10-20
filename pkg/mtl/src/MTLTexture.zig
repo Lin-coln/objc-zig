@@ -10,11 +10,11 @@ pub const MTLTexture = opaque {
     pub const retain = h.retain;
     pub const release = h.release;
 
-    pub const width = h.method("width", fn () usize);
-    pub const height = h.method("height", fn () usize);
-    pub const pixelFormat = h.method("pixelFormat", fn () mtl.MTLPixelFormat);
+    pub const width = h.m.of("width", fn () usize);
+    pub const height = h.m.of("height", fn () usize);
+    pub const pixelFormat = h.m.of("pixelFormat", fn () mtl.MTLPixelFormat);
     /// Borrowed device that created this texture.
-    pub const device = h.method("device", fn () *MTLDevice);
+    pub const device = h.m.of("device", fn () *MTLDevice);
 };
 
 test "MTLTexture: dimensions, format, and device describe the created resource" {

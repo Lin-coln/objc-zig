@@ -14,13 +14,13 @@ pub const VNRecognizedTextObservation = opaque {
     pub const boundingBox = h.prop(macos.CGRect, "boundingBox").getter;
 
     /// Returns a borrowed array with at most the requested number of candidates.
-    pub const topCandidates = h.method("topCandidates:", fn (usize) *ns.NSArray(VNRecognizedText));
+    pub const topCandidates = h.m.of("topCandidates:", fn (usize) *ns.NSArray(VNRecognizedText));
 };
 
 test "VNRecognizedTextObservation: read a bounding box and confidence" {
     const pool = obzc.AutoReleasePool.create();
     defer pool.release();
-    const create = obzc.helpers.Class(VNRecognizedTextObservation).method(
+    const create = obzc.helpers.Class(VNRecognizedTextObservation).m.of(
         "observationWithBoundingBox:",
         fn (macos.CGRect) *VNRecognizedTextObservation,
     );

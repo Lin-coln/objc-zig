@@ -10,12 +10,12 @@ const Method = @import("method.zig").Method;
 ///     pub const release = h.release;
 ///     pub const width = h.prop(usize, "width").getter;
 ///
+/// Define instance methods through `h.m.of`, `h.m.withCallback`, or `h.m.withSync`.
 /// Class helpers such as `alloc`, `new`, and class `msgSend` are available through `h.cls`.
 pub fn Object(comptime T: type) type {
     return struct {
-        const m = Method(T, @This());
-
         pub const cls = Class(T);
+        pub const m = Method(T, @This());
 
         pub fn retain(self: *T) *T {
             return @ptrCast(obzc.rt.retain(@ptrCast(self)));
@@ -35,18 +35,6 @@ pub fn Object(comptime T: type) type {
         pub fn call(self: *T, comptime Return: type, name: [:0]const u8, args: anytype) Return {
             return @import("call.zig").call(self, Return, name, args);
         }
-
-        /// Binds an instance method, prepending `*T` to the declared Shape.
-        pub const method = m.method;
-
-        /// Waits for a one-shot completion; Shape excludes self and returns an error union.
-        /// Returned objects are retained. The completion must not require the blocked calling thread.
-        pub const methodSync = m.methodSync;
-
-        /// Binds a void instance method whose last Shape parameter is a block function type.
-        /// Call as `object.method(ctx, args..., handler)`; Shape excludes the receiver.
-        /// The context must outlive every invocation of the block handler.
-        pub const methodWithCallback = m.methodWithCallback;
 
         /// Reads the instance property `name` as `P`, using the class bound to `T` for metadata.
         /// Honors its `G` attribute, falling back to `name` itself as the getter selector.
@@ -98,7 +86,7 @@ test "helpers.Object: call forwards instance receivers and arguments" {
     try std.testing.expectEqual(first, first.call(?*NSNumber, "self", .{}).?);
 }
 
-test "helpers.Object: call, method and property convert bool values" {
+test "helpers.Object: call, m.of and property convert bool values" {
     const NSOperationQueue = opaque {};
     const h = Object(NSOperationQueue);
     const queue = h.cls.new();
@@ -109,21 +97,21 @@ test "helpers.Object: call, method and property convert bool values" {
     h.call(queue, void, "setSuspended:", .{false});
     try std.testing.expect(!h.call(queue, bool, "isSuspended", .{}));
 
-    const set_suspended = h.method("setSuspended:", fn (bool) void);
-    const is_suspended = h.method("isSuspended", fn () bool);
+    const set_suspended = h.m.of("setSuspended:", fn (bool) void);
+    const is_suspended = h.m.of("isSuspended", fn () bool);
     set_suspended(queue, true);
     try std.testing.expect(is_suspended(queue));
     h.setProperty(queue, "suspended", false);
     try std.testing.expect(!h.property(queue, bool, "suspended"));
 }
 
-test "helpers.Object: method binds instance receivers and arguments" {
+test "helpers.Object: m.of binds instance receivers and arguments" {
     const NSMutableData = opaque {
         const Self = @This();
         const h = Object(Self);
 
-        pub const length = h.method("length", fn () usize);
-        pub const setLength = h.method("setLength:", fn (usize) void);
+        pub const length = h.m.of("length", fn () usize);
+        pub const setLength = h.m.of("setLength:", fn (usize) void);
     };
     const h = Object(NSMutableData);
     const first = h.cls.new();
@@ -137,13 +125,13 @@ test "helpers.Object: method binds instance receivers and arguments" {
     try std.testing.expectEqual(12, second.length());
 }
 
-test "helpers.Object: methodWithCallback forwards instance receivers and arguments" {
+test "helpers.Object: m.withCallback forwards instance receivers and arguments" {
     const rt = obzc.rt;
     const ZigHelpersInstanceCallbackTest = opaque {
         const h = Object(@This());
 
-        pub const perform = h.methodWithCallback("performWithCompletion:", fn (fn (*rt.Object, i32) i32) void);
-        pub const performWithValue = h.methodWithCallback("performWithValue:completion:", fn (i32, fn (*rt.Object, i32) i32) void);
+        pub const perform = h.m.withCallback("performWithCompletion:", fn (fn (*rt.Object, i32) i32) void);
+        pub const performWithValue = h.m.withCallback("performWithValue:completion:", fn (i32, fn (*rt.Object, i32) i32) void);
     };
     const State = struct { receiver: ?*rt.Object = null, calls: usize = 0, value: i32 = 7 };
     const Completion = obzc.Block(*State, fn (*rt.Object, i32) i32);
@@ -188,11 +176,11 @@ test "helpers.Object: methodWithCallback forwards instance receivers and argumen
     try std.testing.expectEqual(19, Methods.result);
 }
 
-test "helpers.Object: methodSync binds an instance receiver and returns a retained object" {
+test "helpers.Object: m.withSync binds an instance receiver and returns a retained object" {
     const rt = obzc.rt;
     const ZigHelpersObjectSyncTest = opaque {
         const Self = @This();
-        pub const perform = Object(Self).methodSync("perform:completion:", fn (i32) anyerror!*Self);
+        pub const perform = Object(Self).m.withSync("perform:completion:", fn (i32) anyerror!*Self);
     };
     const State = struct {};
     const Completion = obzc.Block(*State, fn (?*ZigHelpersObjectSyncTest, ?*rt.Object) void);

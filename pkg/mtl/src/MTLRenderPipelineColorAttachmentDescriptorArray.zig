@@ -10,7 +10,7 @@ pub const MTLRenderPipelineColorAttachmentDescriptorArray = opaque {
     pub const release = h.release;
 
     /// Returns a borrowed attachment descriptor. The index must be in 0...7.
-    pub const objectAtIndexedSubscript = h.method("objectAtIndexedSubscript:", fn (usize) *MTLRenderPipelineColorAttachmentDescriptor);
+    pub const objectAtIndexedSubscript = h.m.of("objectAtIndexedSubscript:", fn (usize) *MTLRenderPipelineColorAttachmentDescriptor);
 };
 
 test "MTLRenderPipelineColorAttachmentDescriptorArray: indexed attachments keep independent values" {

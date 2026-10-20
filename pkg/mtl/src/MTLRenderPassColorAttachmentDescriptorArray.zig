@@ -9,5 +9,5 @@ pub const MTLRenderPassColorAttachmentDescriptorArray = opaque {
     pub const release = h.release;
 
     /// Returns a borrowed attachment descriptor. The index must be in 0...7.
-    pub const objectAtIndexedSubscript = h.method("objectAtIndexedSubscript:", fn (usize) *MTLRenderPassColorAttachmentDescriptor);
+    pub const objectAtIndexedSubscript = h.m.of("objectAtIndexedSubscript:", fn (usize) *MTLRenderPassColorAttachmentDescriptor);
 };
