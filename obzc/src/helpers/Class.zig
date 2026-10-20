@@ -1,12 +1,14 @@
 const std = @import("std");
 const obzc = @import("../root.zig");
-const m = @import("method.zig");
+const Method = @import("method.zig").Method;
 
 /// Class helpers for a wrapper whose type or type factory is named after its Objective-C class.
 pub fn Class(comptime T: type) type {
     const class_name = comptime obzc.utils.resolveTypeName(@typeName(T));
 
     return struct {
+        const m = Method(T, @This());
+
         /// Sends `alloc` to the class, returning an uninitialized instance to be sent an `init...` message.
         pub const alloc = method("alloc", fn () *T);
 
@@ -30,28 +32,16 @@ pub fn Class(comptime T: type) type {
 
         /// Binds a class method to the signature `Shape`, accepting its arguments directly.
         /// Supports up to thirteen method arguments through `utils.spreadArgs`.
-        pub fn method(
-            comptime name: [:0]const u8,
-            comptime Shape: type,
-        ) *const Shape {
-            return m.method(name, Shape, msgSend);
-        }
+        pub const method = m.method;
 
         /// Binds a void class method whose last Shape parameter is a block function type.
         /// The returned function takes context, the preceding arguments, then a comptime handler.
         /// Captured context must outlive every invocation of the block handler.
-        pub fn methodWithCallback(
-            comptime name: [:0]const u8,
-            comptime Shape: type,
-        ) @TypeOf(m.methodWithCallback(name, Shape, msgSend).call) {
-            return m.methodWithCallback(name, Shape, msgSend).call;
-        }
+        pub const methodWithCallback = m.methodWithCallback;
 
         /// Waits for a one-shot completion; Shape returns an error union with void or an object pointer.
         /// Returned objects are retained. The completion must not require the blocked calling thread.
-        pub fn methodSync(comptime name: [:0]const u8, comptime Shape: type) *const Shape {
-            return m.methodSync(name, Shape, msgSend);
-        }
+        pub const methodSync = m.methodSync;
     };
 }
 
@@ -146,6 +136,7 @@ test "helpers.Class: methodSync binds a completion method" {
     const metaclass = rt.getMetaClass("ZigHelpersClassSyncTest").?;
     try std.testing.expect(metaclass.addMethod(rt.Sel.registerName("perform:completion:"), &Methods.perform, "v@:i@?"));
     const perform = Class(ZigHelpersClassSyncTest).methodSync("perform:completion:", fn (i32) anyerror!void);
+    try std.testing.expect(@TypeOf(perform) == fn (i32) anyerror!void);
     try perform(42);
     try std.testing.expectEqual(42, Methods.received);
 }
@@ -156,7 +147,7 @@ test "helpers.Class: method forwards typed arguments and returns an object" {
     defer rt.autoreleasePoolPop(pool);
     const NSMutableData = opaque {};
     const create = Class(NSMutableData).method("dataWithLength:", fn (usize) *rt.Object);
-    try std.testing.expect(@TypeOf(create) == *const fn (usize) *rt.Object);
+    try std.testing.expect(@TypeOf(create) == fn (usize) *rt.Object);
     const data = create(7);
     try std.testing.expectEqual(7, rt.msgSend(data, usize, rt.Sel.registerName("length"), .{}));
     const get_class = Class(NSMutableData).method("class", fn () *rt.Class);

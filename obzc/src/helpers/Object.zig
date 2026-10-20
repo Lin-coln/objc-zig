@@ -1,7 +1,7 @@
 const std = @import("std");
 const obzc = @import("../root.zig");
 const Class = @import("Class.zig").Class;
-const m = @import("method.zig");
+const Method = @import("method.zig").Method;
 const cast = obzc.utils.cast;
 
 /// Returns a set of Objective-C object helpers bound to `T` (any opaque object type). Assemble a
@@ -14,6 +14,8 @@ const cast = obzc.utils.cast;
 /// Class helpers such as `alloc`, `new`, and class `msgSend` are available through `h.cls`.
 pub fn Object(comptime T: type) type {
     return struct {
+        const m = Method(T, @This());
+
         pub const cls = Class(T);
 
         pub fn retain(self: *T) *T {
@@ -35,42 +37,16 @@ pub fn Object(comptime T: type) type {
         }
 
         /// Binds an instance method, prepending `*T` to the declared Shape.
-        pub fn method(comptime name: [:0]const u8, comptime Shape: type) m.prependArgs(Shape, &.{*T}) {
-            return m.method(name, m.prependArgs(Shape, &.{*T}), sendMethod).*;
-        }
-
-        fn sendMethod(comptime Return: type, sel: [:0]const u8, args: anytype) Return {
-            var method_args: @Tuple(@typeInfo(@TypeOf(args)).@"struct".field_types[1..]) = undefined;
-            inline for (0..method_args.len) |i| method_args[i] = args[i + 1];
-            return msgSend(args[0], Return, sel, method_args);
-        }
+        pub const method = m.method;
 
         /// Waits for a one-shot completion; Shape excludes self and returns an error union.
         /// Returned objects are retained. The completion must not require the blocked calling thread.
-        pub fn methodSync(comptime name: [:0]const u8, comptime Shape: type) m.prependArgs(Shape, &.{*T}) {
-            return m.methodSync(name, m.prependArgs(Shape, &.{*T}), sendMethod).*;
-        }
+        pub const methodSync = m.methodSync;
 
         /// Binds a void instance method whose last Shape parameter is a block function type.
         /// Call as `object.method(ctx, args..., handler)`; Shape excludes the receiver.
         /// The context must outlive every invocation of the block handler.
-        pub fn methodWithCallback(
-            comptime name: [:0]const u8,
-            comptime Shape: type,
-        ) @TypeOf(MethodWithCallback(name, Shape).call) {
-            return MethodWithCallback(name, Shape).call;
-        }
-
-        fn MethodWithCallback(comptime name: [:0]const u8, comptime Shape: type) type {
-            return struct {
-                const Binding = m.methodWithCallback(name, Shape, sendMethod);
-                pub const call = obzc.utils.spreadArgsWithReceiverAndCallback(*T, Binding.Args, Binding.Callback, invoke);
-
-                fn invoke(self: *T, ctx: anytype, args: Binding.Args, comptime handler: *const Binding.Callback(@TypeOf(ctx))) void {
-                    Binding.invoke(ctx, .{self} ++ args, handler);
-                }
-            };
-        }
+        pub const methodWithCallback = m.methodWithCallback;
 
         /// Reads the instance property `name` as `P`, using the class bound to `T` for metadata.
         /// Honors its `G` attribute, falling back to `name` itself as the getter selector.
