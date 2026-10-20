@@ -2,7 +2,6 @@ const std = @import("std");
 const obzc = @import("../root.zig");
 const Class = @import("Class.zig").Class;
 const Method = @import("method.zig").Method;
-const cast = obzc.utils.cast;
 
 /// Returns a set of Objective-C object helpers bound to `T` (any opaque object type). Assemble a
 /// wrapper by picking the pieces you want:
@@ -27,13 +26,14 @@ pub fn Object(comptime T: type) type {
         }
 
         /// Sends the selector named `sel` to the object.
+        /// Uses the supplied ABI argument and return types without conversion.
         pub fn msgSend(self: *T, comptime Return: type, sel: [:0]const u8, args: anytype) Return {
             return obzc.rt.msgSend(self, Return, obzc.rt.Sel.registerName(sel), args);
         }
 
-        /// Sends an instance message directly, preserving the declared return type.
+        /// Calls an instance method, converting top-level bool arguments and returns through BOOL.
         pub fn call(self: *T, comptime Return: type, name: [:0]const u8, args: anytype) Return {
-            return msgSend(self, Return, name, args);
+            return @import("call.zig").call(self, Return, name, args);
         }
 
         /// Binds an instance method, prepending `*T` to the declared Shape.
@@ -55,21 +55,13 @@ pub fn Object(comptime T: type) type {
             defer if (getter) |custom| std.c.free(custom.ptr);
 
             const selector = getter orelse name;
-            if (P == bool) {
-                return cast.bool(msgSend(self, obzc.c.BOOL, selector, .{}));
-            } else {
-                return msgSend(self, P, selector, .{});
-            }
+            return call(self, P, selector, .{});
         }
 
         /// Writes `value` to the Objective-C property `name` via its `set<Name>:` setter.
         pub fn setProperty(self: *T, comptime name: [:0]const u8, value: anytype) void {
             const setter = "set" ++ [_]u8{std.ascii.toUpper(name[0])} ++ name[1..] ++ ":";
-            if (@TypeOf(value) == bool) {
-                msgSend(self, void, setter, .{cast.BOOL(value)});
-            } else {
-                msgSend(self, void, setter, .{value});
-            }
+            call(self, void, setter, .{value});
         }
 
         /// Accessor methods for the property `name` of type `P`:
@@ -104,6 +96,25 @@ test "helpers.Object: call forwards instance receivers and arguments" {
     try std.testing.expectEqual(obzc.c.NO, first.call(obzc.c.BOOL, "isEqualToNumber:", .{second}));
     try std.testing.expectEqual(obzc.c.YES, first.call(obzc.c.BOOL, "isEqualToNumber:", .{first}));
     try std.testing.expectEqual(first, first.call(?*NSNumber, "self", .{}).?);
+}
+
+test "helpers.Object: call, method and property convert bool values" {
+    const NSOperationQueue = opaque {};
+    const h = Object(NSOperationQueue);
+    const queue = h.cls.new();
+    defer h.release(queue);
+
+    h.call(queue, void, "setSuspended:", .{true});
+    try std.testing.expect(h.call(queue, bool, "isSuspended", .{}));
+    h.call(queue, void, "setSuspended:", .{false});
+    try std.testing.expect(!h.call(queue, bool, "isSuspended", .{}));
+
+    const set_suspended = h.method("setSuspended:", fn (bool) void);
+    const is_suspended = h.method("isSuspended", fn () bool);
+    set_suspended(queue, true);
+    try std.testing.expect(is_suspended(queue));
+    h.setProperty(queue, "suspended", false);
+    try std.testing.expect(!h.property(queue, bool, "suspended"));
 }
 
 test "helpers.Object: method binds instance receivers and arguments" {

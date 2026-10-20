@@ -21,13 +21,14 @@ pub fn Class(comptime T: type) type {
         }
 
         /// Sends the selector named `sel` to the class itself (a class method).
+        /// Uses the supplied ABI argument and return types without conversion.
         pub fn msgSend(comptime Return: type, sel: [:0]const u8, args: anytype) Return {
             return obzc.rt.msgSend(getClass(), Return, obzc.rt.Sel.registerName(sel), args);
         }
 
-        /// Sends a class message directly, preserving the declared return type.
+        /// Calls a class method, converting top-level bool arguments and returns through BOOL.
         pub fn call(comptime Return: type, name: [:0]const u8, args: anytype) Return {
-            return msgSend(Return, name, args);
+            return @import("call.zig").call(getClass(), Return, name, args);
         }
 
         /// Binds a class method to the signature `Shape`, accepting its arguments directly.
@@ -54,6 +55,24 @@ test "helpers.Class: call forwards class arguments and preserves nullable return
     const number = Class(NSNumber).call(*NSNumber, "numberWithInteger:", .{@as(isize, 42)});
     try std.testing.expectEqual(42, obzc.helpers.Object(NSNumber).msgSend(number, isize, "integerValue", .{}));
     try std.testing.expectEqual(null, Class(NSObject).call(?*obzc.rt.Class, "superclass", .{}));
+}
+
+test "helpers.Class: call and method convert bool arguments and returns" {
+    const NSNumber = opaque {};
+    const h = Class(NSNumber);
+    const object = obzc.helpers.Object(NSNumber);
+    const pool = obzc.rt.autoreleasePoolPush();
+    defer obzc.rt.autoreleasePoolPop(pool);
+
+    const create = h.method("numberWithBool:", fn (bool) *NSNumber);
+    const yes = create(true);
+    const no = h.call(*NSNumber, "numberWithBool:", .{false});
+    try std.testing.expect(object.call(yes, bool, "boolValue", .{}));
+    try std.testing.expect(!object.call(no, bool, "boolValue", .{}));
+
+    const responds = h.method("instancesRespondToSelector:", fn (*obzc.rt.Sel) bool);
+    try std.testing.expect(responds(obzc.rt.Sel.registerName("boolValue")));
+    try std.testing.expect(!h.call(bool, "instancesRespondToSelector:", .{obzc.rt.Sel.registerName("obzcMissingBoolMethod")}));
 }
 
 test "helpers.Class: class messages, new and alloc" {
