@@ -47,7 +47,8 @@ pub fn Object(comptime T: type) type {
         }
 
         /// Writes `value` to the Objective-C property `name` via its `set<Name>:` setter.
-        pub fn setProperty(self: *T, comptime name: [:0]const u8, value: anytype) void {
+        /// The name is comptime so the setter selector can be built without allocation.
+        pub fn setProperty(self: *T, comptime P: type, comptime name: [:0]const u8, value: P) void {
             const setter = "set" ++ [_]u8{std.ascii.toUpper(name[0])} ++ name[1..] ++ ":";
             call(self, void, setter, .{value});
         }
@@ -62,7 +63,7 @@ pub fn Object(comptime T: type) type {
                     return property(self, P, name);
                 }
                 pub fn setter(self: *T, value: P) void {
-                    setProperty(self, name, value);
+                    setProperty(self, P, name, value);
                 }
             };
         }
@@ -101,7 +102,7 @@ test "helpers.Object: call, m.of and property convert bool values" {
     const is_suspended = h.m.of("isSuspended", fn () bool);
     set_suspended(queue, true);
     try std.testing.expect(is_suspended(queue));
-    h.setProperty(queue, "suspended", false);
+    h.setProperty(queue, bool, "suspended", false);
     try std.testing.expect(!h.property(queue, bool, "suspended"));
 }
 
@@ -218,7 +219,7 @@ test "helpers.Object: property / setProperty" {
     const data = h.cls.new();
     defer h.release(data);
 
-    h.setProperty(data, "length", @as(usize, 8));
+    h.setProperty(data, usize, "length", @as(usize, 8));
     try std.testing.expectEqual(8, h.property(data, usize, "length"));
 }
 
