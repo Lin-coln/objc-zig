@@ -1,3 +1,4 @@
+const std = @import("std");
 const c = @import("../c.zig").c;
 const rt = @import("../rt/root.zig");
 
@@ -55,7 +56,6 @@ pub fn DescriptorWithHelpers(comptime Block: type) type {
 }
 
 test "Descriptor.init: reserved, block size and signature" {
-    const std = @import("std");
     const B = extern struct { header: usize, context: i32 };
     const signature: [:0]const u8 = "v@?";
     const descriptor = Descriptor(B).init(signature);
@@ -64,8 +64,23 @@ test "Descriptor.init: reserved, block size and signature" {
     try std.testing.expectEqual(signature.ptr, descriptor.signature);
 }
 
-test "DescriptorWithHelpers.init: metadata and object ownership callbacks" {
-    const std = @import("std");
+test "isObject: direct runtime object pointers" {
+    try std.testing.expect(isObject(*rt.Object));
+    try std.testing.expect(isObject(?*rt.Object));
+    try std.testing.expect(!isObject(*rt.Class));
+    try std.testing.expect(!isObject(extern struct { object: *rt.Object }));
+}
+
+test "DescriptorWithHelpers.init: reserved, block size and signature" {
+    const B = extern struct { context: *rt.Object };
+    const signature: [:0]const u8 = "v@?";
+    const descriptor = DescriptorWithHelpers(B).init(signature);
+    try std.testing.expectEqual(@as(c_ulong, 0), descriptor.reserved);
+    try std.testing.expectEqual(@as(c_ulong, @sizeOf(B)), descriptor.size);
+    try std.testing.expectEqual(signature.ptr, descriptor.signature);
+}
+
+test "DescriptorWithHelpers: copy retains the captured object until dispose" {
     // Exercise this descriptor independently: Block does not select it yet.
     const B = extern struct { context: *rt.Object };
     const Probe = struct {
@@ -76,30 +91,33 @@ test "DescriptorWithHelpers.init: metadata and object ownership callbacks" {
             rt.msgSendSuper(self, rt.getClass("NSObject").?, void, sel, .{});
         }
     };
-    Probe.deallocated = false;
     const class = rt.allocateClassPair(rt.getClass("NSObject").?, "ZigBlockDescriptorOwnershipTest", 0).?;
     defer rt.disposeClassPair(class);
     try std.testing.expect(class.addMethod(rt.Sel.registerName("dealloc"), &Probe.dealloc, "v@:"));
     rt.registerClassPair(class);
-    const object = rt.msgSend(class, ?*rt.Object, rt.Sel.registerName("new"), .{}).?;
-    var source_owns = true;
-    defer if (source_owns) rt.release(object);
+    const descriptor = DescriptorWithHelpers(B).init("v@?");
+    var destination: B = undefined;
+    {
+        const object = rt.msgSend(class, ?*rt.Object, rt.Sel.registerName("new"), .{}).?;
+        defer rt.release(object);
+        const source: B = .{ .context = object };
+        descriptor.copy_helper(&destination, &source);
+        errdefer descriptor.dispose_helper(&destination);
+        try std.testing.expectEqual(source.context, destination.context);
+    }
+    {
+        defer if (!Probe.deallocated) descriptor.dispose_helper(&destination);
+        try std.testing.expect(!Probe.deallocated);
+    }
+    try std.testing.expect(Probe.deallocated);
+}
 
-    const signature: [:0]const u8 = "v@?";
-    const descriptor = DescriptorWithHelpers(B).init(signature);
-    try std.testing.expectEqual(@as(c_ulong, 0), descriptor.reserved);
-    try std.testing.expectEqual(@as(c_ulong, @sizeOf(B)), descriptor.size);
-    try std.testing.expectEqual(signature.ptr, descriptor.signature);
-
-    const source: B = .{ .context = object };
+test "DescriptorWithHelpers: null object captures need no ownership" {
+    const B = extern struct { context: ?*rt.Object };
+    const descriptor = DescriptorWithHelpers(B).init("v@?");
+    const source: B = .{ .context = null };
     var destination: B = undefined;
     descriptor.copy_helper(&destination, &source);
-    defer if (!Probe.deallocated) descriptor.dispose_helper(&destination);
-    try std.testing.expectEqual(source.context, destination.context);
-
-    rt.release(object);
-    source_owns = false;
-    try std.testing.expect(!Probe.deallocated);
+    try std.testing.expectEqual(null, destination.context);
     descriptor.dispose_helper(&destination);
-    try std.testing.expect(Probe.deallocated);
 }

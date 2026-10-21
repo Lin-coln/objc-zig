@@ -2,6 +2,18 @@ const spreadArgs = @import("spreadArgs.zig").spreadArgs;
 
 pub const CompileTestCases = .{
     .{
+        .name = "spreadArgs: rejects handlers with multiple parameters",
+        .expected_error = "spreadArgs handler must take exactly one tuple parameter",
+    },
+    .{
+        .name = "spreadArgs: rejects non-tuple parameter",
+        .expected_error = "spreadArgs handler parameter must be a tuple",
+    },
+    .{
+        .name = "spreadArgs: rejects mismatched fixed arity",
+        .expected_error = "spreadArgs arity must match the handler tuple length",
+    },
+    .{
         .name = "spreadArgs: rejects generic handlers without arity",
         .expected_error = "spreadArgs generic handler requires arity",
     },
@@ -18,6 +30,27 @@ pub const CompileTestCases = .{
         .expected_error = "expected type 'c_ulong', found 'c_int'",
     },
 };
+
+test "spreadArgs: rejects handlers with multiple parameters" {
+    const Handler = struct {
+        fn call(_: i32, _: i32) void {}
+    };
+    _ = spreadArgs(Handler.call, .{});
+}
+
+test "spreadArgs: rejects non-tuple parameter" {
+    const Handler = struct {
+        fn call(_: i32) void {}
+    };
+    _ = spreadArgs(Handler.call, .{});
+}
+
+test "spreadArgs: rejects mismatched fixed arity" {
+    const Handler = struct {
+        fn call(_: @Tuple(&.{i32})) void {}
+    };
+    _ = spreadArgs(Handler.call, .{ .arity = 2 });
+}
 
 test "spreadArgs: rejects generic handlers without arity" {
     const Static = struct {

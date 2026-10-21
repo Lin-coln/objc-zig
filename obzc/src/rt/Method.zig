@@ -1,4 +1,7 @@
 const std = @import("std");
+const objc = @import("objc/root.zig");
+const Sel = @import("Sel.zig").Sel;
+const Object = @import("Object.zig").Object;
 const c = @import("../c.zig").c;
 
 pub const Method = opaque {
@@ -16,36 +19,47 @@ pub const Method = opaque {
     }
 };
 
-test "Method: getImplementation / setImplementation / exchangeImplementations" {
-    const rt = @import("root.zig");
+test "Method: getImplementation and setImplementation" {
     const impl = struct {
-        fn one(_: *rt.Object, _: *rt.Sel) callconv(.c) usize {
+        fn one(_: *Object, _: *Sel) callconv(.c) usize {
             return 1;
         }
-        fn two(_: *rt.Object, _: *rt.Sel) callconv(.c) usize {
+        fn two(_: *Object, _: *Sel) callconv(.c) usize {
             return 2;
         }
-        fn three(_: *rt.Object, _: *rt.Sel) callconv(.c) usize {
-            return 3;
+    };
+    const Sub = objc.allocateClassPair(objc.getClass("NSObject").?, "NativeObjcMethodReplacementTest", 0).?;
+    defer objc.disposeClassPair(Sub);
+    const answer = Sel.registerName("answer");
+    try std.testing.expect(Sub.addMethod(answer, &impl.one, "Q@:"));
+    objc.registerClassPair(Sub);
+    const method = Sub.getInstanceMethod(answer).?;
+
+    try std.testing.expectEqual(@as(c.IMP, @ptrCast(&impl.one)), method.getImplementation());
+    try std.testing.expectEqual(@as(c.IMP, @ptrCast(&impl.one)), method.setImplementation(&impl.two));
+    try std.testing.expectEqual(@as(c.IMP, @ptrCast(&impl.two)), method.getImplementation());
+}
+
+test "Method: exchangeImplementations swaps both method slots" {
+    const impl = struct {
+        fn one(_: *Object, _: *Sel) callconv(.c) usize {
+            return 1;
+        }
+        fn two(_: *Object, _: *Sel) callconv(.c) usize {
+            return 2;
         }
     };
-    const Sub = rt.allocateClassPair(rt.getClass("NSObject").?, "NativeObjcMethodTest", 0).?;
-    try std.testing.expect(Sub.addMethod(rt.Sel.registerName("a"), &impl.one, "Q@:"));
-    try std.testing.expect(Sub.addMethod(rt.Sel.registerName("b"), &impl.two, "Q@:"));
-    rt.registerClassPair(Sub);
-    defer rt.disposeClassPair(Sub);
-
-    const obj = rt.msgSend(Sub, ?*rt.Object, rt.Sel.registerName("new"), .{}).?;
-    defer rt.release(obj);
-
-    const a = Sub.getInstanceMethod(rt.Sel.registerName("a")).?;
-    const b = Sub.getInstanceMethod(rt.Sel.registerName("b")).?;
-    try std.testing.expectEqual(@as(c.IMP, @ptrCast(&impl.one)), a.getImplementation());
+    const Sub = objc.allocateClassPair(objc.getClass("NSObject").?, "NativeObjcMethodExchangeTest", 0).?;
+    defer objc.disposeClassPair(Sub);
+    const a_sel = Sel.registerName("a");
+    const b_sel = Sel.registerName("b");
+    try std.testing.expect(Sub.addMethod(a_sel, &impl.one, "Q@:"));
+    try std.testing.expect(Sub.addMethod(b_sel, &impl.two, "Q@:"));
+    objc.registerClassPair(Sub);
+    const a = Sub.getInstanceMethod(a_sel).?;
+    const b = Sub.getInstanceMethod(b_sel).?;
 
     a.exchangeImplementations(b);
-    try std.testing.expectEqual(2, rt.msgSend(obj, usize, rt.Sel.registerName("a"), .{}));
-    try std.testing.expectEqual(1, rt.msgSend(obj, usize, rt.Sel.registerName("b"), .{}));
-
-    try std.testing.expectEqual(@as(c.IMP, @ptrCast(&impl.two)), a.setImplementation(&impl.three));
-    try std.testing.expectEqual(3, rt.msgSend(obj, usize, rt.Sel.registerName("a"), .{}));
+    try std.testing.expectEqual(@as(c.IMP, @ptrCast(&impl.two)), a.getImplementation());
+    try std.testing.expectEqual(@as(c.IMP, @ptrCast(&impl.one)), b.getImplementation());
 }

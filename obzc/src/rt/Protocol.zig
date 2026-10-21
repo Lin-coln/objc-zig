@@ -1,4 +1,5 @@
 const std = @import("std");
+const objc = @import("objc/root.zig");
 const c = @import("../c.zig").c;
 const Property = @import("Property.zig").Property;
 
@@ -25,19 +26,23 @@ pub const Protocol = opaque {
     }
 };
 
-test "Protocol" {
-    const rt = @import("root.zig");
-    try std.testing.expectEqual(null, rt.getProtocol("NoSuchProtocolInThisProcess"));
-    try std.testing.expectEqualStrings("NSCopying", rt.getProtocol("NSCopying").?.getName());
+test "Protocol: names, equality and protocol inheritance" {
+    const copying = objc.getProtocol("NSCopying").?;
+    const secure_coding = objc.getProtocol("NSSecureCoding").?;
+    const coding = objc.getProtocol("NSCoding").?;
 
-    const secure_coding = rt.getProtocol("NSSecureCoding").?;
-    const coding = rt.getProtocol("NSCoding").?;
+    try std.testing.expectEqualStrings("NSCopying", copying.getName());
     try std.testing.expect(secure_coding.conformsToProtocol(coding));
     try std.testing.expect(!coding.conformsToProtocol(secure_coding));
-    try std.testing.expect(coding.isEqual(rt.getProtocol("NSCoding").?));
+    try std.testing.expect(coding.isEqual(objc.getProtocol("NSCoding").?));
     try std.testing.expect(!coding.isEqual(secure_coding));
+}
 
-    const nsobject = rt.getProtocol("NSObject").?;
+test "Protocol: property lookup respects required and instance flags" {
+    const nsobject = objc.getProtocol("NSObject").?;
+
     try std.testing.expectEqualStrings("hash", nsobject.getProperty("hash", true, true).?.getName());
     try std.testing.expectEqual(null, nsobject.getProperty("hash", false, true));
+    try std.testing.expectEqual(null, nsobject.getProperty("hash", true, false));
+    try std.testing.expectEqual(null, nsobject.getProperty("noSuchProperty", true, true));
 }

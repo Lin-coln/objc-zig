@@ -11,8 +11,13 @@ pub const Sel = opaque {
     }
 };
 
-test "Sel" {
+test "Sel: registerName interns selector names" {
     const sel = Sel.registerName("description");
     try std.testing.expectEqual(sel, Sel.registerName("description"));
+    try std.testing.expect(sel != Sel.registerName("debugDescription"));
+}
+
+test "Sel: getName returns the registered name" {
+    const sel = Sel.registerName("description");
     try std.testing.expectEqualStrings("description", sel.getName());
 }

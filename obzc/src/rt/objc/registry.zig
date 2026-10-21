@@ -30,22 +30,31 @@ pub fn getProtocol(name: [:0]const u8) ?*Protocol {
     return @ptrCast(c.objc_getProtocol(name));
 }
 
-test "getClass / getMetaClass" {
+test "getClass / getMetaClass: registered and missing names" {
+    const NSString = getClass("NSString").?;
+    try std.testing.expectEqualStrings("NSString", NSString.getName());
     try std.testing.expectEqual(null, getClass("NoSuchClassInThisProcess"));
     const meta = getMetaClass("NSString").?;
     try std.testing.expect(meta.isMetaClass());
     try std.testing.expectEqualStrings("NSString", meta.getName());
 }
 
-test "allocateClassPair / registerClassPair / disposeClassPair" {
+test "getProtocol: registered and missing names" {
+    try std.testing.expectEqualStrings("NSCopying", getProtocol("NSCopying").?.getName());
+    try std.testing.expectEqual(null, getProtocol("NoSuchProtocolInThisProcess"));
+}
+
+test "allocateClassPair / registerClassPair / disposeClassPair: registration lifecycle" {
     const NSObject = getClass("NSObject").?;
     try std.testing.expectEqual(null, allocateClassPair(NSObject, "NSObject", 0));
 
-    const Sub = allocateClassPair(NSObject, "NativeObjcRootTest", 0).?;
-    try std.testing.expectEqual(null, getClass("NativeObjcRootTest"));
-    registerClassPair(Sub);
-    try std.testing.expectEqual(Sub, getClass("NativeObjcRootTest").?);
-    try std.testing.expectEqual(NSObject, Sub.getSuperclass().?);
-    disposeClassPair(Sub);
+    {
+        const Sub = allocateClassPair(NSObject, "NativeObjcRootTest", 0).?;
+        defer disposeClassPair(Sub);
+        try std.testing.expectEqual(null, getClass("NativeObjcRootTest"));
+        registerClassPair(Sub);
+        try std.testing.expectEqual(Sub, getClass("NativeObjcRootTest").?);
+        try std.testing.expectEqual(NSObject, Sub.getSuperclass().?);
+    }
     try std.testing.expectEqual(null, getClass("NativeObjcRootTest"));
 }

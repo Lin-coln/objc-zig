@@ -3,8 +3,9 @@ const std = @import("std");
 pub const c = @import("objc-abi");
 
 test "runtime.h + message.h: define subclass at runtime, msgSend / msgSendSuper" {
-    const NSObject = c.objc_getClass("NSObject");
+    const NSObject = c.objc_getClass("NSObject").?;
     const Sub = c.objc_allocateClassPair(NSObject, "NativeObjcTestSub", 0) orelse return error.ClassAllocFailed;
+    defer c.objc_disposeClassPair(Sub);
     const hash = struct {
         fn f(_: c.id, _: c.SEL) callconv(.c) usize {
             return 42;
@@ -12,39 +13,17 @@ test "runtime.h + message.h: define subclass at runtime, msgSend / msgSendSuper"
     }.f;
     try std.testing.expect(c.class_addMethod(Sub, c.sel_registerName("hash"), @ptrCast(&hash), "Q@:") == c.YES);
     c.objc_registerClassPair(Sub);
-    defer c.objc_disposeClassPair(Sub);
 
     const new: *const fn (c.Class, c.SEL) callconv(.c) c.id = @ptrCast(&c.objc_msgSend);
-    const obj = new(Sub, c.sel_registerName("new"));
+    const obj = new(Sub, c.sel_registerName("new")).?;
     defer c.objc_release(obj);
 
     const send: *const fn (c.id, c.SEL) callconv(.c) usize = @ptrCast(&c.objc_msgSend);
     try std.testing.expectEqual(42, send(obj, c.sel_registerName("hash")));
 
-    // NSObject's -hash returns the object's address.
-    const sendSuper: *const fn (*c.struct_objc_super, c.SEL) callconv(.c) usize = @ptrCast(&c.objc_msgSendSuper);
+    const sendSuper: *const fn (*c.struct_objc_super, c.SEL) callconv(.c) c.Class = @ptrCast(&c.objc_msgSendSuper);
     var super: c.struct_objc_super = .{ .receiver = obj, .super_class = NSObject };
-    try std.testing.expectEqual(@intFromPtr(obj), sendSuper(&super, c.sel_registerName("hash")));
-}
-
-test "objc_retain / objc_release / autoreleasePool" {
-    const new: *const fn (c.Class, c.SEL) callconv(.c) c.id = @ptrCast(&c.objc_msgSend);
-    const send: *const fn (c.id, c.SEL) callconv(.c) usize = @ptrCast(&c.objc_msgSend);
-    const obj = new(c.objc_getClass("NSObject"), c.sel_registerName("new"));
-    defer c.objc_release(obj);
-
-    try std.testing.expectEqual(1, send(obj, c.sel_registerName("retainCount")));
-    _ = c.objc_retain(obj);
-    try std.testing.expectEqual(2, send(obj, c.sel_registerName("retainCount")));
-    c.objc_release(obj);
-    try std.testing.expectEqual(1, send(obj, c.sel_registerName("retainCount")));
-
-    const pool = c.objc_autoreleasePoolPush();
-    _ = c.objc_retain(obj);
-    _ = send(obj, c.sel_registerName("autorelease"));
-    try std.testing.expectEqual(2, send(obj, c.sel_registerName("retainCount")));
-    c.objc_autoreleasePoolPop(pool);
-    try std.testing.expectEqual(1, send(obj, c.sel_registerName("retainCount")));
+    try std.testing.expectEqual(Sub, sendSuper(&super, c.sel_registerName("class")));
 }
 
 test "Block.h: copy stack block to heap with _Block_copy and invoke it" {
@@ -80,9 +59,7 @@ test "Block.h: copy stack block to heap with _Block_copy and invoke it" {
 }
 
 test "Block.h: _Block_object_assign / _Block_object_dispose retain and release a captured object" {
-    // Constants and descriptor layout from the Apple Block ABI; Block.h does not declare them.
-    const BLOCK_HAS_COPY_DISPOSE = 1 << 25;
-    const BLOCK_FIELD_IS_OBJECT = 3;
+    // The descriptor layout follows the Apple Block ABI; Block.h does not declare it.
     const Block = extern struct {
         isa: ?*anyopaque,
         flags: c_int,
@@ -104,33 +81,52 @@ test "Block.h: _Block_object_assign / _Block_object_dispose retain and release a
     const helpers = struct {
         fn invoke(_: *const Block) callconv(.c) void {}
         fn copy(dst: *Block, src: *const Block) callconv(.c) void {
-            c._Block_object_assign(@ptrCast(&dst.captured), src.captured, BLOCK_FIELD_IS_OBJECT);
+            c._Block_object_assign(@ptrCast(&dst.captured), src.captured, c.BLOCK_FIELD_IS_OBJECT);
         }
         fn dispose(src: *const Block) callconv(.c) void {
-            c._Block_object_dispose(src.captured, BLOCK_FIELD_IS_OBJECT);
+            c._Block_object_dispose(src.captured, c.BLOCK_FIELD_IS_OBJECT);
         }
     };
 
-    const new: *const fn (c.Class, c.SEL) callconv(.c) c.id = @ptrCast(&c.objc_msgSend);
-    const send: *const fn (c.id, c.SEL) callconv(.c) usize = @ptrCast(&c.objc_msgSend);
-    const obj = new(c.objc_getClass("NSObject"), c.sel_registerName("new"));
-    defer c.objc_release(obj);
+    const Probe = struct {
+        var deallocated = false;
 
-    const block: Block = .{
-        .isa = &c._NSConcreteStackBlock,
-        .flags = BLOCK_HAS_COPY_DISPOSE,
-        .reserved = 0,
-        .invoke = &helpers.invoke,
-        .descriptor = &.{ .reserved = 0, .size = @sizeOf(Block), .copy_helper = &helpers.copy, .dispose_helper = &helpers.dispose },
-        .captured = obj,
+        fn dealloc(self: c.id, sel: c.SEL) callconv(.c) void {
+            deallocated = true;
+            const send: *const fn (*c.struct_objc_super, c.SEL) callconv(.c) void = @ptrCast(&c.objc_msgSendSuper);
+            var super: c.struct_objc_super = .{ .receiver = self, .super_class = c.objc_getClass("NSObject") };
+            send(&super, sel);
+        }
     };
-    // A stack block does not own what it captures.
-    try std.testing.expectEqual(1, send(obj, c.sel_registerName("retainCount")));
-
-    const copied: *const Block = @ptrCast(@alignCast(c._Block_copy(&block) orelse return error.BlockCopyFailed));
-    try std.testing.expectEqual(obj, copied.captured);
-    try std.testing.expectEqual(2, send(obj, c.sel_registerName("retainCount")));
-
-    c._Block_release(copied);
-    try std.testing.expectEqual(1, send(obj, c.sel_registerName("retainCount")));
+    const NSObject = c.objc_getClass("NSObject").?;
+    const Sub = c.objc_allocateClassPair(NSObject, "ObjcZigCBlockOwnershipTest", 0) orelse return error.ClassAllocFailed;
+    defer c.objc_disposeClassPair(Sub);
+    try std.testing.expect(c.class_addMethod(Sub, c.sel_registerName("dealloc"), @ptrCast(&Probe.dealloc), "v@:") == c.YES);
+    c.objc_registerClassPair(Sub);
+    const new: *const fn (c.Class, c.SEL) callconv(.c) c.id = @ptrCast(&c.objc_msgSend);
+    const copied = blk: {
+        const obj = new(Sub, c.sel_registerName("new")).?;
+        defer c.objc_release(obj);
+        const block: Block = .{
+            .isa = &c._NSConcreteStackBlock,
+            .flags = c.BLOCK_HAS_COPY_DISPOSE,
+            .reserved = 0,
+            .invoke = &helpers.invoke,
+            .descriptor = &.{ .reserved = 0, .size = @sizeOf(Block), .copy_helper = &helpers.copy, .dispose_helper = &helpers.dispose },
+            .captured = obj,
+        };
+        const copied: *Block = @ptrCast(@alignCast(c._Block_copy(&block) orelse return error.BlockCopyFailed));
+        errdefer c._Block_release(copied);
+        try std.testing.expectEqual(@as(c.id, obj), copied.captured);
+        break :blk copied;
+    };
+    {
+        defer {
+            // A failed ownership check must not dispose an already-deallocated capture again.
+            if (Probe.deallocated) copied.captured = null;
+            c._Block_release(copied);
+        }
+        try std.testing.expect(!Probe.deallocated);
+    }
+    try std.testing.expect(Probe.deallocated);
 }

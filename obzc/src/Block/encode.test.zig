@@ -22,6 +22,14 @@ pub const CompileTestCases = .{
         .expected_error = "cannot encode f16:",
     },
     .{
+        .name = "encode: rejects bare functions",
+        .expected_error = "cannot encode fn () void:",
+    },
+    .{
+        .name = "encode: rejects opaque values",
+        .expected_error = "cannot encode anyopaque:",
+    },
+    .{
         .name = "encode: rejects vectors",
         .expected_error = "cannot encode @Vector(2, f32):",
     },
@@ -101,6 +109,14 @@ test "encode: rejects u0" {
 
 test "encode: rejects f16" {
     _ = comptime encode(f16);
+}
+
+test "encode: rejects bare functions" {
+    _ = comptime encode(fn () void);
+}
+
+test "encode: rejects opaque values" {
+    _ = comptime encode(anyopaque);
 }
 
 test "encode: rejects vectors" {

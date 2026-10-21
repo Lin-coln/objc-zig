@@ -1,4 +1,5 @@
 const std = @import("std");
+const objc = @import("objc/root.zig");
 const c = @import("../c.zig").c;
 
 pub const Property = opaque {
@@ -13,8 +14,7 @@ pub const Property = opaque {
 };
 
 test "Property" {
-    const rt = @import("root.zig");
-    const length = rt.getClass("NSString").?.getProperty("length").?;
+    const length = objc.getClass("NSString").?.getProperty("length").?;
     try std.testing.expectEqualStrings("length", length.getName());
 
     const @"type" = length.copyAttributeValue("T").?;

@@ -1,7 +1,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const c = @import("../c.zig").c;
-const rt = @import("../rt/root.zig");
 const encode = @import("encode.zig").encode;
 
 /// An Objective-C block literal (Apple Block ABI) whose `invoke` has the parameters of `Function`,
@@ -53,7 +52,6 @@ fn getFlags(comptime Function: type) c_int {
     // Same rule as `msgSend`: only x86_64 returns large structs through a hidden pointer argument.
     const stret = builtin.target.cpu.arch == .x86_64 and @typeInfo(Return) == .@"struct" and @sizeOf(Return) > 16;
     return c.BLOCK_HAS_SIGNATURE |
-        // (if (hasObject(Context)) c.BLOCK_HAS_COPY_DISPOSE else 0) |
         (if (stret) c.BLOCK_USE_STRET else 0);
 }
 
@@ -118,27 +116,29 @@ test "Block.copy / release: context snapshot and heap lifetime" {
     }.invoke;
 
     var value: i32 = 10;
-    // The heap copy must also survive the end of the stack block's scope.
-    const copied = blk: {
-        var block = Read.init(.{ .value = 7, .pointer = &value }, &callback);
-        const heap = block.copy().?;
-        try std.testing.expect(heap != &block);
-        block.context.value = 100;
-        break :blk heap;
+    const retained = retain: {
+        // The heap copy must also survive the end of the stack block's scope.
+        const copied = copy: {
+            var block = Read.init(.{ .value = 7, .pointer = &value }, &callback);
+            const heap = block.copy().?;
+            errdefer heap.release();
+            try std.testing.expect(heap != &block);
+            block.context.value = 100;
+            break :copy heap;
+        };
+        defer copied.release();
+
+        value = 20;
+        try std.testing.expectEqual(7, copied.context.value);
+        try std.testing.expectEqual(&value, copied.context.pointer);
+        try std.testing.expectEqual(27, copied.invoke(copied));
+
+        const retained = copied.copy().?;
+        errdefer retained.release();
+        try std.testing.expectEqual(copied, retained);
+        break :retain retained;
     };
-    var owns_copy = true;
-    defer if (owns_copy) copied.release();
-
-    value = 20;
-    try std.testing.expectEqual(7, copied.context.value);
-    try std.testing.expectEqual(&value, copied.context.pointer);
-    try std.testing.expectEqual(27, copied.invoke(copied));
-
-    const retained = copied.copy().?;
     defer retained.release();
-    try std.testing.expectEqual(copied, retained);
-    copied.release();
-    owns_copy = false;
     // Releasing one ownership must leave the retained heap block usable.
     try std.testing.expectEqual(27, retained.invoke(retained));
 }
@@ -164,6 +164,7 @@ test "getCallbackType: implicit block parameter and C calling convention" {
 test "generateFromFnType: return type, implicit argument, parameter order and terminator" {
     const cases = .{
         .{ fn () void, "v@?" },
+        .{ fn (i32, f64) i32, "i@?id" },
         .{ fn (i32, *const u8, bool) f64, "d@?i^CB" },
     };
     inline for (cases) |case| {
