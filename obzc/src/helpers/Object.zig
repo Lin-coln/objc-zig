@@ -219,7 +219,7 @@ test "helpers.Object: property / setProperty" {
     const data = h.cls.new();
     defer h.release(data);
 
-    h.setProperty(data, usize, "length", @as(usize, 8));
+    h.setProperty(data, usize, "length", 8);
     try std.testing.expectEqual(8, h.property(data, usize, "length"));
 }
 

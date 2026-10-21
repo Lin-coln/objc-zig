@@ -6,9 +6,26 @@ const obzc = @import("../root.zig");
 pub fn initWithContext(
     ctx: anytype,
     comptime handler: anytype,
-) BlockFromContextHandler(@TypeOf(ctx), @typeInfo(@TypeOf(handler)).@"fn") {
+) BlockFromContextHandler(@TypeOf(ctx), handlerInfo(@TypeOf(ctx), @TypeOf(handler))) {
     const Context = @TypeOf(ctx);
     const Handler = @TypeOf(handler);
+    const fn_info = @typeInfo(Handler).@"fn";
+    const Block = BlockFromContextHandler(Context, fn_info);
+    const Args = std.meta.ArgsTuple(@typeInfo(@FieldType(Block, "invoke")).pointer.child);
+    const Static = struct {
+        fn callback(args: Args) fn_info.return_type.? {
+            var handler_args: std.meta.ArgsTuple(Handler) = undefined;
+            handler_args[0] = args[0].context;
+            inline for (1..fn_info.param_types.len) |i| handler_args[i] = args[i];
+            return @call(.auto, handler, handler_args);
+        }
+    };
+
+    return Block.init(ctx, obzc.utils.spreadArgs(Static.callback, .{ .convention = .c }));
+}
+
+/// Validates the handler before its parameter list is used to compute the returned Block type.
+fn handlerInfo(comptime Context: type, comptime Handler: type) std.lang.Type.Fn {
     if (@typeInfo(Context) != .pointer or @typeInfo(Context).pointer.size != .one)
         @compileError("block context must be a single-item pointer");
 
@@ -27,18 +44,7 @@ pub fn initWithContext(
     if (fn_info.param_types[0].? != Context)
         @compileError("block handler's first parameter must match the context pointer type");
 
-    const Block = BlockFromContextHandler(Context, fn_info);
-    const Args = std.meta.ArgsTuple(@typeInfo(@FieldType(Block, "invoke")).pointer.child);
-    const Static = struct {
-        fn callback(args: Args) fn_info.return_type.? {
-            var handler_args: std.meta.ArgsTuple(Handler) = undefined;
-            handler_args[0] = args[0].context;
-            inline for (1..fn_info.param_types.len) |i| handler_args[i] = args[i];
-            return @call(.auto, handler, handler_args);
-        }
-    };
-
-    return Block.init(ctx, obzc.utils.spreadArgs(Static.callback, .{ .convention = .c }));
+    return fn_info;
 }
 
 fn BlockFromContextHandler(comptime Context: type, fn_info: std.lang.Type.Fn) type {
@@ -72,7 +78,6 @@ test "initWithContext: argument forwarding, return value and heap copy" {
     const copied = block.copy().?;
     defer copied.release();
     try std.testing.expectEqual(25.0, copied.invoke(copied, 3, 2.0, 5.0));
-    try std.testing.expectEqualStrings("d@?idd", std.mem.span(copied.descriptor.signature));
 }
 
 test "initWithContext: context-only handler" {

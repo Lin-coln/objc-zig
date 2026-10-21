@@ -7,11 +7,7 @@ const dispatch = std.c.dispatch;
 /// Binds method builders to a wrapper type and its message helpers.
 /// A leading `*T` parameter on `Helper.call` identifies an instance receiver.
 pub fn Method(comptime T: type, comptime Helper: anytype) type {
-    const has_receiver = @typeInfo(@TypeOf(Helper.call)).@"fn".param_types[0] == *T;
-
     return struct {
-        const call = if (has_receiver) callWithReceiver(Helper).call else Helper.call;
-
         /// Binds a method to Shape, prepending `*T` for an instance receiver.
         /// Shape excludes the receiver; the returned function accepts separate arguments.
         pub const of = createMethodHelper(T, Helper).method;
@@ -27,16 +23,6 @@ pub fn Method(comptime T: type, comptime Helper: anytype) type {
         /// Returned objects are retained and must be released by the caller.
         /// The completion must be able to run while the calling thread is blocked.
         pub const withSync = createSyncHelper(T, Helper).withSync;
-    };
-}
-
-fn callWithReceiver(comptime Helper: type) type {
-    return struct {
-        pub fn call(comptime Return: type, name: [:0]const u8, args: anytype) Return {
-            var rest_args: @Tuple(@typeInfo(@TypeOf(args)).@"struct".field_types[1..]) = undefined;
-            inline for (0..rest_args.len) |i| rest_args[i] = args[i + 1];
-            return Helper.call(args[0], Return, name, rest_args);
-        }
     };
 }
 
@@ -125,13 +111,13 @@ fn createSyncHelper(comptime T: type, comptime Helper: type) type {
         }
 
         fn of(comptime name: [:0]const u8, comptime Shape: type) type {
-            const Signature = if (has_receiver) prependArgs(Shape, &.{*T}) else Shape;
-            const fn_info = switch (@typeInfo(Signature)) {
+            const fn_info = switch (@typeInfo(Shape)) {
                 .@"fn" => |info| info,
                 else => @compileError("withSync Shape must be a function type"),
             };
             if (fn_info.is_generic or fn_info.attrs.varargs)
                 @compileError("withSync Shape must have fixed, non-generic parameters");
+            const Signature = if (has_receiver) prependArgs(Shape, &.{*T}) else Shape;
             const Return = fn_info.return_type.?;
             const Payload = switch (@typeInfo(Return)) {
                 .error_union => |info| info.payload,
@@ -255,20 +241,6 @@ fn prependArgs(comptime Shape: type, comptime Args: []const type) type {
     return @Fn(&params, &attrs, fn_info.return_type.?, fn_info.attrs);
 }
 
-test "call: class and instance messages" {
-    const NSMutableData = opaque {};
-    const Class = @import("Class.zig").Class;
-    const Object = @import("Object.zig").Object;
-    const class = Method(NSMutableData, Class(NSMutableData));
-    const instance = Method(NSMutableData, Object(NSMutableData));
-
-    const data = class.call(*NSMutableData, "new", .{});
-    defer rt.release(@ptrCast(data));
-    instance.call(void, "setLength:", .{ data, @as(usize, 7) });
-    try std.testing.expectEqual(7, instance.call(usize, "length", .{data}));
-    try std.testing.expectEqual(rt.getClass("NSMutableData").?, class.call(*rt.Class, "class", .{}));
-}
-
 test "withSync: void completion and Objective-C errors" {
     const Helper = struct {
         pub fn call(comptime Return: type, _: [:0]const u8, args: anytype) Return {
@@ -294,12 +266,12 @@ test "withSync: asynchronous completion retains only successful results" {
         }
     };
     const class = rt.allocateClassPair(rt.getClass("NSObject").?, "ZigMethodSyncResultTest", 0).?;
+    defer rt.disposeClassPair(class);
     try std.testing.expect(class.addMethod(rt.Sel.registerName("dealloc"), &Methods.dealloc, "v@:"));
     rt.registerClassPair(class);
-    defer rt.disposeClassPair(class);
 
     const Helper = struct {
-        var thread: std.Thread = undefined;
+        var thread: ?std.Thread = null;
 
         pub fn call(comptime Return: type, _: [:0]const u8, args: anytype) Return {
             const copied = args[1].copy().?;
@@ -316,16 +288,25 @@ test "withSync: asynchronous completion retains only successful results" {
     };
     const m = Method(rt.Object, Helper);
     const bound = m.withSync("complete:", fn (bool) anyerror!*rt.Object);
-    Methods.deallocations = 0;
-    const result = try bound(false);
-    Helper.thread.join();
-    try std.testing.expectEqual(0, Methods.deallocations);
-    try std.testing.expectEqual(class, result.getClass());
-    rt.release(result);
+    const success = bound(false);
+    if (Helper.thread) |thread| {
+        thread.join();
+        Helper.thread = null;
+    }
+    {
+        const result = try success;
+        defer rt.release(result);
+        try std.testing.expectEqual(0, Methods.deallocations);
+        try std.testing.expectEqual(class, result.getClass());
+    }
     try std.testing.expectEqual(1, Methods.deallocations);
 
-    try std.testing.expectError(error.ObjectiveCError, bound(true));
-    Helper.thread.join();
+    const failure = bound(true);
+    if (Helper.thread) |thread| {
+        thread.join();
+        Helper.thread = null;
+    }
+    try std.testing.expectError(error.ObjectiveCError, failure);
     try std.testing.expectEqual(2, Methods.deallocations);
 }
 
@@ -345,12 +326,16 @@ test "of: Shape preserves parameter types and contextual initialization" {
     const Shape = fn (c_ulong, Payload) c_ulong;
     const class_method = Method(Receiver, ClassHelper).of("value:payload:", Shape);
     const object_method = Method(Receiver, ObjectHelper).of("value:payload:", Shape);
+    const CShape = fn (c_ulong, Payload) callconv(.c) c_ulong;
+    const c_method = Method(Receiver, ClassHelper).of("value:payload:", CShape);
     try std.testing.expect(@TypeOf(class_method) == Shape);
     try std.testing.expect(@TypeOf(object_method) == fn (*Receiver, c_ulong, Payload) c_ulong);
+    try std.testing.expect(@TypeOf(c_method) == CShape);
 
     const value: c_int = 4;
     try std.testing.expectEqual(@as(c_ulong, 7), class_method(value, .{}));
     try std.testing.expectEqual(@as(c_ulong, 9), class_method(value, .{ .value = 5 }));
+    try std.testing.expectEqual(@as(c_ulong, 9), c_method(value, .{ .value = 5 }));
     var receiver: Receiver = .{ .base = 10 };
     try std.testing.expectEqual(@as(c_ulong, 17), object_method(&receiver, value, .{}));
     try std.testing.expectEqual(@as(c_ulong, 19), object_method(&receiver, value, .{ .value = 5 }));
@@ -388,7 +373,7 @@ test "withCallback: class and instance bindings preserve constant coercion" {
     try std.testing.expectEqual(@as(c_ulong, 14), state.value);
 }
 
-test "of: non-null pointer returns are preserved" {
+test "of: return types and pointer nullability are preserved" {
     const Helper = struct {
         pub fn call(comptime Return: type, _: [:0]const u8, args: anytype) Return {
             if (Return != @TypeOf(args[0])) @compileError("unexpected message return type");
@@ -402,34 +387,18 @@ test "of: non-null pointer returns are preserved" {
         @as(*const u8, &value),
         @as([*]u8, @ptrCast(&value)),
         @as([*:0]const u8, "hello"),
-    };
-    inline for (cases) |pointer| {
-        const T = @TypeOf(pointer);
-        const Shape = fn (T) T;
-        const bound = m.of("pointer", Shape);
-        try std.testing.expectEqual(pointer, bound(pointer));
-    }
-}
-
-test "of: nullable, zero-allowing and scalar returns are preserved" {
-    const Helper = struct {
-        pub fn call(comptime Return: type, _: [:0]const u8, args: anytype) Return {
-            if (Return != @TypeOf(args[0])) @compileError("unexpected message return type");
-            return args[0];
-        }
-    };
-    const m = Method(rt.Object, Helper);
-    const cases = .{
         @as(?*u8, null),
         @as([*c]u8, null),
         @as(*allowzero u8, @ptrFromInt(0)),
         @as(usize, 42),
         false,
     };
-    inline for (cases) |value| {
-        const T = @TypeOf(value);
-        const bound = m.of("value", fn (T) T);
-        try std.testing.expectEqual(value, bound(value));
+    inline for (cases) |expected| {
+        const T = @TypeOf(expected);
+        const Shape = fn (T) T;
+        const bound = m.of("value", Shape);
+        try std.testing.expect(@TypeOf(bound) == Shape);
+        try std.testing.expectEqual(expected, bound(expected));
     }
 }
 
