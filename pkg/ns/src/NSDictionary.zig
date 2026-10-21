@@ -24,7 +24,7 @@ pub fn NSDictionary(comptime Key: type, comptime Value: type) type {
     };
 }
 
-test "NSDictionary: new creates an empty dictionary" {
+test "NSDictionary: new and init create empty dictionaries" {
     const NSString = @import("NSString.zig").NSString;
     const dictionary = NSDictionary(NSString, NSString).new();
     defer dictionary.release();
@@ -33,6 +33,11 @@ test "NSDictionary: new creates an empty dictionary" {
 
     try std.testing.expectEqual(0, dictionary.count());
     try std.testing.expect(dictionary.objectForKey(key) == null);
+
+    const initialized = NSDictionary(NSString, NSString).init(&.{}, &.{});
+    defer initialized.release();
+    try std.testing.expectEqual(0, initialized.count());
+    try std.testing.expect(initialized.objectForKey(key) == null);
 }
 
 test "NSDictionary: init and objectForKey preserve key-value pairs" {

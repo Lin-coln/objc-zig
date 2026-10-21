@@ -17,9 +17,12 @@ pub const NSString = opaque {
     /// Number of UTF-16 code units, which may differ from the UTF-8 byte count.
     pub const length = h.prop(usize, "length").getter;
 
-    /// The returned slice is borrowed and remains valid only while the string is alive.
+    /// Borrows UTF-8 bytes, including embedded NULs. Copy before leaving the current
+    /// autorelease pool or releasing the string; the buffer may have a shorter lifetime.
     pub fn utf8String(self: *Self) []const u8 {
-        return std.mem.span(h.msgSend(self, [*:0]const u8, "UTF8String", .{}));
+        if (self.length() == 0) return "";
+        const byte_count = h.msgSend(self, usize, "lengthOfBytesUsingEncoding:", .{utf8_encoding});
+        return h.msgSend(self, ?[*]const u8, "UTF8String", .{}).?[0..byte_count];
     }
 };
 
@@ -36,7 +39,29 @@ test "NSString: embedded NUL and invalid UTF-8" {
     const string = NSString.init("A\x00B").?;
     defer string.release();
     try std.testing.expectEqual(3, string.length());
+    try std.testing.expectEqualStrings("A\x00B", string.utf8String());
 
     const invalid = [_]u8{0xff};
     try std.testing.expect(NSString.init(&invalid) == null);
+}
+
+test "NSString: empty strings and UTF-16 surrogate pairs" {
+    const empty = NSString.init("").?;
+    defer empty.release();
+    try std.testing.expectEqual(0, empty.length());
+    try std.testing.expectEqualStrings("", empty.utf8String());
+
+    const emoji = NSString.init("\u{1f600}").?;
+    defer emoji.release();
+    try std.testing.expectEqual(2, emoji.length());
+    try std.testing.expectEqualStrings("\u{1f600}", emoji.utf8String());
+}
+
+test "NSString: init copies the caller's UTF-8 bytes" {
+    var source = [_]u8{ 'c', 'o', 'p', 'y' };
+    const string = NSString.init(&source).?;
+    defer string.release();
+    @memset(&source, 'x');
+
+    try std.testing.expectEqualStrings("copy", string.utf8String());
 }

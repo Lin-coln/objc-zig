@@ -36,6 +36,7 @@ test "NSMutableData: resize, edit, and append bytes" {
     try std.testing.expectEqualSlices(u8, "", data.bytes());
 
     data.setLength(4);
+    try std.testing.expectEqualSlices(u8, &.{ 0, 0, 0, 0 }, data.bytes());
     @memcpy(data.mutableBytes().?[0..4], "zig!");
     try std.testing.expectEqualSlices(u8, "zig!", data.bytes());
 
@@ -43,4 +44,10 @@ test "NSMutableData: resize, edit, and append bytes" {
     data.appendBytes("?");
     try std.testing.expectEqual(3, data.length());
     try std.testing.expectEqualSlices(u8, "zi?", data.bytes());
+
+    data.appendBytes("");
+    try std.testing.expectEqualSlices(u8, "zi?", data.bytes());
+    data.setLength(0);
+    try std.testing.expectEqual(0, data.length());
+    try std.testing.expectEqualSlices(u8, "", data.bytes());
 }

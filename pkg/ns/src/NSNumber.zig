@@ -54,3 +54,12 @@ test "NSNumber: integer, double, and bool values" {
     defer retained.release();
     try std.testing.expectEqual(integer, retained);
 }
+
+test "NSNumber: signed integer limits round-trip without narrowing" {
+    for ([_]isize{ std.math.minInt(isize), -1, std.math.maxInt(isize) }) |value| {
+        const number = NSNumber.init(isize, value);
+        defer number.release();
+
+        try std.testing.expectEqual(value, number.as(isize));
+    }
+}
