@@ -8,14 +8,9 @@ const dispatch = std.c.dispatch;
 /// A leading `*T` parameter on `Helper.call` identifies an instance receiver.
 pub fn Method(comptime T: type, comptime Helper: anytype) type {
     return struct {
-        /// Binds a method to Shape, prepending `*T` for an instance receiver.
-        /// Shape excludes the receiver; the returned function accepts separate arguments.
         pub const of = @import("method/root.zig").Method(T, Helper).of;
 
-        /// Binds a void method whose final Shape parameter is a block function type.
-        /// Call with receiver (for instances), context, method arguments, then the handler.
-        /// Captured context must outlive every invocation of the block handler.
-        pub const withCallback = createCallbackHelper(T, Helper).withCallback;
+        pub const withCallback = @import("method/root.zig").Method(T, Helper).withCallback;
 
         /// Waits for a one-shot completion using a dispatch semaphore.
         /// Prepends `*T` for instance methods. Shape returns an error union with void or an object pointer.
@@ -23,41 +18,6 @@ pub fn Method(comptime T: type, comptime Helper: anytype) type {
         /// Returned objects are retained and must be released by the caller.
         /// The completion must be able to run while the calling thread is blocked.
         pub const withSync = createSyncHelper(T, Helper).withSync;
-    };
-}
-
-fn createCallbackHelper(comptime T: type, comptime Helper: type) type {
-    const has_receiver = @typeInfo(@TypeOf(Helper.call)).@"fn".param_types[0] == *T;
-    const ofs_r: usize = if (has_receiver) 1 else 0;
-
-    return struct {
-        pub fn withCallback(comptime name: [:0]const u8, comptime Shape: type) @TypeOf(of(name, Shape).func) {
-            return of(name, Shape).func;
-        }
-
-        fn of(comptime name: [:0]const u8, comptime Shape: type) type {
-            const Resolved = resolveTypesFromCallbackShape(Shape);
-            return struct {
-                pub const func = utils.spreadArgs(invoke, .{
-                    // fn(receiver, ctx, ...args_and_callback)
-                    .arity = ofs_r + 1 + @typeInfo(Shape).@"fn".param_types.len,
-                });
-
-                fn invoke(args: anytype) void {
-                    const ctx = args[ofs_r];
-                    const handler: *const Resolved.Callback(@TypeOf(ctx)) = args[args.len - 1];
-                    var method_args: Resolved.Args = undefined;
-                    inline for (0..method_args.len) |i| method_args[i] = args[ofs_r + 1 + i];
-                    const blk = block.initWithContext(ctx, handler.*);
-
-                    if (comptime has_receiver) {
-                        Helper.call(args[0], void, name, method_args ++ .{&blk});
-                    } else {
-                        Helper.call(void, name, method_args ++ .{&blk});
-                    }
-                }
-            };
-        }
     };
 }
 
