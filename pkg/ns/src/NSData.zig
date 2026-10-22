@@ -11,8 +11,7 @@ pub const NSData = opaque {
 
     /// Copies the bytes into immutable storage owned by the data object.
     pub fn init(contents: []const u8) *Self {
-        const initialize = h.m.of("initWithBytes:length:", fn ([*]const u8, usize) *Self);
-        return initialize(h.cls.alloc(), contents.ptr, contents.len);
+        return h.call(h.cls.alloc(), *Self, "initWithBytes:length:", .{ contents.ptr, contents.len });
     }
 
     pub const length = h.prop(usize, "length").getter;
@@ -21,8 +20,7 @@ pub const NSData = opaque {
     pub fn bytes(self: *Self) []const u8 {
         const byte_count = self.length();
         if (byte_count == 0) return "";
-        const get_bytes = h.m.of("bytes", fn () ?[*]const u8);
-        return get_bytes(self).?[0..byte_count];
+        return h.call(self, ?[*]const u8, "bytes", .{}).?[0..byte_count];
     }
 };
 

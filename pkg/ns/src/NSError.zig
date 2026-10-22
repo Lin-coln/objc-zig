@@ -15,7 +15,7 @@ pub const NSError = opaque {
         defer domain_string.release();
 
         const allocated: *Self = h.cls.alloc();
-        return h.msgSend(
+        return h.call(
             allocated,
             ?*Self,
             "initWithDomain:code:userInfo:",

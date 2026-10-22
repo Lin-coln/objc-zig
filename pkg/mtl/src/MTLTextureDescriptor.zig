@@ -12,8 +12,12 @@ pub const MTLTextureDescriptor = opaque {
 
     /// Returns an autoreleased descriptor; retain it to keep it beyond the current pool.
     pub fn texture2DDescriptor(pixel_format: mtl.MTLPixelFormat, width_value: usize, height_value: usize, mipmapped: bool) *Self {
-        const create = h.cls.m.of("texture2DDescriptorWithPixelFormat:width:height:mipmapped:", fn (mtl.MTLPixelFormat, usize, usize, obzc.c.BOOL) *Self);
-        return create(pixel_format, width_value, height_value, obzc.utils.cast.BOOL(mipmapped));
+        return h.cls.call(*Self, "texture2DDescriptorWithPixelFormat:width:height:mipmapped:", .{
+            pixel_format,
+            width_value,
+            height_value,
+            mipmapped,
+        });
     }
 
     pub const pixelFormat = h.prop(mtl.MTLPixelFormat, "pixelFormat").getter;

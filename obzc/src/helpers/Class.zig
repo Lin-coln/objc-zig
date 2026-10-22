@@ -41,7 +41,7 @@ test "helpers.Class: call forwards class arguments and preserves nullable return
     defer obzc.rt.autoreleasePoolPop(pool);
 
     const number = Class(NSNumber).call(*NSNumber, "numberWithInteger:", .{@as(isize, 42)});
-    try std.testing.expectEqual(42, obzc.helpers.Object(NSNumber).msgSend(number, isize, "integerValue", .{}));
+    try std.testing.expectEqual(42, obzc.helpers.Object(NSNumber).call(number, isize, "integerValue", .{}));
     try std.testing.expectEqual(null, Class(NSObject).call(?*obzc.rt.Class, "superclass", .{}));
 }
 

@@ -11,7 +11,7 @@ pub fn NSArray(comptime T: type) type {
 
         pub fn init(objects: []const *T) *Self {
             const allocated: *Self = h.cls.alloc();
-            return h.msgSend(allocated, ?*Self, "initWithObjects:count:", .{ objects.ptr, objects.len }).?;
+            return h.call(allocated, ?*Self, "initWithObjects:count:", .{ objects.ptr, objects.len }).?;
         }
 
         pub const count = h.prop(usize, "count").getter;

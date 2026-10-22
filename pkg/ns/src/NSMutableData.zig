@@ -14,14 +14,14 @@ pub const NSMutableData = opaque {
 
     pub fn appendBytes(self: *Self, appended_bytes: []const u8) void {
         if (appended_bytes.len == 0) return;
-        h.msgSend(self, void, "appendBytes:length:", .{ appended_bytes.ptr, appended_bytes.len });
+        h.call(self, void, "appendBytes:length:", .{ appended_bytes.ptr, appended_bytes.len });
     }
 
     /// The returned slice is invalidated by mutation or release.
     pub fn bytes(self: *Self) []const u8 {
         const byte_count = self.length();
         if (byte_count == 0) return "";
-        return h.msgSend(self, ?[*]const u8, "bytes", .{}).?[0..byte_count];
+        return h.call(self, ?[*]const u8, "bytes", .{}).?[0..byte_count];
     }
 
     /// The returned pointer is invalidated by mutation or release and may be null when empty.

@@ -20,15 +20,15 @@ pub const VNRecognizedTextObservation = opaque {
 test "VNRecognizedTextObservation: read a bounding box and confidence" {
     const pool = obzc.AutoReleasePool.create();
     defer pool.release();
-    const create = obzc.helpers.Class(VNRecognizedTextObservation).m.of(
-        "observationWithBoundingBox:",
-        fn (macos.CGRect) *VNRecognizedTextObservation,
-    );
     const bounds: macos.CGRect = .{
         .origin = .{ .x = 0.125, .y = 0.25 },
         .size = .{ .width = 0.5, .height = 0.5 },
     };
-    const observation = create(bounds);
+    const observation = obzc.helpers.Class(VNRecognizedTextObservation).call(
+        *VNRecognizedTextObservation,
+        "observationWithBoundingBox:",
+        .{bounds},
+    );
 
     const actual = observation.boundingBox();
     try std.testing.expectEqual(bounds.origin.x, actual.origin.x);

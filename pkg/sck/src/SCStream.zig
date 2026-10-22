@@ -24,15 +24,14 @@ pub const SCStream = opaque {
 
     /// Creates an owned stream. The delegate is optional and borrowed by this call.
     pub fn init(filter: *SCContentFilter, configuration: *SCStreamConfiguration, delegate: ?*SCStreamDelegate) *Self {
-        const initialize = h.m.of("initWithFilter:configuration:delegate:", fn (*SCContentFilter, *SCStreamConfiguration, ?*SCStreamDelegate) *Self);
-        return initialize(h.cls.alloc(), filter, configuration, delegate);
+        return h.call(h.cls.alloc(), *Self, "initWithFilter:configuration:delegate:", .{ filter, configuration, delegate });
     }
 
     /// Adds an output, logging the SDK error on failure.
     pub fn addStreamOutput(self: *Self, output: *SCStreamOutput, output_type: SCStreamOutputType, sample_handler_queue: ?dispatch.queue_t) !void {
         var err: ?*ns.NSError = null;
-        const succeeded = h.msgSend(self, obzc.c.BOOL, "addStreamOutput:type:sampleHandlerQueue:error:", .{ output, output_type, sample_handler_queue, &err });
-        if (obzc.utils.cast.bool(succeeded)) return;
+        const succeeded = h.call(self, bool, "addStreamOutput:type:sampleHandlerQueue:error:", .{ output, output_type, sample_handler_queue, &err });
+        if (succeeded) return;
 
         if (err) |ns_error| ns_error.log() else if (!builtin.is_test)
             std.log.err("SCStream.addStreamOutput failed without NSError", .{});
@@ -42,8 +41,8 @@ pub const SCStream = opaque {
     /// Removes an output, logging the SDK error on failure.
     pub fn removeStreamOutput(self: *Self, output: *SCStreamOutput, output_type: SCStreamOutputType) !void {
         var err: ?*ns.NSError = null;
-        const succeeded = h.msgSend(self, obzc.c.BOOL, "removeStreamOutput:type:error:", .{ output, output_type, &err });
-        if (obzc.utils.cast.bool(succeeded)) return;
+        const succeeded = h.call(self, bool, "removeStreamOutput:type:error:", .{ output, output_type, &err });
+        if (succeeded) return;
 
         if (err) |ns_error| ns_error.log() else if (!builtin.is_test)
             std.log.err("SCStream.removeStreamOutput failed without NSError", .{});

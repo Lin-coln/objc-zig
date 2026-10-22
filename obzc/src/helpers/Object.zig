@@ -11,7 +11,7 @@ const Method = @import("method.zig").Method;
 ///     pub const width = h.prop(usize, "width").getter;
 ///
 /// Define instance methods through `h.m.of`, `h.m.withCallback`, or `h.m.withSync`.
-/// Class helpers such as `alloc`, `new`, and class `msgSend` are available through `h.cls`.
+/// Class helpers such as `alloc`, `new`, and class `call` are available through `h.cls`.
 pub fn Object(comptime T: type) type {
     return struct {
         pub const cls = Class(T);
@@ -78,8 +78,8 @@ test "helpers.Object: call forwards instance receivers and arguments" {
     const pool = obzc.rt.autoreleasePoolPush();
     defer obzc.rt.autoreleasePoolPop(pool);
 
-    const first = h.cls.msgSend(*NSNumber, "numberWithInteger:", .{@as(isize, 7)});
-    const second = h.cls.msgSend(*NSNumber, "numberWithInteger:", .{@as(isize, 12)});
+    const first = h.cls.call(*NSNumber, "numberWithInteger:", .{@as(isize, 7)});
+    const second = h.cls.call(*NSNumber, "numberWithInteger:", .{@as(isize, 12)});
     try std.testing.expectEqual(7, first.call(isize, "integerValue", .{}));
     try std.testing.expectEqual(12, second.call(isize, "integerValue", .{}));
     try std.testing.expectEqual(obzc.c.NO, first.call(obzc.c.BOOL, "isEqualToNumber:", .{second}));
@@ -246,6 +246,6 @@ test "helpers.Object: property honors a custom getter" {
     try std.testing.expectEqualStrings("isCancelled", getter);
 
     try std.testing.expectEqual(false, h.property(operation, bool, "cancelled"));
-    h.msgSend(operation, void, "cancel", .{});
+    h.call(operation, void, "cancel", .{});
     try std.testing.expectEqual(true, h.property(operation, bool, "cancelled"));
 }

@@ -16,21 +16,19 @@ pub const VNImageRequestHandler = opaque {
 
     /// Retains the image source, which must not be modified while the handler is alive.
     pub fn initWithData(data: *ns.NSData, options: *Options) *Self {
-        const initialize = h.m.of("initWithData:options:", fn (*ns.NSData, *Options) *Self);
-        return initialize(h.cls.alloc(), data, options);
+        return h.call(h.cls.alloc(), *Self, "initWithData:options:", .{ data, options });
     }
 
     /// Retains the image source, which must not be modified while the handler is alive.
     pub fn initWithCVPixelBuffer(pixel_buffer: macos.CVPixelBufferRef, options: *Options) *Self {
-        const initialize = h.m.of("initWithCVPixelBuffer:options:", fn (macos.CVPixelBufferRef, *Options) *Self);
-        return initialize(h.cls.alloc(), pixel_buffer, options);
+        return h.call(h.cls.alloc(), *Self, "initWithCVPixelBuffer:options:", .{ pixel_buffer, options });
     }
 
     /// Runs the requests synchronously, logging the SDK error on failure.
     pub fn performRequests(self: *Self, requests: *ns.NSArray(VNRequest)) !void {
         var err: ?*ns.NSError = null;
-        const succeeded = h.msgSend(self, obzc.c.BOOL, "performRequests:error:", .{ requests, &err });
-        if (obzc.utils.cast.bool(succeeded)) return;
+        const succeeded = h.call(self, bool, "performRequests:error:", .{ requests, &err });
+        if (succeeded) return;
 
         if (err) |ns_error| ns_error.log() else if (!builtin.is_test)
             std.log.err("VNImageRequestHandler.performRequests failed without NSError", .{});

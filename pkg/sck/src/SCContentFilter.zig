@@ -10,7 +10,6 @@ pub const SCContentFilter = opaque {
 
     /// Creates an owned filter for the supplied desktop-independent window.
     pub fn init(window: *SCWindow) *Self {
-        const initialize = h.m.of("initWithDesktopIndependentWindow:", fn (*SCWindow) *Self);
-        return initialize(h.cls.alloc(), window);
+        return h.call(h.cls.alloc(), *Self, "initWithDesktopIndependentWindow:", .{window});
     }
 };

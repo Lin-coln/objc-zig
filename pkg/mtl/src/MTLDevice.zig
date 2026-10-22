@@ -31,7 +31,7 @@ pub const MTLDevice = opaque {
     /// Returns an owned library. Logs the SDK error when compilation fails.
     pub fn newLibrary(self: *Self, source: *ns.NSString, options: ?*MTLCompileOptions) !*MTLLibrary {
         var err: ?*ns.NSError = null;
-        const library = h.msgSend(self, ?*MTLLibrary, "newLibraryWithSource:options:error:", .{ source, options, &err });
+        const library = h.call(self, ?*MTLLibrary, "newLibraryWithSource:options:error:", .{ source, options, &err });
         if (library) |value| return value;
 
         if (err) |ns_error| ns_error.log() else if (!builtin.is_test)
@@ -42,7 +42,7 @@ pub const MTLDevice = opaque {
     /// Returns an owned pipeline state. Logs the SDK error when creation fails.
     pub fn newRenderPipelineState(self: *Self, descriptor: *MTLRenderPipelineDescriptor) !*MTLRenderPipelineState {
         var err: ?*ns.NSError = null;
-        const pipeline = h.msgSend(self, ?*MTLRenderPipelineState, "newRenderPipelineStateWithDescriptor:error:", .{ descriptor, &err });
+        const pipeline = h.call(self, ?*MTLRenderPipelineState, "newRenderPipelineStateWithDescriptor:error:", .{ descriptor, &err });
         if (pipeline) |value| return value;
 
         if (err) |ns_error| ns_error.log() else if (!builtin.is_test)

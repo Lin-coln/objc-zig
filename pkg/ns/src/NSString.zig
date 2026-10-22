@@ -11,7 +11,7 @@ pub const NSString = opaque {
 
     pub fn init(utf8: []const u8) ?*Self {
         const allocated: *Self = h.cls.alloc();
-        return h.msgSend(allocated, ?*Self, "initWithBytes:length:encoding:", .{ utf8.ptr, utf8.len, utf8_encoding });
+        return h.call(allocated, ?*Self, "initWithBytes:length:encoding:", .{ utf8.ptr, utf8.len, utf8_encoding });
     }
 
     /// Number of UTF-16 code units, which may differ from the UTF-8 byte count.
@@ -21,8 +21,8 @@ pub const NSString = opaque {
     /// autorelease pool or releasing the string; the buffer may have a shorter lifetime.
     pub fn utf8String(self: *Self) []const u8 {
         if (self.length() == 0) return "";
-        const byte_count = h.msgSend(self, usize, "lengthOfBytesUsingEncoding:", .{utf8_encoding});
-        return h.msgSend(self, ?[*]const u8, "UTF8String", .{}).?[0..byte_count];
+        const byte_count = h.call(self, usize, "lengthOfBytesUsingEncoding:", .{utf8_encoding});
+        return h.call(self, ?[*]const u8, "UTF8String", .{}).?[0..byte_count];
     }
 };
 

@@ -1,6 +1,5 @@
 const std = @import("std");
 const obzc = @import("obzc");
-const cast = obzc.utils.cast;
 
 pub const NSNumber = opaque {
     const Self = @This();
@@ -18,8 +17,7 @@ pub const NSNumber = opaque {
         };
 
         const allocated: *Self = h.cls.alloc();
-        const argument = if (T == bool) cast.BOOL(value) else value;
-        return h.msgSend(allocated, ?*Self, selector, .{argument}).?;
+        return h.call(allocated, ?*Self, selector, .{value}).?;
     }
 
     pub fn as(self: *Self, comptime T: type) T {
