@@ -1,7 +1,7 @@
 const std = @import("std");
 const obzc = @import("../root.zig");
 const Class = @import("Class.zig").Class;
-const Method = @import("method.zig").Method;
+const Method = @import("method/root.zig").Method;
 
 /// Returns a set of Objective-C object helpers bound to `T` (any opaque object type). Assemble a
 /// wrapper by picking the pieces you want:

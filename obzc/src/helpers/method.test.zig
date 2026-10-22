@@ -1,4 +1,4 @@
-const Method = @import("method.zig").Method;
+const Method = @import("method/root.zig").Method;
 const Object = @import("../rt/Object.zig").Object;
 
 const Helper = struct {
@@ -24,8 +24,8 @@ pub const CompileTestCases = .{
     .{ .name = "withSync: rejects plain return type", .expected_error = "withSync Shape must return an error union" },
     .{ .name = "withSync: rejects scalar result", .expected_error = "withSync result must be void or an Objective-C object pointer" },
     .{ .name = "withSync: rejects non-object pointer result", .expected_error = "withSync result must be a non-null pointer to an opaque Objective-C object" },
-    .{ .name = "withSync: rejects non-function instance shape", .expected_error = "withSync Shape must be a function type" },
-    .{ .name = "withSync: rejects generic instance shape", .expected_error = "withSync Shape must have fixed, non-generic parameters" },
+    .{ .name = "withSync: rejects non-function instance shape", .expected_error = "Shape must be a function type" },
+    .{ .name = "withSync: rejects generic instance shape", .expected_error = "Shape cannot have generic parameters" },
 };
 
 test "of: rejects non-function shape" {

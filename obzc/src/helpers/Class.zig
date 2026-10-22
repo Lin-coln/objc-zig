@@ -1,6 +1,6 @@
 const std = @import("std");
 const obzc = @import("../root.zig");
-const Method = @import("method.zig").Method;
+const Method = @import("method/root.zig").Method;
 
 /// Class helpers for a wrapper whose type or type factory is named after its Objective-C class.
 /// Define class methods through `h.m.of`, `h.m.withCallback`, or `h.m.withSync`.
