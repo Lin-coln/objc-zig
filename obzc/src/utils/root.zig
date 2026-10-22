@@ -1,6 +1,7 @@
 const std = @import("std");
 const c = @import("../c.zig").c;
 
+pub const toSpreadedFn = @import("spread.zig").toSpreadedFn;
 pub const spreadArgs = @import("spreadArgs.zig").spreadArgs;
 
 pub const cast = struct {

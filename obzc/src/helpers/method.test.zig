@@ -15,8 +15,8 @@ const InstanceHelper = struct {
 const instance = Method(Object, InstanceHelper);
 
 pub const CompileTestCases = .{
-    .{ .name = "of: rejects non-function shape", .expected_error = "of Shape must be a function type" },
-    .{ .name = "of: rejects generic shape", .expected_error = "of Shape must have fixed, non-generic parameters" },
+    .{ .name = "of: rejects non-function shape", .expected_error = "Shape must be a function type" },
+    .{ .name = "of: rejects generic shape", .expected_error = "Shape must have fixed, non-generic parameters" },
     .{ .name = "withCallback: rejects missing block parameter", .expected_error = "withCallback Shape must end with a block function type" },
     .{ .name = "withCallback: rejects non-function block parameter", .expected_error = "withCallback Shape must end with a block function type" },
     .{ .name = "withCallback: rejects method return values", .expected_error = "withCallback Shape must return void" },

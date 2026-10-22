@@ -10,7 +10,7 @@ pub fn Method(comptime T: type, comptime Helper: anytype) type {
     return struct {
         /// Binds a method to Shape, prepending `*T` for an instance receiver.
         /// Shape excludes the receiver; the returned function accepts separate arguments.
-        pub const of = createMethodHelper(T, Helper).method;
+        pub const of = @import("method/root.zig").Method(T, Helper).of;
 
         /// Binds a void method whose final Shape parameter is a block function type.
         /// Call with receiver (for instances), context, method arguments, then the handler.
@@ -23,46 +23,6 @@ pub fn Method(comptime T: type, comptime Helper: anytype) type {
         /// Returned objects are retained and must be released by the caller.
         /// The completion must be able to run while the calling thread is blocked.
         pub const withSync = createSyncHelper(T, Helper).withSync;
-    };
-}
-
-fn createMethodHelper(comptime T: type, comptime Helper: type) type {
-    const has_receiver = @typeInfo(@TypeOf(Helper.call)).@"fn".param_types[0] == *T;
-    const ofs_r: usize = if (has_receiver) 1 else 0;
-
-    return struct {
-        pub fn method(comptime name: [:0]const u8, comptime Shape: type) @TypeOf(of(name, Shape).func) {
-            return of(name, Shape).func;
-        }
-
-        fn of(comptime name: [:0]const u8, comptime Shape: type) type {
-            const fn_info = switch (@typeInfo(Shape)) {
-                .@"fn" => |info| info,
-                else => @compileError("of Shape must be a function type"),
-            };
-            if (fn_info.is_generic or fn_info.attrs.varargs)
-                @compileError("of Shape must have fixed, non-generic parameters");
-
-            const Return = fn_info.return_type.?;
-            const Signature = if (has_receiver) prependArgs(Shape, &.{*T}) else Shape;
-
-            return struct {
-                pub const func: Signature = utils.spreadArgs(invoke, .{
-                    .convention = fn_info.attrs.@"callconv",
-                });
-
-                fn invoke(args: std.meta.ArgsTuple(Signature)) Return {
-                    var method_args: std.meta.ArgsTuple(Shape) = undefined;
-                    inline for (0..method_args.len) |i| method_args[i] = args[ofs_r + i];
-
-                    if (comptime has_receiver) {
-                        return Helper.call(args[0], Return, name, method_args);
-                    } else {
-                        return Helper.call(Return, name, method_args);
-                    }
-                }
-            };
-        }
     };
 }
 
