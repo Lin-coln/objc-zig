@@ -30,27 +30,17 @@ pub fn makeMethod(
 }
 
 pub fn resolveFromShape(comptime Shape: type) type {
-    const info = switch (@typeInfo(Shape)) {
-        .@"fn" => |info| info,
-        else => @compileError("Shape must be a function type"),
-    };
-
-    if (info.is_generic or info.attrs.varargs)
-        @compileError("Shape must have fixed, non-generic parameters");
+    const info = utils.resolveFnInfo(Shape, .{});
 
     comptime var param_types: [info.param_types.len]type = undefined;
     inline for (info.param_types, 0..) |p_type, i| {
-        param_types[i] = p_type orelse
-            @compileError("Shape parameters must have explicit types");
+        param_types[i] = p_type.?;
     }
-
     const resolved_types = param_types;
 
     return struct {
         pub const types = resolved_types;
         pub const cc = info.attrs.@"callconv";
-
-        pub const Return = info.return_type orelse
-            @compileError("Invalid Shape return found");
+        pub const Return = info.return_type.?;
     };
 }
