@@ -20,14 +20,48 @@ pub const MTLRenderPipelineDescriptor = opaque {
     pub const hash = h.m.of("hash", fn () usize);
 };
 
-test "MTLRenderPipelineDescriptor: function slots accept null" {
+test "MTLRenderPipelineDescriptor: new has empty function slots" {
     const descriptor = MTLRenderPipelineDescriptor.new();
     defer descriptor.release();
 
     try std.testing.expect(descriptor.vertexFunction() == null);
     try std.testing.expect(descriptor.fragmentFunction() == null);
+}
+
+test "MTLRenderPipelineDescriptor: function slots store and clear functions independently" {
+    const ns = @import("obzc-ns");
+    const MTLDevice = @import("MTLDevice.zig").MTLDevice;
+    const pool = obzc.AutoReleasePool.create();
+    defer pool.release();
+    const device = MTLDevice.createSystemDefaultDevice() orelse return error.SkipZigTest;
+    defer device.release();
+    const source = ns.NSString.init(
+        \\#include <metal_stdlib>
+        \\using namespace metal;
+        \\vertex float4 vertex_main() { return float4(0); }
+        \\fragment float4 fragment_main() { return float4(1); }
+    ).?;
+    defer source.release();
+    const library = try device.newLibrary(source, null);
+    defer library.release();
+    const vertex_name = ns.NSString.init("vertex_main").?;
+    defer vertex_name.release();
+    const vertex = library.newFunction(vertex_name).?;
+    defer vertex.release();
+    const fragment_name = ns.NSString.init("fragment_main").?;
+    defer fragment_name.release();
+    const fragment = library.newFunction(fragment_name).?;
+    defer fragment.release();
+    const descriptor = MTLRenderPipelineDescriptor.new();
+    defer descriptor.release();
+
+    descriptor.setVertexFunction(vertex);
+    descriptor.setFragmentFunction(fragment);
+    try std.testing.expectEqual(vertex, descriptor.vertexFunction().?);
+    try std.testing.expectEqual(fragment, descriptor.fragmentFunction().?);
     descriptor.setVertexFunction(null);
-    descriptor.setFragmentFunction(null);
     try std.testing.expect(descriptor.vertexFunction() == null);
+    try std.testing.expectEqual(fragment, descriptor.fragmentFunction().?);
+    descriptor.setFragmentFunction(null);
     try std.testing.expect(descriptor.fragmentFunction() == null);
 }

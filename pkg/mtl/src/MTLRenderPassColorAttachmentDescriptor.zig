@@ -25,7 +25,6 @@ test "MTLRenderPassColorAttachmentDescriptor: clear color struct and attachment 
     const color = MTLRenderPassColorAttachmentDescriptor.new();
     defer color.release();
     try std.testing.expect(color.texture() == null);
-    color.setTexture(null);
     color.setLoadAction(mtl.MTLLoadActionClear);
     color.setStoreAction(mtl.MTLStoreActionStore);
     color.setClearColor(.{ .red = 0.25, .green = 0.5, .blue = 0.75, .alpha = 1 });
@@ -37,4 +36,23 @@ test "MTLRenderPassColorAttachmentDescriptor: clear color struct and attachment 
     try std.testing.expectEqual(0.5, clear.green);
     try std.testing.expectEqual(0.75, clear.blue);
     try std.testing.expectEqual(1, clear.alpha);
+}
+
+test "MTLRenderPassColorAttachmentDescriptor: texture can be assigned and cleared" {
+    const MTLDevice = @import("MTLDevice.zig").MTLDevice;
+    const MTLTextureDescriptor = @import("MTLTextureDescriptor.zig").MTLTextureDescriptor;
+    const pool = obzc.AutoReleasePool.create();
+    defer pool.release();
+    const device = MTLDevice.createSystemDefaultDevice() orelse return error.SkipZigTest;
+    defer device.release();
+    const descriptor = MTLTextureDescriptor.texture2DDescriptor(mtl.MTLPixelFormatBGRA8Unorm, 8, 4, false);
+    const texture = device.newTexture(descriptor).?;
+    defer texture.release();
+    const color = MTLRenderPassColorAttachmentDescriptor.new();
+    defer color.release();
+
+    color.setTexture(texture);
+    try std.testing.expectEqual(texture, color.texture().?);
+    color.setTexture(null);
+    try std.testing.expect(color.texture() == null);
 }

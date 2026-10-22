@@ -60,3 +60,36 @@ test "MTLDevice: newLibrary rejects invalid shader source" {
     defer source.release();
     try std.testing.expectError(error.NewLibraryFailed, device.newLibrary(source, null));
 }
+
+test "MTLDevice: newRenderPipelineState reports incompatible shader interfaces" {
+    const pool = obzc.AutoReleasePool.create();
+    defer pool.release();
+    const device = MTLDevice.createSystemDefaultDevice() orelse return error.SkipZigTest;
+    defer device.release();
+    const source = ns.NSString.init(
+        \\#include <metal_stdlib>
+        \\using namespace metal;
+        \\struct VertexOutput { float4 position [[position]]; float2 coordinate [[user(locn0)]]; };
+        \\vertex VertexOutput vertex_main() { return {float4(0), float2(0)}; }
+        \\struct FragmentInput { float3 coordinate [[user(locn0)]]; };
+        \\fragment float4 fragment_main(FragmentInput input [[stage_in]]) { return float4(input.coordinate, 1); }
+    ).?;
+    defer source.release();
+    const library = try device.newLibrary(source, null);
+    defer library.release();
+    const vertex_name = ns.NSString.init("vertex_main").?;
+    defer vertex_name.release();
+    const vertex = library.newFunction(vertex_name).?;
+    defer vertex.release();
+    const fragment_name = ns.NSString.init("fragment_main").?;
+    defer fragment_name.release();
+    const fragment = library.newFunction(fragment_name).?;
+    defer fragment.release();
+    const descriptor = MTLRenderPipelineDescriptor.new();
+    defer descriptor.release();
+    descriptor.setVertexFunction(vertex);
+    descriptor.setFragmentFunction(fragment);
+    descriptor.colorAttachments().objectAtIndexedSubscript(0).setPixelFormat(mtl.MTLPixelFormatBGRA8Unorm);
+
+    try std.testing.expectError(error.NewRenderPipelineStateFailed, device.newRenderPipelineState(descriptor));
+}

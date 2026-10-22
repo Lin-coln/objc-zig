@@ -23,10 +23,6 @@ test "Metal: compile, render, and read copied pixels through an IOSurface" {
     macos.CFDictionarySetValue(attributes, macos.kCVPixelBufferMetalCompatibilityKey, macos.kCFBooleanTrue);
     var pixel_buffer: macos.CVPixelBufferRef = null;
     const status = macos.CVPixelBufferCreate(null, 4, 4, macos.kCVPixelFormatType_32BGRA, attributes, &pixel_buffer);
-    if (status == macos.kCVReturnAllocationFailed) {
-        std.debug.print("Metal readback test skipped: this environment cannot allocate an IOSurface-backed pixel buffer.\n", .{});
-        return error.SkipZigTest;
-    }
     try std.testing.expectEqual(macos.kCVReturnSuccess, status);
     defer macos.CVBufferRelease(pixel_buffer);
     const surface = macos.CVPixelBufferGetIOSurface(pixel_buffer).?;
