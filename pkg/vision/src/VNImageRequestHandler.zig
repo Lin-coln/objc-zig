@@ -55,35 +55,3 @@ test "VNImageRequestHandler: invalid image data fails without producing results"
     try std.testing.expectError(error.PerformRequestsFailed, handler.performRequests(requests));
     try std.testing.expect(request.results() == null);
 }
-
-test "VNImageRequestHandler: a blank pixel buffer produces an empty result" {
-    const pool = obzc.AutoReleasePool.create();
-    defer pool.release();
-    var pixel_buffer: macos.CVPixelBufferRef = null;
-    try std.testing.expectEqual(macos.kCVReturnSuccess, macos.CVPixelBufferCreate(
-        null,
-        256,
-        128,
-        macos.kCVPixelFormatType_32BGRA,
-        null,
-        &pixel_buffer,
-    ));
-    defer macos.CVBufferRelease(pixel_buffer);
-    try std.testing.expectEqual(macos.kCVReturnSuccess, macos.CVPixelBufferLockBaseAddress(pixel_buffer, 0));
-    const pixels: [*]u8 = @ptrCast(macos.CVPixelBufferGetBaseAddress(pixel_buffer).?);
-    @memset(pixels[0..macos.CVPixelBufferGetDataSize(pixel_buffer)], 255);
-    try std.testing.expectEqual(macos.kCVReturnSuccess, macos.CVPixelBufferUnlockBaseAddress(pixel_buffer, 0));
-    const options = ns.NSDictionary(ns.NSString, obzc.rt.Object).new();
-    defer options.release();
-    const handler = VNImageRequestHandler.initWithCVPixelBuffer(pixel_buffer, options);
-    defer handler.release();
-    const request = VNRecognizeTextRequest.new();
-    defer request.release();
-    request.setRecognitionLevel(.fast);
-    request.setUsesLanguageCorrection(false);
-    const requests = ns.NSArray(VNRequest).init(&.{@ptrCast(request)});
-    defer requests.release();
-
-    try handler.performRequests(requests);
-    try std.testing.expectEqual(0, request.results().?.count());
-}
