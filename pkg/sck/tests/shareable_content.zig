@@ -1,10 +1,13 @@
 const std = @import("std");
+const obzc = @import("obzc");
 const macos = @import("macos/abi");
 const sck = @import("obzc-sck");
 const SCShareableContent = sck.SCShareableContent;
 
 test "SCShareableContent: enumerate windows through the synchronous query" {
     if (!macos.CGPreflightScreenCaptureAccess()) return error.SkipZigTest;
+    const pool = obzc.AutoReleasePool.create();
+    defer pool.release();
 
     const content = try SCShareableContent.getShareableContentSync();
     defer content.release();

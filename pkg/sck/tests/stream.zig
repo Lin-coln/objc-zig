@@ -1,4 +1,5 @@
 const std = @import("std");
+const obzc = @import("obzc");
 const macos = @import("macos/abi");
 const sck = @import("obzc-sck");
 const SCShareableContent = sck.SCShareableContent;
@@ -10,6 +11,8 @@ test "SCStream: update a window capture stream with a new configuration" {
     // Compile the remaining bindings without starting a capture session.
     std.testing.refAllDecls(SCStream);
     if (!macos.CGPreflightScreenCaptureAccess()) return error.SkipZigTest;
+    const pool = obzc.AutoReleasePool.create();
+    defer pool.release();
     // Initialize CoreGraphics in this command-line test process before creating a filter.
     _ = macos.CGMainDisplayID();
     const content = try SCShareableContent.getShareableContentSync();

@@ -1,5 +1,6 @@
 const std = @import("std");
-const rt = @import("obzc").rt;
+const obzc = @import("obzc");
+const rt = obzc.rt;
 const macos = @import("macos/abi");
 const sck = @import("obzc-sck");
 
@@ -95,6 +96,8 @@ const Fixture = struct {
 test "SCStreamOutput: SDK registration and per-instance callback contexts" {
     const cls = try ObzcSCKStreamOutputTest.registerClass();
     defer rt.disposeClassPair(cls);
+    const pool = obzc.AutoReleasePool.create();
+    defer pool.release();
     try std.testing.expect(cls.respondsToSelector(rt.Sel.registerName(ObzcSCKStreamOutputTest.callback_selector)));
     if (rt.getProtocol("SCStreamOutput")) |protocol| try std.testing.expect(cls.conformsToProtocol(protocol));
 
@@ -113,6 +116,7 @@ test "SCStreamOutput: SDK registration and per-instance callback contexts" {
     first.didOutputSampleBuffer(fixture.stream, fixture.sample_buffer, .screen);
     second.didOutputSampleBuffer(fixture.stream, fixture.sample_buffer, .audio);
     try fixture.stream.removeStreamOutput(first.asOutput(), .screen);
+    try std.testing.expectError(error.RemoveStreamOutputFailed, fixture.stream.removeStreamOutput(first.asOutput(), .screen));
 
     try std.testing.expectEqual(1, first_context.calls);
     try std.testing.expectEqual(1, second_context.calls);

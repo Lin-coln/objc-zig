@@ -55,6 +55,11 @@ test "SCStreamConfiguration: configure video and audio properties" {
     try std.testing.expectEqual(4, configuration.queueDepth());
     try std.testing.expectEqual(false, configuration.showsCursor());
     try std.testing.expectEqual(true, configuration.capturesAudio());
+
+    configuration.setShowsCursor(true);
+    configuration.setCapturesAudio(false);
+    try std.testing.expectEqual(true, configuration.showsCursor());
+    try std.testing.expectEqual(false, configuration.capturesAudio());
 }
 
 test "SCStreamConfiguration: time, pixel format, resolution and color properties" {

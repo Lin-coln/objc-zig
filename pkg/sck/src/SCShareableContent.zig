@@ -29,6 +29,8 @@ pub const SCShareableContent = opaque {
 test "SCShareableContent: getShareableContent invokes a Zig completion" {
     // Preflight checks Screen Recording permission without requesting it.
     if (!macos.CGPreflightScreenCaptureAccess()) return error.SkipZigTest;
+    const pool = obzc.AutoReleasePool.create();
+    defer pool.release();
 
     const State = struct {
         ready: std.Io.Semaphore = .{},
