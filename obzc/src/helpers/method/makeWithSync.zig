@@ -157,3 +157,74 @@ test "withSync completion encodes NSError as an Objective-C object" {
     try std.testing.expectError(error.ObjectiveCError, complete_object());
     try std.testing.expectEqualStrings("v@?@@", ObjectHelper.signature);
 }
+
+test "withSync: void completion and Objective-C errors" {
+    const Method = @import("root.zig").Method;
+    const Helper = struct {
+        pub fn call(comptime Return: type, _: [:0]const u8, args: anytype) Return {
+            const completion = args[1];
+            completion.invoke(completion, args[0]);
+        }
+    };
+    const m = Method(rt.Object, Helper);
+    const bound = m.withSync("complete:", fn (?*rt.Object) anyerror!void);
+    try bound(null);
+    const object = rt.msgSend(rt.getClass("NSObject").?, *rt.Object, rt.Sel.registerName("new"), .{});
+    defer rt.release(object);
+    try std.testing.expectError(error.ObjectiveCError, bound(object));
+}
+
+test "withSync: asynchronous completion retains only successful results" {
+    const Method = @import("root.zig").Method;
+    const Methods = struct {
+        var deallocations: usize = 0;
+
+        fn dealloc(self: *rt.Object, _: *rt.Sel) callconv(.c) void {
+            deallocations += 1;
+            rt.msgSendSuper(self, rt.getClass("NSObject").?, void, rt.Sel.registerName("dealloc"), .{});
+        }
+    };
+    const class = rt.allocateClassPair(rt.getClass("NSObject").?, "ZigMethodSyncResultTest", 0).?;
+    defer rt.disposeClassPair(class);
+    try std.testing.expect(class.addMethod(rt.Sel.registerName("dealloc"), &Methods.dealloc, "v@:"));
+    rt.registerClassPair(class);
+
+    const Helper = struct {
+        var thread: ?std.Thread = null;
+
+        pub fn call(comptime Return: type, _: [:0]const u8, args: anytype) Return {
+            const copied = args[1].copy().?;
+            const Worker = struct {
+                fn run(completion: @TypeOf(copied), fail: bool) void {
+                    defer completion.release();
+                    const object = rt.msgSend(rt.getClass("ZigMethodSyncResultTest").?, *rt.Object, rt.Sel.registerName("new"), .{});
+                    defer rt.release(object);
+                    completion.invoke(completion, object, if (fail) object else null);
+                }
+            };
+            thread = std.Thread.spawn(.{}, Worker.run, .{ copied, args[0] }) catch @panic("cannot start completion thread");
+        }
+    };
+    const m = Method(rt.Object, Helper);
+    const bound = m.withSync("complete:", fn (bool) anyerror!*rt.Object);
+    const success = bound(false);
+    if (Helper.thread) |thread| {
+        thread.join();
+        Helper.thread = null;
+    }
+    {
+        const result = try success;
+        defer rt.release(result);
+        try std.testing.expectEqual(0, Methods.deallocations);
+        try std.testing.expectEqual(class, result.getClass());
+    }
+    try std.testing.expectEqual(1, Methods.deallocations);
+
+    const failure = bound(true);
+    if (Helper.thread) |thread| {
+        thread.join();
+        Helper.thread = null;
+    }
+    try std.testing.expectError(error.ObjectiveCError, failure);
+    try std.testing.expectEqual(2, Methods.deallocations);
+}

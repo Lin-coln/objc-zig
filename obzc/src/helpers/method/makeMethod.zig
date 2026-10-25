@@ -44,3 +44,66 @@ pub fn resolveFromShape(comptime Shape: type) type {
         pub const Return = info.return_type.?;
     };
 }
+
+test "of: Shape preserves parameter types and contextual initialization" {
+    const Method = @import("root.zig").Method;
+    const Payload = extern struct { value: c_ulong = 3 };
+    const Receiver = struct { base: c_ulong };
+    const ClassHelper = struct {
+        pub fn call(comptime Return: type, _: [:0]const u8, args: anytype) Return {
+            return args[0] + args[1].value;
+        }
+    };
+    const ObjectHelper = struct {
+        pub fn call(self: *Receiver, comptime Return: type, _: [:0]const u8, args: anytype) Return {
+            return self.base + args[0] + args[1].value;
+        }
+    };
+    const Shape = fn (c_ulong, Payload) c_ulong;
+    const class_method = Method(Receiver, ClassHelper).of("value:payload:", Shape);
+    const object_method = Method(Receiver, ObjectHelper).of("value:payload:", Shape);
+    const CShape = fn (c_ulong, Payload) callconv(.c) c_ulong;
+    const c_method = Method(Receiver, ClassHelper).of("value:payload:", CShape);
+    try std.testing.expect(@TypeOf(class_method) == Shape);
+    try std.testing.expect(@TypeOf(object_method) == fn (*Receiver, c_ulong, Payload) c_ulong);
+    try std.testing.expect(@TypeOf(c_method) == CShape);
+
+    const value: c_int = 4;
+    try std.testing.expectEqual(@as(c_ulong, 7), class_method(value, .{}));
+    try std.testing.expectEqual(@as(c_ulong, 9), class_method(value, .{ .value = 5 }));
+    try std.testing.expectEqual(@as(c_ulong, 9), c_method(value, .{ .value = 5 }));
+    var receiver: Receiver = .{ .base = 10 };
+    try std.testing.expectEqual(@as(c_ulong, 17), object_method(&receiver, value, .{}));
+    try std.testing.expectEqual(@as(c_ulong, 19), object_method(&receiver, value, .{ .value = 5 }));
+}
+
+test "of: return types and pointer nullability are preserved" {
+    const Method = @import("root.zig").Method;
+    const rt = @import("../../rt/root.zig");
+    const Helper = struct {
+        pub fn call(comptime Return: type, _: [:0]const u8, args: anytype) Return {
+            if (Return != @TypeOf(args[0])) @compileError("unexpected message return type");
+            return args[0];
+        }
+    };
+    var value: u8 = 42;
+    const m = Method(rt.Object, Helper);
+    const cases = .{
+        @as(*u8, &value),
+        @as(*const u8, &value),
+        @as([*]u8, @ptrCast(&value)),
+        @as([*:0]const u8, "hello"),
+        @as(?*u8, null),
+        @as([*c]u8, null),
+        @as(*allowzero u8, @ptrFromInt(0)),
+        @as(usize, 42),
+        false,
+    };
+    inline for (cases) |expected| {
+        const T = @TypeOf(expected);
+        const Shape = fn (T) T;
+        const bound = m.of("value", Shape);
+        try std.testing.expect(@TypeOf(bound) == Shape);
+        try std.testing.expectEqual(expected, bound(expected));
+    }
+}

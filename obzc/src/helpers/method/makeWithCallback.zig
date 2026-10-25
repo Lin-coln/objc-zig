@@ -135,3 +135,36 @@ test "withCallback: class and instance bindings forward zero through fifteen met
         try std.testing.expectEqual(100 + expected, state.result);
     }
 }
+
+test "withCallback: class and instance bindings preserve constant coercion" {
+    const Method = @import("root.zig").Method;
+    const State = struct { value: c_ulong = 0 };
+    const Receiver = struct { base: c_ulong };
+    const ClassHelper = struct {
+        pub fn call(comptime Return: type, _: [:0]const u8, args: anytype) Return {
+            const completion = args[1];
+            completion.invoke(completion, args[0]);
+        }
+    };
+    const ObjectHelper = struct {
+        pub fn call(self: *Receiver, comptime Return: type, _: [:0]const u8, args: anytype) Return {
+            const completion = args[1];
+            completion.invoke(completion, self.base + args[0]);
+        }
+    };
+    const Completion = struct {
+        fn call(state: *State, value: c_ulong) void {
+            state.value = value;
+        }
+    };
+    const Shape = fn (c_ulong, fn (c_ulong) void) void;
+    const class_method = Method(Receiver, ClassHelper).withCallback("value:completion:", Shape);
+    const object_method = Method(Receiver, ObjectHelper).withCallback("value:completion:", Shape);
+    const value: c_int = 4;
+    var state: State = .{};
+    class_method(&state, value, &Completion.call);
+    try std.testing.expectEqual(@as(c_ulong, 4), state.value);
+    var receiver: Receiver = .{ .base = 10 };
+    object_method(&receiver, &state, value, &Completion.call);
+    try std.testing.expectEqual(@as(c_ulong, 14), state.value);
+}
