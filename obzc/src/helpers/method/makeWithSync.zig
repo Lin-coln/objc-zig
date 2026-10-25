@@ -65,7 +65,7 @@ pub fn makeWithSync(
 
         fn completeObject(
             state: *State,
-            value: ?Resolved.Payload,
+            value: ?*rt.Object,
             err: ?*rt.Object, // NSError
         ) void {
             const semaphore = state.semaphore;
@@ -76,12 +76,7 @@ pub fn makeWithSync(
                     @panic("Objective-C completion returned nil without an error");
                 };
 
-                break :blk @as(
-                    Resolved.Payload,
-                    @ptrCast(
-                        rt.retain(@ptrCast(@constCast(object))),
-                    ),
-                );
+                break :blk @as(Resolved.Payload, @ptrCast(rt.retain(object)));
             };
 
             state.result = result;
@@ -128,7 +123,8 @@ fn resolveFromShape(comptime Shape: type) type {
     };
 }
 
-test "withSync completion encodes NSError as an Objective-C object" {
+test "withSync completion encodes object result and NSError as Objective-C objects" {
+    const Result = opaque {};
     const VoidHelper = struct {
         var signature: []const u8 = "";
 
@@ -144,34 +140,59 @@ test "withSync completion encodes NSError as an Objective-C object" {
 
     const ObjectHelper = struct {
         var signature: []const u8 = "";
+        var fail = true;
+        var last_object: ?*rt.Object = null;
 
         pub fn call(comptime Return: type, _: [:0]const u8, args: anytype) Return {
             const completion = args[0];
             signature = std.mem.span(completion.descriptor.signature);
-            const err = rt.msgSend(rt.getClass("NSObject").?, *rt.Object, rt.Sel.registerName("new"), .{});
-            defer rt.release(err);
-            completion.invoke(completion, null, err);
+            const object = rt.msgSend(rt.getClass("NSObject").?, *rt.Object, rt.Sel.registerName("new"), .{});
+            last_object = object;
+            defer rt.release(object);
+            completion.invoke(completion, if (fail) null else object, if (fail) object else null);
         }
     };
-    const complete_object = makeWithSync(null, ObjectHelper.call, "complete:", fn () anyerror!*rt.Object).function;
+    const complete_object = makeWithSync(null, ObjectHelper.call, "complete:", fn () anyerror!*Result).function;
     try std.testing.expectError(error.ObjectiveCError, complete_object());
     try std.testing.expectEqualStrings("v@?@@", ObjectHelper.signature);
+    ObjectHelper.fail = false;
+    const result = try complete_object();
+    defer rt.release(@ptrCast(result));
+    try std.testing.expectEqual(ObjectHelper.last_object.?, @as(*rt.Object, @ptrCast(result)));
 }
 
-test "withSync: void completion and Objective-C errors" {
+test "withSync: asynchronous void completion and Objective-C errors" {
     const Method = @import("root.zig").Method;
     const Helper = struct {
+        var thread: ?std.Thread = null;
+
         pub fn call(comptime Return: type, _: [:0]const u8, args: anytype) Return {
-            const completion = args[1];
-            completion.invoke(completion, args[0]);
+            const copied = args[1].copy().?;
+            const Worker = struct {
+                fn run(completion: @TypeOf(copied), err: ?*rt.Object) void {
+                    defer completion.release();
+                    completion.invoke(completion, err);
+                }
+            };
+            thread = std.Thread.spawn(.{}, Worker.run, .{ copied, args[0] }) catch @panic("cannot start completion thread");
         }
     };
     const m = Method(rt.Object, Helper);
     const bound = m.withSync("complete:", fn (?*rt.Object) anyerror!void);
-    try bound(null);
+    const success = bound(null);
+    if (Helper.thread) |thread| {
+        thread.join();
+        Helper.thread = null;
+    }
+    try success;
     const object = rt.msgSend(rt.getClass("NSObject").?, *rt.Object, rt.Sel.registerName("new"), .{});
     defer rt.release(object);
-    try std.testing.expectError(error.ObjectiveCError, bound(object));
+    const failure = bound(object);
+    if (Helper.thread) |thread| {
+        thread.join();
+        Helper.thread = null;
+    }
+    try std.testing.expectError(error.ObjectiveCError, failure);
 }
 
 test "withSync: asynchronous completion retains only successful results" {

@@ -45,9 +45,6 @@ fn resolveFromShape(comptime Shape: type) type {
         .generic = true,
     });
 
-    // if (info.return_type != void)
-    //     @compileError("withCallback Shape must return void");
-
     const info_fn: std.lang.Type.Fn = blk: {
         if (info.param_types.len == 0)
             @compileError("Shape must end with a block function type");
@@ -80,91 +77,50 @@ fn resolveFromShape(comptime Shape: type) type {
     };
 }
 
-test "withCallback: class and instance bindings forward zero through fifteen method arguments" {
-    @setEvalBranchQuota(100_000);
-    const State = struct { result: i32 = 0 };
-    const Receiver = struct { base: i32 };
-    const ClassHelper = struct {
-        pub fn call(comptime Return: type, _: [:0]const u8, args: anytype) Return {
-            var result: i32 = 0;
-            inline for (0..args.len - 1) |i| {
-                result += args[i] * @as(i32, @intCast(i + 1));
-            }
-            const completion = args[args.len - 1];
-            completion.invoke(completion, result);
-        }
-    };
-    const ObjectHelper = struct {
-        pub fn call(self: *Receiver, comptime Return: type, _: [:0]const u8, args: anytype) Return {
-            var result = self.base;
-            inline for (0..args.len - 1) |i| {
-                result += args[i] * @as(i32, @intCast(i + 1));
-            }
-            const completion = args[args.len - 1];
-            completion.invoke(completion, result);
-        }
-    };
-    const Completion = struct {
-        fn call(state: *State, result: i32) void {
-            state.result = result;
-        }
-    };
-
-    inline for (0..16) |count| {
-        comptime var params: [count + 1]type = undefined;
-        inline for (0..count) |i| params[i] = i32;
-        params[count] = fn (i32) void;
-        const Shape = @Fn(&params, &@splat(.{}), void, .{});
-        const class_method = makeWithCallback(null, ClassHelper.call, "complete:", Shape).function;
-        const object_method = makeWithCallback(*Receiver, ObjectHelper.call, "complete:", Shape).function;
-
-        var args: @Tuple(&@as([count]type, @splat(i32))) = undefined;
-        var expected: i32 = 0;
-        inline for (0..count) |i| {
-            const value: i32 = @intCast(i + 1);
-            args[i] = value;
-            expected += value * value;
-        }
-
-        var state: State = .{};
-        @call(.auto, class_method, .{&state} ++ args ++ .{&Completion.call});
-        try std.testing.expectEqual(expected, state.result);
-
-        var receiver: Receiver = .{ .base = 100 };
-        @call(.auto, object_method, .{ &receiver, &state } ++ args ++ .{&Completion.call});
-        try std.testing.expectEqual(100 + expected, state.result);
-    }
-}
-
-test "withCallback: class and instance bindings preserve constant coercion" {
+test "withCallback forwards selector, context and method return for class and instance" {
     const Method = @import("root.zig").Method;
-    const State = struct { value: c_ulong = 0 };
+    const State = struct { value: c_ulong = 0, calls: usize = 0 };
     const Receiver = struct { base: c_ulong };
     const ClassHelper = struct {
-        pub fn call(comptime Return: type, _: [:0]const u8, args: anytype) Return {
+        var last_name: []const u8 = "";
+
+        pub fn call(comptime Return: type, name: [:0]const u8, args: anytype) Return {
+            if (Return != c_ulong) @compileError("unexpected method return type");
+            last_name = name;
             const completion = args[1];
             completion.invoke(completion, args[0]);
+            return args[0] + 100;
         }
     };
     const ObjectHelper = struct {
-        pub fn call(self: *Receiver, comptime Return: type, _: [:0]const u8, args: anytype) Return {
+        var last_name: []const u8 = "";
+
+        pub fn call(self: *Receiver, comptime Return: type, name: [:0]const u8, args: anytype) Return {
+            if (Return != c_ulong) @compileError("unexpected method return type");
+            last_name = name;
             const completion = args[1];
             completion.invoke(completion, self.base + args[0]);
+            return self.base + args[0] + 100;
         }
     };
     const Completion = struct {
         fn call(state: *State, value: c_ulong) void {
             state.value = value;
+            state.calls += 1;
         }
     };
-    const Shape = fn (c_ulong, fn (c_ulong) void) void;
+    const Shape = fn (c_ulong, fn (c_ulong) void) c_ulong;
     const class_method = Method(Receiver, ClassHelper).withCallback("value:completion:", Shape);
     const object_method = Method(Receiver, ObjectHelper).withCallback("value:completion:", Shape);
     const value: c_int = 4;
     var state: State = .{};
-    class_method(&state, value, &Completion.call);
+    try std.testing.expectEqual(@as(c_ulong, 104), class_method(&state, value, &Completion.call));
+    try std.testing.expectEqualStrings("value:completion:", ClassHelper.last_name);
+    try std.testing.expectEqual(@as(usize, 1), state.calls);
     try std.testing.expectEqual(@as(c_ulong, 4), state.value);
     var receiver: Receiver = .{ .base = 10 };
-    object_method(&receiver, &state, value, &Completion.call);
+    try std.testing.expectEqual(@as(c_ulong, 114), object_method(&receiver, &state, value, &Completion.call));
+    try std.testing.expectEqualStrings("value:completion:", ObjectHelper.last_name);
+    try std.testing.expectEqual(@as(usize, 2), state.calls);
     try std.testing.expectEqual(@as(c_ulong, 14), state.value);
 }

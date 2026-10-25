@@ -118,3 +118,45 @@ pub fn toSpreadedFn(comptime handle: anytype, comptime opts: SpreadOptions) Spre
 
     return Wrapper.c;
 }
+
+test "toSpreadedFn forwards zero through fifteen typed arguments" {
+    inline for (0..16) |count| {
+        comptime var types: [count]type = undefined;
+        inline for (0..count) |i| types[i] = @Int(.unsigned, 8 + i);
+        const Args = @Tuple(&types);
+        const Handler = struct {
+            fn call(args: Args) u64 {
+                var result: u64 = 17;
+                inline for (args, 0..) |value, i| {
+                    result += @as(u64, @intCast(value)) * @as(u64, i + 1);
+                }
+                return result;
+            }
+        };
+        const function = toSpreadedFn(Handler.call, .{});
+        const Expected = @Fn(&types, &@splat(.{}), u64, .{});
+        try std.testing.expect(@TypeOf(function) == Expected);
+
+        var args: Args = undefined;
+        var expected: u64 = 17;
+        inline for (0..count) |i| {
+            const value: types[i] = @intCast(i + 1);
+            args[i] = value;
+            expected += (i + 1) * (i + 1);
+        }
+        try std.testing.expectEqual(expected, @call(.auto, function, args));
+    }
+}
+
+test "toSpreadedFn preserves a C signature with mixed parameter types" {
+    const Result = extern struct { value: f64 };
+    const Handler = struct {
+        fn call(args: @Tuple(&.{ *const i32, f64, u8 })) Result {
+            return .{ .value = @as(f64, @floatFromInt(args[0].*)) * args[1] + @as(f64, @floatFromInt(args[2])) };
+        }
+    };
+    const value: i32 = 7;
+    const function = toSpreadedFn(Handler.call, .{ .cc = .c });
+    try std.testing.expect(@TypeOf(function) == fn (*const i32, f64, u8) callconv(.c) Result);
+    try std.testing.expectEqual(17.0, function(&value, 2.0, 3).value);
+}

@@ -170,3 +170,70 @@ fn toSpreaded(
         const c = if (Receiver == null) Static.c else Static.rc;
     };
 }
+
+test "toSpreadFn forwards zero through fifteen typed arguments with and without a receiver" {
+    @setEvalBranchQuota(10_000);
+    const State = struct { result: i32 = -1, calls: usize = 0 };
+    const Receiver = struct { base: i32 };
+    const Arg = struct {
+        fn of(comptime index: usize) type {
+            return struct {
+                value: i32,
+                pub const position = index;
+            };
+        }
+    };
+    comptime {
+        if (Arg.of(0) == Arg.of(1)) @compileError("argument types must differ by position");
+    }
+    const Callback = struct {
+        fn Type(comptime Context: type) type {
+            return fn (Context, i32) void;
+        }
+        fn record(state: *State, result: i32) void {
+            state.calls += 1;
+            state.result = result;
+        }
+    };
+
+    inline for (0..16) |count| {
+        comptime var types: [count]type = undefined;
+        inline for (0..count) |i| types[i] = Arg.of(i);
+        const Args = @Tuple(&types);
+        const Handle = struct {
+            fn weighted(args: Args) i32 {
+                var result: i32 = 0;
+                inline for (args, 0..) |arg, i| {
+                    if (@TypeOf(arg) != Arg.of(i)) @compileError("argument type changed during spreading");
+                    result += arg.value * @as(i32, @intCast(i + 1));
+                }
+                return result;
+            }
+            fn class(ctx: anytype, args: Args, comptime cb: *const Callback.Type(@TypeOf(ctx))) void {
+                cb(ctx, weighted(args));
+            }
+            fn instance(receiver: *Receiver, ctx: anytype, args: Args, comptime cb: *const Callback.Type(@TypeOf(ctx))) void {
+                cb(ctx, receiver.base + weighted(args));
+            }
+        };
+        const class_fn = toSpreadFn(Handle.class, .{}, Callback.Type);
+        const instance_fn = toSpreadFn(Handle.instance, .{}, Callback.Type);
+
+        var args: Args = undefined;
+        var expected: i32 = 0;
+        inline for (0..count) |i| {
+            args[i] = .{ .value = @intCast(i + 1) };
+            expected += @as(i32, @intCast((i + 1) * (i + 1)));
+        }
+
+        var state: State = .{};
+        @call(.auto, class_fn, .{&state} ++ args ++ .{&Callback.record});
+        try std.testing.expectEqual(@as(usize, 1), state.calls);
+        try std.testing.expectEqual(expected, state.result);
+
+        var receiver: Receiver = .{ .base = 100 };
+        @call(.auto, instance_fn, .{ &receiver, &state } ++ args ++ .{&Callback.record});
+        try std.testing.expectEqual(@as(usize, 2), state.calls);
+        try std.testing.expectEqual(100 + expected, state.result);
+    }
+}

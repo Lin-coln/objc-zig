@@ -50,12 +50,20 @@ test "of: Shape preserves parameter types and contextual initialization" {
     const Payload = extern struct { value: c_ulong = 3 };
     const Receiver = struct { base: c_ulong };
     const ClassHelper = struct {
-        pub fn call(comptime Return: type, _: [:0]const u8, args: anytype) Return {
+        var last_name: []const u8 = "";
+
+        pub fn call(comptime Return: type, name: [:0]const u8, args: anytype) Return {
+            if (Return != c_ulong) @compileError("unexpected return type");
+            last_name = name;
             return args[0] + args[1].value;
         }
     };
     const ObjectHelper = struct {
-        pub fn call(self: *Receiver, comptime Return: type, _: [:0]const u8, args: anytype) Return {
+        var last_name: []const u8 = "";
+
+        pub fn call(self: *Receiver, comptime Return: type, name: [:0]const u8, args: anytype) Return {
+            if (Return != c_ulong) @compileError("unexpected return type");
+            last_name = name;
             return self.base + args[0] + args[1].value;
         }
     };
@@ -72,9 +80,11 @@ test "of: Shape preserves parameter types and contextual initialization" {
     try std.testing.expectEqual(@as(c_ulong, 7), class_method(value, .{}));
     try std.testing.expectEqual(@as(c_ulong, 9), class_method(value, .{ .value = 5 }));
     try std.testing.expectEqual(@as(c_ulong, 9), c_method(value, .{ .value = 5 }));
+    try std.testing.expectEqualStrings("value:payload:", ClassHelper.last_name);
     var receiver: Receiver = .{ .base = 10 };
     try std.testing.expectEqual(@as(c_ulong, 17), object_method(&receiver, value, .{}));
     try std.testing.expectEqual(@as(c_ulong, 19), object_method(&receiver, value, .{ .value = 5 }));
+    try std.testing.expectEqualStrings("value:payload:", ObjectHelper.last_name);
 }
 
 test "of: return types and pointer nullability are preserved" {
