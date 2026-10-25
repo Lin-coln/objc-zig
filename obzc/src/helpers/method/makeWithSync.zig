@@ -55,7 +55,7 @@ pub fn makeWithSync(
 
         fn completeVoid(
             state: *State,
-            err: ?*anyopaque, // NSError
+            err: ?*rt.Object, // NSError
         ) void {
             const semaphore = state.semaphore;
             defer dispatch.release(semaphore.as_object());
@@ -66,7 +66,7 @@ pub fn makeWithSync(
         fn completeObject(
             state: *State,
             value: ?Resolved.Payload,
-            err: ?*anyopaque, // NSError
+            err: ?*rt.Object, // NSError
         ) void {
             const semaphore = state.semaphore;
             defer dispatch.release(semaphore.as_object());
@@ -126,4 +126,34 @@ fn resolveFromShape(comptime Shape: type) type {
         pub const Return = R;
         pub const Payload = P;
     };
+}
+
+test "withSync completion encodes NSError as an Objective-C object" {
+    const VoidHelper = struct {
+        var signature: []const u8 = "";
+
+        pub fn call(comptime Return: type, _: [:0]const u8, args: anytype) Return {
+            const completion = args[0];
+            signature = std.mem.span(completion.descriptor.signature);
+            completion.invoke(completion, null);
+        }
+    };
+    const complete_void = makeWithSync(null, VoidHelper.call, "complete:", fn () anyerror!void).function;
+    try complete_void();
+    try std.testing.expectEqualStrings("v@?@", VoidHelper.signature);
+
+    const ObjectHelper = struct {
+        var signature: []const u8 = "";
+
+        pub fn call(comptime Return: type, _: [:0]const u8, args: anytype) Return {
+            const completion = args[0];
+            signature = std.mem.span(completion.descriptor.signature);
+            const err = rt.msgSend(rt.getClass("NSObject").?, *rt.Object, rt.Sel.registerName("new"), .{});
+            defer rt.release(err);
+            completion.invoke(completion, null, err);
+        }
+    };
+    const complete_object = makeWithSync(null, ObjectHelper.call, "complete:", fn () anyerror!*rt.Object).function;
+    try std.testing.expectError(error.ObjectiveCError, complete_object());
+    try std.testing.expectEqualStrings("v@?@@", ObjectHelper.signature);
 }

@@ -79,3 +79,59 @@ fn resolveFromShape(comptime Shape: type) type {
         }
     };
 }
+
+test "withCallback: class and instance bindings forward zero through fifteen method arguments" {
+    @setEvalBranchQuota(100_000);
+    const State = struct { result: i32 = 0 };
+    const Receiver = struct { base: i32 };
+    const ClassHelper = struct {
+        pub fn call(comptime Return: type, _: [:0]const u8, args: anytype) Return {
+            var result: i32 = 0;
+            inline for (0..args.len - 1) |i| {
+                result += args[i] * @as(i32, @intCast(i + 1));
+            }
+            const completion = args[args.len - 1];
+            completion.invoke(completion, result);
+        }
+    };
+    const ObjectHelper = struct {
+        pub fn call(self: *Receiver, comptime Return: type, _: [:0]const u8, args: anytype) Return {
+            var result = self.base;
+            inline for (0..args.len - 1) |i| {
+                result += args[i] * @as(i32, @intCast(i + 1));
+            }
+            const completion = args[args.len - 1];
+            completion.invoke(completion, result);
+        }
+    };
+    const Completion = struct {
+        fn call(state: *State, result: i32) void {
+            state.result = result;
+        }
+    };
+
+    inline for (0..16) |count| {
+        comptime var params: [count + 1]type = undefined;
+        inline for (0..count) |i| params[i] = i32;
+        params[count] = fn (i32) void;
+        const Shape = @Fn(&params, &@splat(.{}), void, .{});
+        const class_method = makeWithCallback(null, ClassHelper.call, "complete:", Shape).function;
+        const object_method = makeWithCallback(*Receiver, ObjectHelper.call, "complete:", Shape).function;
+
+        var args: @Tuple(&@as([count]type, @splat(i32))) = undefined;
+        var expected: i32 = 0;
+        inline for (0..count) |i| {
+            const value: i32 = @intCast(i + 1);
+            args[i] = value;
+            expected += value * value;
+        }
+
+        var state: State = .{};
+        @call(.auto, class_method, .{&state} ++ args ++ .{&Completion.call});
+        try std.testing.expectEqual(expected, state.result);
+
+        var receiver: Receiver = .{ .base = 100 };
+        @call(.auto, object_method, .{ &receiver, &state } ++ args ++ .{&Completion.call});
+        try std.testing.expectEqual(100 + expected, state.result);
+    }
+}

@@ -21,6 +21,7 @@ pub const CompileTestCases = .{
     .{ .name = "withCallback: rejects non-function block parameter", .expected_error = "Shape must be a function type" },
     // .{ .name = "withCallback: rejects method return values", .expected_error = "withCallback Shape must return void" },
     .{ .name = "withCallback: rejects generic block parameters", .expected_error = "Shape cannot have generic parameters" },
+    .{ .name = "withCallback: rejects more than fifteen method arguments", .expected_error = "withCallback supports at most 15 method arguments" },
     .{ .name = "withSync: rejects plain return type", .expected_error = "withSync Shape must return an error union" },
     .{ .name = "withSync: rejects scalar result", .expected_error = "withSync result must be void or an Objective-C object pointer" },
     .{ .name = "withSync: rejects non-object pointer result", .expected_error = "withSync result must be a non-null pointer to an opaque Objective-C object" },
@@ -50,6 +51,14 @@ test "withCallback: rejects non-function block parameter" {
 
 test "withCallback: rejects generic block parameters" {
     _ = m.withCallback("complete:", fn (fn (anytype) void) void);
+}
+
+test "withCallback: rejects more than fifteen method arguments" {
+    comptime var params: [17]type = undefined;
+    inline for (0..16) |i| params[i] = i32;
+    params[16] = fn () void;
+    const Shape = @Fn(&params, &@splat(.{}), void, .{});
+    _ = m.withCallback("complete:", Shape);
 }
 
 test "withSync: rejects plain return type" {

@@ -75,7 +75,95 @@ fn toSpreaded(
                 return handle(r, ctx, .{ a0, a1, a2, a3 }, cb);
             }
         },
-        else => @compileError("Unsupported argument count"),
+        5 => struct {
+            fn c(ctx: anytype, a0: f[0], a1: f[1], a2: f[2], a3: f[3], a4: f[4], comptime cb: *const Callback(@TypeOf(ctx))) callconv(cc) R {
+                return handle(ctx, .{ a0, a1, a2, a3, a4 }, cb);
+            }
+            fn rc(r: Receiver.?, ctx: anytype, a0: f[0], a1: f[1], a2: f[2], a3: f[3], a4: f[4], comptime cb: *const Callback(@TypeOf(ctx))) callconv(cc) R {
+                return handle(r, ctx, .{ a0, a1, a2, a3, a4 }, cb);
+            }
+        },
+        6 => struct {
+            fn c(ctx: anytype, a0: f[0], a1: f[1], a2: f[2], a3: f[3], a4: f[4], a5: f[5], comptime cb: *const Callback(@TypeOf(ctx))) callconv(cc) R {
+                return handle(ctx, .{ a0, a1, a2, a3, a4, a5 }, cb);
+            }
+            fn rc(r: Receiver.?, ctx: anytype, a0: f[0], a1: f[1], a2: f[2], a3: f[3], a4: f[4], a5: f[5], comptime cb: *const Callback(@TypeOf(ctx))) callconv(cc) R {
+                return handle(r, ctx, .{ a0, a1, a2, a3, a4, a5 }, cb);
+            }
+        },
+        7 => struct {
+            fn c(ctx: anytype, a0: f[0], a1: f[1], a2: f[2], a3: f[3], a4: f[4], a5: f[5], a6: f[6], comptime cb: *const Callback(@TypeOf(ctx))) callconv(cc) R {
+                return handle(ctx, .{ a0, a1, a2, a3, a4, a5, a6 }, cb);
+            }
+            fn rc(r: Receiver.?, ctx: anytype, a0: f[0], a1: f[1], a2: f[2], a3: f[3], a4: f[4], a5: f[5], a6: f[6], comptime cb: *const Callback(@TypeOf(ctx))) callconv(cc) R {
+                return handle(r, ctx, .{ a0, a1, a2, a3, a4, a5, a6 }, cb);
+            }
+        },
+        8 => struct {
+            fn c(ctx: anytype, a0: f[0], a1: f[1], a2: f[2], a3: f[3], a4: f[4], a5: f[5], a6: f[6], a7: f[7], comptime cb: *const Callback(@TypeOf(ctx))) callconv(cc) R {
+                return handle(ctx, .{ a0, a1, a2, a3, a4, a5, a6, a7 }, cb);
+            }
+            fn rc(r: Receiver.?, ctx: anytype, a0: f[0], a1: f[1], a2: f[2], a3: f[3], a4: f[4], a5: f[5], a6: f[6], a7: f[7], comptime cb: *const Callback(@TypeOf(ctx))) callconv(cc) R {
+                return handle(r, ctx, .{ a0, a1, a2, a3, a4, a5, a6, a7 }, cb);
+            }
+        },
+        9 => struct {
+            fn c(ctx: anytype, a0: f[0], a1: f[1], a2: f[2], a3: f[3], a4: f[4], a5: f[5], a6: f[6], a7: f[7], a8: f[8], comptime cb: *const Callback(@TypeOf(ctx))) callconv(cc) R {
+                return handle(ctx, .{ a0, a1, a2, a3, a4, a5, a6, a7, a8 }, cb);
+            }
+            fn rc(r: Receiver.?, ctx: anytype, a0: f[0], a1: f[1], a2: f[2], a3: f[3], a4: f[4], a5: f[5], a6: f[6], a7: f[7], a8: f[8], comptime cb: *const Callback(@TypeOf(ctx))) callconv(cc) R {
+                return handle(r, ctx, .{ a0, a1, a2, a3, a4, a5, a6, a7, a8 }, cb);
+            }
+        },
+        10 => struct {
+            fn c(ctx: anytype, a0: f[0], a1: f[1], a2: f[2], a3: f[3], a4: f[4], a5: f[5], a6: f[6], a7: f[7], a8: f[8], a9: f[9], comptime cb: *const Callback(@TypeOf(ctx))) callconv(cc) R {
+                return handle(ctx, .{ a0, a1, a2, a3, a4, a5, a6, a7, a8, a9 }, cb);
+            }
+            fn rc(r: Receiver.?, ctx: anytype, a0: f[0], a1: f[1], a2: f[2], a3: f[3], a4: f[4], a5: f[5], a6: f[6], a7: f[7], a8: f[8], a9: f[9], comptime cb: *const Callback(@TypeOf(ctx))) callconv(cc) R {
+                return handle(r, ctx, .{ a0, a1, a2, a3, a4, a5, a6, a7, a8, a9 }, cb);
+            }
+        },
+        11 => struct {
+            fn c(ctx: anytype, a0: f[0], a1: f[1], a2: f[2], a3: f[3], a4: f[4], a5: f[5], a6: f[6], a7: f[7], a8: f[8], a9: f[9], a10: f[10], comptime cb: *const Callback(@TypeOf(ctx))) callconv(cc) R {
+                return handle(ctx, .{ a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10 }, cb);
+            }
+            fn rc(r: Receiver.?, ctx: anytype, a0: f[0], a1: f[1], a2: f[2], a3: f[3], a4: f[4], a5: f[5], a6: f[6], a7: f[7], a8: f[8], a9: f[9], a10: f[10], comptime cb: *const Callback(@TypeOf(ctx))) callconv(cc) R {
+                return handle(r, ctx, .{ a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10 }, cb);
+            }
+        },
+        12 => struct {
+            fn c(ctx: anytype, a0: f[0], a1: f[1], a2: f[2], a3: f[3], a4: f[4], a5: f[5], a6: f[6], a7: f[7], a8: f[8], a9: f[9], a10: f[10], a11: f[11], comptime cb: *const Callback(@TypeOf(ctx))) callconv(cc) R {
+                return handle(ctx, .{ a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11 }, cb);
+            }
+            fn rc(r: Receiver.?, ctx: anytype, a0: f[0], a1: f[1], a2: f[2], a3: f[3], a4: f[4], a5: f[5], a6: f[6], a7: f[7], a8: f[8], a9: f[9], a10: f[10], a11: f[11], comptime cb: *const Callback(@TypeOf(ctx))) callconv(cc) R {
+                return handle(r, ctx, .{ a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11 }, cb);
+            }
+        },
+        13 => struct {
+            fn c(ctx: anytype, a0: f[0], a1: f[1], a2: f[2], a3: f[3], a4: f[4], a5: f[5], a6: f[6], a7: f[7], a8: f[8], a9: f[9], a10: f[10], a11: f[11], a12: f[12], comptime cb: *const Callback(@TypeOf(ctx))) callconv(cc) R {
+                return handle(ctx, .{ a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12 }, cb);
+            }
+            fn rc(r: Receiver.?, ctx: anytype, a0: f[0], a1: f[1], a2: f[2], a3: f[3], a4: f[4], a5: f[5], a6: f[6], a7: f[7], a8: f[8], a9: f[9], a10: f[10], a11: f[11], a12: f[12], comptime cb: *const Callback(@TypeOf(ctx))) callconv(cc) R {
+                return handle(r, ctx, .{ a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12 }, cb);
+            }
+        },
+        14 => struct {
+            fn c(ctx: anytype, a0: f[0], a1: f[1], a2: f[2], a3: f[3], a4: f[4], a5: f[5], a6: f[6], a7: f[7], a8: f[8], a9: f[9], a10: f[10], a11: f[11], a12: f[12], a13: f[13], comptime cb: *const Callback(@TypeOf(ctx))) callconv(cc) R {
+                return handle(ctx, .{ a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13 }, cb);
+            }
+            fn rc(r: Receiver.?, ctx: anytype, a0: f[0], a1: f[1], a2: f[2], a3: f[3], a4: f[4], a5: f[5], a6: f[6], a7: f[7], a8: f[8], a9: f[9], a10: f[10], a11: f[11], a12: f[12], a13: f[13], comptime cb: *const Callback(@TypeOf(ctx))) callconv(cc) R {
+                return handle(r, ctx, .{ a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13 }, cb);
+            }
+        },
+        15 => struct {
+            fn c(ctx: anytype, a0: f[0], a1: f[1], a2: f[2], a3: f[3], a4: f[4], a5: f[5], a6: f[6], a7: f[7], a8: f[8], a9: f[9], a10: f[10], a11: f[11], a12: f[12], a13: f[13], a14: f[14], comptime cb: *const Callback(@TypeOf(ctx))) callconv(cc) R {
+                return handle(ctx, .{ a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14 }, cb);
+            }
+            fn rc(r: Receiver.?, ctx: anytype, a0: f[0], a1: f[1], a2: f[2], a3: f[3], a4: f[4], a5: f[5], a6: f[6], a7: f[7], a8: f[8], a9: f[9], a10: f[10], a11: f[11], a12: f[12], a13: f[13], a14: f[14], comptime cb: *const Callback(@TypeOf(ctx))) callconv(cc) R {
+                return handle(r, ctx, .{ a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14 }, cb);
+            }
+        },
+        else => @compileError("withCallback supports at most 15 method arguments"),
     };
 
     return struct {
