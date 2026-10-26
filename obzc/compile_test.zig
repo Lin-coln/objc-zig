@@ -1,5 +1,7 @@
 pub const sources = .{
     @import("utils/spread.test.zig"),
+    @import("utils/resolveFnInfo.test.zig"),
+    @import("utils/resolveReceiverType.test.zig"),
     @import("src/Block/encode.test.zig"),
     @import("src/Block/Self.test.zig"),
     @import("helpers/block.test.zig"),
