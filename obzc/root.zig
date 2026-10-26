@@ -14,6 +14,7 @@ test {
     _ = @import("utils/root.zig");
     _ = ffi;
     _ = core;
+    _ = @import("block/root.zig");
     _ = helpers;
     _ = helpers2;
 }

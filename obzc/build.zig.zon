@@ -12,6 +12,7 @@
         "helpers",
         "helpers2",
         "ffi",
+        "block",
         "utils",
         "src",
         "tests",
