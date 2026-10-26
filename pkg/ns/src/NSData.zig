@@ -3,7 +3,7 @@ const obzc = @import("obzc");
 
 pub const NSData = opaque {
     const Self = @This();
-    const h = obzc.helpers.Object(Self);
+    const h = obzc.h(Self);
 
     pub const retain = h.retain;
     pub const release = h.release;
@@ -14,7 +14,7 @@ pub const NSData = opaque {
         return h.call(h.cls.alloc(), *Self, "initWithBytes:length:", .{ contents.ptr, contents.len });
     }
 
-    pub const length = h.prop(usize, "length").getter;
+    pub const length = h.prop("length", usize).getter;
 
     /// The returned slice is borrowed and remains valid while the data object is alive.
     pub fn bytes(self: *Self) []const u8 {

@@ -3,14 +3,14 @@ const obzc = @import("obzc");
 
 pub const NSMutableData = opaque {
     const Self = @This();
-    const h = obzc.helpers.Object(Self);
+    const h = obzc.h(Self);
 
     pub const new = h.cls.new;
     pub const retain = h.retain;
     pub const release = h.release;
 
-    pub const length = h.prop(usize, "length").getter;
-    pub const setLength = h.prop(usize, "length").setter;
+    pub const length = h.prop("length", usize).getter;
+    pub const setLength = h.prop("length", usize).setter;
 
     pub fn appendBytes(self: *Self, appended_bytes: []const u8) void {
         if (appended_bytes.len == 0) return;
@@ -25,7 +25,7 @@ pub const NSMutableData = opaque {
     }
 
     /// The returned pointer is invalidated by mutation or release and may be null when empty.
-    pub const mutableBytes = h.m.of("mutableBytes", fn () ?[*]u8);
+    pub const mutableBytes = h.method("mutableBytes", fn () ?[*]u8);
 };
 
 test "NSMutableData: resize, edit, and append bytes" {

@@ -3,7 +3,7 @@ const obzc = @import("obzc");
 
 pub const NSNumber = opaque {
     const Self = @This();
-    const h = obzc.helpers.Object(Self);
+    const h = obzc.h(Self);
 
     pub const retain = h.retain;
     pub const release = h.release;
@@ -28,7 +28,7 @@ pub const NSNumber = opaque {
             else => @compileError("NSNumber.as supports only isize, f64, and bool"),
         };
 
-        return h.property(self, T, name);
+        return h.prop(name, T).getter(self);
     }
 };
 

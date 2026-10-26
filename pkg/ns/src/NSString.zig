@@ -3,7 +3,7 @@ const obzc = @import("obzc");
 
 pub const NSString = opaque {
     const Self = @This();
-    const h = obzc.helpers.Object(Self);
+    const h = obzc.h(Self);
     const utf8_encoding: usize = 4; // NSUTF8StringEncoding in Foundation/NSString.h.
 
     pub const retain = h.retain;
@@ -15,7 +15,7 @@ pub const NSString = opaque {
     }
 
     /// Number of UTF-16 code units, which may differ from the UTF-8 byte count.
-    pub const length = h.prop(usize, "length").getter;
+    pub const length = h.prop("length", usize).getter;
 
     /// Borrows UTF-8 bytes, including embedded NULs. Copy before leaving the current
     /// autorelease pool or releasing the string; the buffer may have a shorter lifetime.

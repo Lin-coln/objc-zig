@@ -4,7 +4,7 @@ const obzc = @import("obzc");
 pub fn NSArray(comptime T: type) type {
     return opaque {
         const Self = @This();
-        const h = obzc.helpers.Object(Self);
+        const h = obzc.h(Self);
 
         pub const retain = h.retain;
         pub const release = h.release;
@@ -14,10 +14,10 @@ pub fn NSArray(comptime T: type) type {
             return h.call(allocated, ?*Self, "initWithObjects:count:", .{ objects.ptr, objects.len }).?;
         }
 
-        pub const count = h.prop(usize, "count").getter;
+        pub const count = h.prop("count", usize).getter;
 
         /// The returned object is borrowed from the array.
-        pub const objectAtIndex = h.m.of("objectAtIndex:", fn (usize) *T);
+        pub const objectAtIndex = h.method("objectAtIndex:", fn (usize) *T);
     };
 }
 

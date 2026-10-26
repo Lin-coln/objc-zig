@@ -4,7 +4,7 @@ const obzc = @import("obzc");
 pub fn NSDictionary(comptime Key: type, comptime Value: type) type {
     return opaque {
         const Self = @This();
-        const h = obzc.helpers.Object(Self);
+        const h = obzc.h(Self);
 
         pub const retain = h.retain;
         pub const release = h.release;
@@ -16,10 +16,10 @@ pub fn NSDictionary(comptime Key: type, comptime Value: type) type {
             return h.call(h.cls.alloc(), *Self, "initWithObjects:forKeys:count:", .{ objects.ptr, keys.ptr, objects.len });
         }
 
-        pub const count = h.prop(usize, "count").getter;
+        pub const count = h.prop("count", usize).getter;
 
         /// Returns a borrowed value, or null when the key is absent.
-        pub const objectForKey = h.m.of("objectForKey:", fn (*Key) ?*Value);
+        pub const objectForKey = h.method("objectForKey:", fn (*Key) ?*Value);
     };
 }
 
