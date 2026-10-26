@@ -4,13 +4,13 @@ const MTLRenderPipelineColorAttachmentDescriptor = @import("MTLRenderPipelineCol
 
 pub const MTLRenderPipelineColorAttachmentDescriptorArray = opaque {
     const Self = @This();
-    const h = obzc.helpers.Object(Self);
+    const h = obzc.h(Self);
 
     pub const retain = h.retain;
     pub const release = h.release;
 
     /// Returns a borrowed attachment descriptor. The index must be in 0...7.
-    pub const objectAtIndexedSubscript = h.m.of("objectAtIndexedSubscript:", fn (usize) *MTLRenderPipelineColorAttachmentDescriptor);
+    pub const objectAtIndexedSubscript = h.method("objectAtIndexedSubscript:", fn (usize) *MTLRenderPipelineColorAttachmentDescriptor);
 };
 
 test "MTLRenderPipelineColorAttachmentDescriptorArray: indexed attachments keep independent values" {

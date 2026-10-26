@@ -5,20 +5,20 @@ const MTLTexture = @import("MTLTexture.zig").MTLTexture;
 
 pub const MTLRenderPassColorAttachmentDescriptor = opaque {
     const Self = @This();
-    const h = obzc.helpers.Object(Self);
+    const h = obzc.h(Self);
 
     pub const retain = h.retain;
     pub const release = h.release;
     pub const new = h.cls.new;
 
-    pub const texture = h.prop(?*MTLTexture, "texture").getter;
-    pub const setTexture = h.prop(?*MTLTexture, "texture").setter;
-    pub const loadAction = h.prop(mtl.MTLLoadAction, "loadAction").getter;
-    pub const setLoadAction = h.prop(mtl.MTLLoadAction, "loadAction").setter;
-    pub const storeAction = h.prop(mtl.MTLStoreAction, "storeAction").getter;
-    pub const setStoreAction = h.prop(mtl.MTLStoreAction, "storeAction").setter;
-    pub const clearColor = h.prop(mtl.MTLClearColor, "clearColor").getter;
-    pub const setClearColor = h.prop(mtl.MTLClearColor, "clearColor").setter;
+    pub const texture = h.prop("texture", ?*MTLTexture).getter;
+    pub const setTexture = h.prop("texture", ?*MTLTexture).setter;
+    pub const loadAction = h.prop("loadAction", mtl.MTLLoadAction).getter;
+    pub const setLoadAction = h.prop("loadAction", mtl.MTLLoadAction).setter;
+    pub const storeAction = h.prop("storeAction", mtl.MTLStoreAction).getter;
+    pub const setStoreAction = h.prop("storeAction", mtl.MTLStoreAction).setter;
+    pub const clearColor = h.prop("clearColor", mtl.MTLClearColor).getter;
+    pub const setClearColor = h.prop("clearColor", mtl.MTLClearColor).setter;
 };
 
 test "MTLRenderPassColorAttachmentDescriptor: clear color struct and attachment actions" {

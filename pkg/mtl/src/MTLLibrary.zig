@@ -5,13 +5,13 @@ const MTLFunction = @import("MTLFunction.zig").MTLFunction;
 
 pub const MTLLibrary = opaque {
     const Self = @This();
-    const h = obzc.helpers.Object(Self);
+    const h = obzc.h(Self);
 
     pub const retain = h.retain;
     pub const release = h.release;
 
     /// Returns an owned function, or null when the name is absent.
-    pub const newFunction = h.m.of("newFunctionWithName:", fn (*ns.NSString) ?*MTLFunction);
+    pub const newFunction = h.method("newFunctionWithName:", fn (*ns.NSString) ?*MTLFunction);
 };
 
 test "MTLLibrary: newFunction finds a named function and returns null for a missing name" {

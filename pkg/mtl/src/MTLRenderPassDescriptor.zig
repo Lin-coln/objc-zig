@@ -3,12 +3,12 @@ const MTLRenderPassColorAttachmentDescriptorArray = @import("MTLRenderPassColorA
 
 pub const MTLRenderPassDescriptor = opaque {
     const Self = @This();
-    const h = obzc.helpers.Object(Self);
+    const h = obzc.h(Self);
 
     pub const retain = h.retain;
     pub const release = h.release;
     pub const new = h.cls.new;
 
     /// Borrowed attachment array, owned by this descriptor.
-    pub const colorAttachments = h.prop(*MTLRenderPassColorAttachmentDescriptorArray, "colorAttachments").getter;
+    pub const colorAttachments = h.prop("colorAttachments", *MTLRenderPassColorAttachmentDescriptorArray).getter;
 };

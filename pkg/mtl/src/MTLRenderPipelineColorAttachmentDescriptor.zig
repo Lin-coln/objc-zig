@@ -4,14 +4,14 @@ const mtl = @import("mtl-abi");
 
 pub const MTLRenderPipelineColorAttachmentDescriptor = opaque {
     const Self = @This();
-    const h = obzc.helpers.Object(Self);
+    const h = obzc.h(Self);
 
     pub const retain = h.retain;
     pub const release = h.release;
     pub const new = h.cls.new;
 
-    pub const pixelFormat = h.prop(mtl.MTLPixelFormat, "pixelFormat").getter;
-    pub const setPixelFormat = h.prop(mtl.MTLPixelFormat, "pixelFormat").setter;
+    pub const pixelFormat = h.prop("pixelFormat", mtl.MTLPixelFormat).getter;
+    pub const setPixelFormat = h.prop("pixelFormat", mtl.MTLPixelFormat).setter;
 };
 
 test "MTLRenderPipelineColorAttachmentDescriptor: pixelFormat can be changed" {

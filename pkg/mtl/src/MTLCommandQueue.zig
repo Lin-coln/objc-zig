@@ -3,11 +3,11 @@ const MTLCommandBuffer = @import("MTLCommandBuffer.zig").MTLCommandBuffer;
 
 pub const MTLCommandQueue = opaque {
     const Self = @This();
-    const h = obzc.helpers.Object(Self);
+    const h = obzc.h(Self);
 
     pub const retain = h.retain;
     pub const release = h.release;
 
     /// Returns an autoreleased command buffer, or null on allocation failure.
-    pub const commandBuffer = h.m.of("commandBuffer", fn () ?*MTLCommandBuffer);
+    pub const commandBuffer = h.method("commandBuffer", fn () ?*MTLCommandBuffer);
 };

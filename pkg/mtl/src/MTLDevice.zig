@@ -14,7 +14,7 @@ const MTLRenderPipelineState = @import("MTLRenderPipelineState.zig").MTLRenderPi
 
 pub const MTLDevice = opaque {
     const Self = @This();
-    const h = obzc.helpers.Object(Self);
+    const h = obzc.h(Self);
 
     pub const retain = h.retain;
     pub const release = h.release;
@@ -24,9 +24,9 @@ pub const MTLDevice = opaque {
         return @ptrCast(mtl.MTLCreateSystemDefaultDevice());
     }
 
-    pub const newCommandQueue = h.m.of("newCommandQueue", fn () ?*MTLCommandQueue);
-    pub const newTexture = h.m.of("newTextureWithDescriptor:", fn (*MTLTextureDescriptor) ?*MTLTexture);
-    pub const newTextureWithIOSurface = h.m.of("newTextureWithDescriptor:iosurface:plane:", fn (*MTLTextureDescriptor, macos.IOSurfaceRef, usize) ?*MTLTexture);
+    pub const newCommandQueue = h.method("newCommandQueue", fn () ?*MTLCommandQueue);
+    pub const newTexture = h.method("newTextureWithDescriptor:", fn (*MTLTextureDescriptor) ?*MTLTexture);
+    pub const newTextureWithIOSurface = h.method("newTextureWithDescriptor:iosurface:plane:", fn (*MTLTextureDescriptor, macos.IOSurfaceRef, usize) ?*MTLTexture);
 
     /// Returns an owned library. Logs the SDK error when compilation fails.
     pub fn newLibrary(self: *Self, source: *ns.NSString, options: ?*MTLCompileOptions) !*MTLLibrary {

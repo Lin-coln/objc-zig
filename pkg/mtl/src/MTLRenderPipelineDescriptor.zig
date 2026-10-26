@@ -5,19 +5,19 @@ const MTLRenderPipelineColorAttachmentDescriptorArray = @import("MTLRenderPipeli
 
 pub const MTLRenderPipelineDescriptor = opaque {
     const Self = @This();
-    const h = obzc.helpers.Object(Self);
+    const h = obzc.h(Self);
 
     pub const retain = h.retain;
     pub const release = h.release;
     pub const new = h.cls.new;
 
-    pub const vertexFunction = h.prop(?*MTLFunction, "vertexFunction").getter;
-    pub const setVertexFunction = h.prop(?*MTLFunction, "vertexFunction").setter;
-    pub const fragmentFunction = h.prop(?*MTLFunction, "fragmentFunction").getter;
-    pub const setFragmentFunction = h.prop(?*MTLFunction, "fragmentFunction").setter;
+    pub const vertexFunction = h.prop("vertexFunction", ?*MTLFunction).getter;
+    pub const setVertexFunction = h.prop("vertexFunction", ?*MTLFunction).setter;
+    pub const fragmentFunction = h.prop("fragmentFunction", ?*MTLFunction).getter;
+    pub const setFragmentFunction = h.prop("fragmentFunction", ?*MTLFunction).setter;
     /// Borrowed attachment array, owned by this descriptor.
-    pub const colorAttachments = h.prop(*MTLRenderPipelineColorAttachmentDescriptorArray, "colorAttachments").getter;
-    pub const hash = h.m.of("hash", fn () usize);
+    pub const colorAttachments = h.prop("colorAttachments", *MTLRenderPipelineColorAttachmentDescriptorArray).getter;
+    pub const hash = h.method("hash", fn () usize);
 };
 
 test "MTLRenderPipelineDescriptor: new has empty function slots" {

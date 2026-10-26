@@ -4,7 +4,7 @@ const mtl = @import("mtl-abi");
 
 pub const MTLTextureDescriptor = opaque {
     const Self = @This();
-    const h = obzc.helpers.Object(Self);
+    const h = obzc.h(Self);
 
     pub const retain = h.retain;
     pub const release = h.release;
@@ -20,17 +20,17 @@ pub const MTLTextureDescriptor = opaque {
         });
     }
 
-    pub const pixelFormat = h.prop(mtl.MTLPixelFormat, "pixelFormat").getter;
-    pub const setPixelFormat = h.prop(mtl.MTLPixelFormat, "pixelFormat").setter;
-    pub const width = h.prop(usize, "width").getter;
-    pub const setWidth = h.prop(usize, "width").setter;
-    pub const height = h.prop(usize, "height").getter;
-    pub const setHeight = h.prop(usize, "height").setter;
-    pub const mipmapLevelCount = h.prop(usize, "mipmapLevelCount").getter;
-    pub const usage = h.prop(mtl.MTLTextureUsage, "usage").getter;
-    pub const setUsage = h.prop(mtl.MTLTextureUsage, "usage").setter;
-    pub const storageMode = h.prop(mtl.MTLStorageMode, "storageMode").getter;
-    pub const setStorageMode = h.prop(mtl.MTLStorageMode, "storageMode").setter;
+    pub const pixelFormat = h.prop("pixelFormat", mtl.MTLPixelFormat).getter;
+    pub const setPixelFormat = h.prop("pixelFormat", mtl.MTLPixelFormat).setter;
+    pub const width = h.prop("width", usize).getter;
+    pub const setWidth = h.prop("width", usize).setter;
+    pub const height = h.prop("height", usize).getter;
+    pub const setHeight = h.prop("height", usize).setter;
+    pub const mipmapLevelCount = h.prop("mipmapLevelCount", usize).getter;
+    pub const usage = h.prop("usage", mtl.MTLTextureUsage).getter;
+    pub const setUsage = h.prop("usage", mtl.MTLTextureUsage).setter;
+    pub const storageMode = h.prop("storageMode", mtl.MTLStorageMode).getter;
+    pub const setStorageMode = h.prop("storageMode", mtl.MTLStorageMode).setter;
 };
 
 test "MTLTextureDescriptor: configure texture dimensions and storage" {
