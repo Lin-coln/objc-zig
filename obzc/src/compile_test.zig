@@ -7,7 +7,6 @@ pub const sources = .{
     @import("helpers/method/makeWithSync.test.zig"),
     @import("helpers/method/spreadForCallback.test.zig"),
     @import("utils/spread.test.zig"),
-    @import("utils/spreadArgs.test.zig"),
 };
 
 test {

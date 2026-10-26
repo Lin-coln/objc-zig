@@ -2,7 +2,6 @@ const std = @import("std");
 const c = @import("../c.zig").c;
 
 pub const toSpreadedFn = @import("spread.zig").toSpreadedFn;
-pub const spreadArgs = @import("spreadArgs.zig").spreadArgs;
 
 pub const cast = struct {
     pub fn @"bool"(value: c.BOOL) bool {
@@ -100,5 +99,5 @@ test "resolveTypeName: named and generated types" {
 }
 
 test {
-    _ = @import("spreadArgs.zig");
+    _ = @import("spread.zig");
 }

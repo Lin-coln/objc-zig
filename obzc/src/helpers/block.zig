@@ -21,7 +21,7 @@ pub fn initWithContext(
         }
     };
 
-    return Block.init(ctx, obzc.utils.spreadArgs(Static.callback, .{ .convention = .c }));
+    return Block.init(ctx, obzc.utils.toSpreadedFn(Static.callback, .{ .cc = .c }));
 }
 
 /// Validates the handler before its parameter list is used to compute the returned Block type.
