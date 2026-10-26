@@ -2,6 +2,7 @@ pub const Class = @import("Class.zig").Class;
 
 test {
     _ = @import("calling.zig");
+    _ = @import("prop.zig");
 
     _ = @import("Class.zig");
     _ = @import("Object.zig");
