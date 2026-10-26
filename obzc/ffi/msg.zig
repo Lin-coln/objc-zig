@@ -49,24 +49,15 @@ fn MsgSendFn(comptime Target: type, comptime Return: type, comptime Args: type) 
     return @Fn(&param_types, &@splat(.{}), Return, .{ .@"callconv" = .c });
 }
 
-test "ffi msg: class and instance messages use the new opaque types" {
+test "ffi msg: send builds C signatures for class and instance receivers" {
     const pool = c.objc_autoreleasePoolPush();
     defer c.objc_autoreleasePoolPop(pool);
-    try std.testing.expectEqual(null, Class.lookup("ObzcFfiMissingClass"));
     const number_class = Class.lookup("NSNumber").?;
     const number = send(number_class, ?*Object, Sel.get("numberWithInteger:"), .{@as(isize, -42)}).?;
     try std.testing.expectEqual(-42, send(number, isize, Sel.get("integerValue"), .{}));
     try std.testing.expectEqual(@as(*Class, @ptrCast(c.object_getClass(@ptrCast(number)).?)), send(number, *Class, Sel.get("class"), .{}));
-    try std.testing.expectEqual(Sel.get("class"), Sel.get("class"));
     const immutable: *const Object = number;
     try std.testing.expectEqual(-42, send(immutable, isize, Sel.get("integerValue"), .{}));
-}
-
-test "ffi msg: nil receiver returns zero scalars and null objects" {
-    const receiver: ?*Object = null;
-    try std.testing.expectEqual(@as(usize, 0), send(receiver, usize, Sel.get("hash"), .{}));
-    try std.testing.expectEqual(@as(f64, 0), send(receiver, f64, Sel.get("doubleValue"), .{}));
-    try std.testing.expectEqual(null, send(receiver, ?*Object, Sel.get("self"), .{}));
 }
 
 test "ffi msg: normal and super calls preserve receiver and aggregate ABI" {

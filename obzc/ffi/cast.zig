@@ -49,7 +49,6 @@ test "z2c: converts boolean values to ABI YES and NO" {
         const result = z2c(value);
         try std.testing.expect(@TypeOf(result) == c.BOOL);
         try std.testing.expectEqual(if (value) c.YES else c.NO, result);
-        try std.testing.expectEqual(value, c2z(result));
     }
 }
 

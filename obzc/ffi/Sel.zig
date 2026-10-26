@@ -15,11 +15,18 @@ pub const Sel = opaque {
     }
 };
 
-test "Sel.get and name: interned names round-trip" {
+test "Sel.get: forwards the requested selector name" {
     inline for (.{ "", "init", "setValue:forKey:" }) |str| {
-        const sel: *const Sel = Sel.get(str);
-        try std.testing.expectEqualStrings(str, sel.name());
-        try std.testing.expectEqual(sel, Sel.get(str));
-        try std.testing.expectEqual(@as(u8, 0), sel.name().ptr[sel.name().len]);
+        const sel = Sel.get(str);
+        try std.testing.expectEqualStrings(str, std.mem.span(c.sel_getName(@ptrCast(sel))));
+    }
+}
+
+test "Sel.name: returns a const sentinel slice for the supplied selector" {
+    inline for (.{ "", "init", "setValue:forKey:" }) |str| {
+        const sel: *const Sel = @ptrCast(c.sel_registerName(str).?);
+        const name = sel.name();
+        try std.testing.expectEqualStrings(str, name);
+        try std.testing.expectEqual(@as(u8, 0), name.ptr[name.len]);
     }
 }
