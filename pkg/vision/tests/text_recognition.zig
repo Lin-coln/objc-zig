@@ -1,5 +1,6 @@
 const std = @import("std");
 const obzc = @import("obzc");
+const Object = obzc.ffi.Object;
 const ns = @import("obzc-ns");
 const vision = @import("obzc-vision");
 const macos = @import("macos/abi");
@@ -13,7 +14,7 @@ test "text recognition: encoded image data produces readable candidates" {
     const handler = blk: {
         const data = ns.NSData.init(@embedFile("fixtures/text.png"));
         defer data.release();
-        const options = ns.NSDictionary(ns.NSString, obzc.rt.Object).new();
+        const options = ns.NSDictionary(ns.NSString, Object).new();
         defer options.release();
         break :blk VNImageRequestHandler.initWithData(data, options);
     };
@@ -77,7 +78,7 @@ test "text recognition: a blank pixel buffer produces an empty result" {
         const pixels: [*]u8 = @ptrCast(macos.CVPixelBufferGetBaseAddress(pixel_buffer).?);
         @memset(pixels[0..macos.CVPixelBufferGetDataSize(pixel_buffer)], 255);
         try std.testing.expectEqual(macos.kCVReturnSuccess, macos.CVPixelBufferUnlockBaseAddress(pixel_buffer, 0));
-        const options = ns.NSDictionary(ns.NSString, obzc.rt.Object).new();
+        const options = ns.NSDictionary(ns.NSString, Object).new();
         defer options.release();
         break :created VNImageRequestHandler.initWithCVPixelBuffer(pixel_buffer, options);
     };

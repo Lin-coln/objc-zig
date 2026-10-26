@@ -10,25 +10,26 @@ pub const VNRequestTextRecognitionLevel = enum(isize) {
 };
 
 pub const VNRecognizeTextRequest = opaque {
-    const h = obzc.helpers.Object(@This());
+    const Self = @This();
+    const h = obzc.h(Self);
 
     pub const retain = h.retain;
     pub const release = h.release;
     pub const new = h.cls.new;
 
-    pub const recognitionLevel = h.prop(VNRequestTextRecognitionLevel, "recognitionLevel").getter;
-    pub const setRecognitionLevel = h.prop(VNRequestTextRecognitionLevel, "recognitionLevel").setter;
-    pub const recognitionLanguages = h.prop(*ns.NSArray(ns.NSString), "recognitionLanguages").getter;
-    pub const setRecognitionLanguages = h.prop(*ns.NSArray(ns.NSString), "recognitionLanguages").setter;
-    pub const usesLanguageCorrection = h.prop(bool, "usesLanguageCorrection").getter;
-    pub const setUsesLanguageCorrection = h.prop(bool, "usesLanguageCorrection").setter;
-    pub const minimumTextHeight = h.prop(f32, "minimumTextHeight").getter;
-    pub const setMinimumTextHeight = h.prop(f32, "minimumTextHeight").setter;
-    pub const regionOfInterest = h.prop(macos.CGRect, "regionOfInterest").getter;
-    pub const setRegionOfInterest = h.prop(macos.CGRect, "regionOfInterest").setter;
+    pub const recognitionLevel = h.prop("recognitionLevel", VNRequestTextRecognitionLevel).getter;
+    pub const setRecognitionLevel = h.prop("recognitionLevel", VNRequestTextRecognitionLevel).setter;
+    pub const recognitionLanguages = h.prop("recognitionLanguages", *ns.NSArray(ns.NSString)).getter;
+    pub const setRecognitionLanguages = h.prop("recognitionLanguages", *ns.NSArray(ns.NSString)).setter;
+    pub const usesLanguageCorrection = h.prop("usesLanguageCorrection", bool).getter;
+    pub const setUsesLanguageCorrection = h.prop("usesLanguageCorrection", bool).setter;
+    pub const minimumTextHeight = h.prop("minimumTextHeight", f32).getter;
+    pub const setMinimumTextHeight = h.prop("minimumTextHeight", f32).setter;
+    pub const regionOfInterest = h.prop("regionOfInterest", macos.CGRect).getter;
+    pub const setRegionOfInterest = h.prop("regionOfInterest", macos.CGRect).setter;
 
     /// Results are borrowed and remain null until the request has produced results.
-    pub const results = h.prop(?*ns.NSArray(VNRecognizedTextObservation), "results").getter;
+    pub const results = h.prop("results", ?*ns.NSArray(VNRecognizedTextObservation)).getter;
 };
 
 test "VNRecognizeTextRequest: configure recognition and region of interest" {

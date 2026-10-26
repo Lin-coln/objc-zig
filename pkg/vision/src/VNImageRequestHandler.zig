@@ -1,6 +1,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const obzc = @import("obzc");
+const Object = obzc.ffi.Object;
 const ns = @import("obzc-ns");
 const macos = @import("macos/abi");
 const VNRequest = @import("VNRequest.zig").VNRequest;
@@ -8,8 +9,8 @@ const VNRecognizeTextRequest = @import("VNRecognizeTextRequest.zig").VNRecognize
 
 pub const VNImageRequestHandler = opaque {
     const Self = @This();
-    const h = obzc.helpers.Object(Self);
-    const Options = ns.NSDictionary(ns.NSString, obzc.rt.Object);
+    const h = obzc.h(Self);
+    const Options = ns.NSDictionary(ns.NSString, Object);
 
     pub const retain = h.retain;
     pub const release = h.release;
@@ -41,7 +42,7 @@ test "VNImageRequestHandler: invalid image data fails without producing results"
     defer pool.release();
     const data = ns.NSData.init("not an image");
     defer data.release();
-    const options = ns.NSDictionary(ns.NSString, obzc.rt.Object).new();
+    const options = ns.NSDictionary(ns.NSString, Object).new();
     defer options.release();
     const handler = VNImageRequestHandler.initWithData(data, options);
     defer handler.release();

@@ -5,16 +5,17 @@ const macos = @import("macos/abi");
 const VNRecognizedText = @import("VNRecognizedText.zig").VNRecognizedText;
 
 pub const VNRecognizedTextObservation = opaque {
-    const h = obzc.helpers.Object(@This());
+    const Self = @This();
+    const h = obzc.h(Self);
 
     pub const retain = h.retain;
     pub const release = h.release;
 
-    pub const confidence = h.prop(f32, "confidence").getter;
-    pub const boundingBox = h.prop(macos.CGRect, "boundingBox").getter;
+    pub const confidence = h.prop("confidence", f32).getter;
+    pub const boundingBox = h.prop("boundingBox", macos.CGRect).getter;
 
     /// Returns a borrowed array with at most the requested number of candidates.
-    pub const topCandidates = h.m.of("topCandidates:", fn (usize) *ns.NSArray(VNRecognizedText));
+    pub const topCandidates = h.method("topCandidates:", fn (usize) *ns.NSArray(VNRecognizedText));
 };
 
 test "VNRecognizedTextObservation: read a bounding box and confidence" {
@@ -24,7 +25,7 @@ test "VNRecognizedTextObservation: read a bounding box and confidence" {
         .origin = .{ .x = 0.125, .y = 0.25 },
         .size = .{ .width = 0.5, .height = 0.5 },
     };
-    const observation = obzc.helpers.Class(VNRecognizedTextObservation).call(
+    const observation = obzc.h(VNRecognizedTextObservation).cls.call(
         *VNRecognizedTextObservation,
         "observationWithBoundingBox:",
         .{bounds},
