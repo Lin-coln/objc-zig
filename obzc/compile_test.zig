@@ -10,6 +10,10 @@ pub const sources = .{
     @import("helpers/method/makeWithCallback.test.zig"),
     @import("helpers/method/makeWithSync.test.zig"),
     @import("helpers/method/spreadForCallback.test.zig"),
+    @import("helpers2/method/initBlockWithContext.test.zig"),
+    @import("helpers2/method/makeWithCallback.test.zig"),
+    @import("helpers2/method/makeWithSync.test.zig"),
+    @import("helpers2/method/spreadForCallback.test.zig"),
 };
 
 test {
