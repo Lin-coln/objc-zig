@@ -1,17 +1,6 @@
 const std = @import("std");
-const c = @import("../../ffi/root.zig").c;
 
 pub const toSpreadedFn = @import("spread.zig").toSpreadedFn;
-
-pub const cast = struct {
-    pub fn @"bool"(value: c.BOOL) bool {
-        return value != c.NO;
-    }
-
-    pub fn BOOL(value: bool) c.BOOL {
-        return if (value) c.YES else c.NO;
-    }
-};
 
 /// Resolves the last namespace component, omitting type factory arguments.
 pub fn resolveTypeName(comptime full_name: []const u8) [:0]const u8 {

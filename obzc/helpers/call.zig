@@ -1,24 +1,24 @@
 const std = @import("std");
 const c = @import("../ffi/root.zig").c;
 const rt = @import("../src/rt/root.zig");
-const cast = @import("../src/utils/root.zig").cast;
+const cast = @import("../ffi/root.zig").cast;
 
 /// Calls an Objective-C method using Zig-facing argument and return types.
 /// Converts top-level bool values to and from BOOL; nested types and callbacks are unchanged.
 pub fn call(receiver: anytype, comptime Return: type, name: [:0]const u8, args: anytype) Return {
     var method_args: Args(@TypeOf(args)) = undefined;
     inline for (args, 0..) |value, i| {
-        method_args[i] = if (@TypeOf(value) == bool) cast.BOOL(value) else value;
+        method_args[i] = cast.z2c(value);
     }
 
-    const result = rt.msgSend(receiver, if (Return == bool) c.BOOL else Return, rt.Sel.registerName(name), method_args);
-    return if (Return == bool) cast.bool(result) else result;
+    const result = rt.msgSend(receiver, cast.type.z2c(Return), rt.Sel.registerName(name), method_args);
+    return if (Return == bool) cast.c2z(result) else result;
 }
 
 fn Args(comptime T: type) type {
     const fields = @typeInfo(T).@"struct".field_types;
     var types: [fields.len]type = undefined;
-    for (fields, 0..) |Field, i| types[i] = if (Field == bool) c.BOOL else Field;
+    for (fields, 0..) |Field, i| types[i] = cast.type.z2c(Field);
     return @Tuple(&types);
 }
 
