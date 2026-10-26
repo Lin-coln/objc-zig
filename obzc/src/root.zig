@@ -6,7 +6,6 @@ pub const Block = @import("Block/Self.zig").Block;
 pub const AutoReleasePool = @import("AutoReleasePool.zig").AutoReleasePool;
 
 test {
-    _ = @import("../ffi/root.zig");
     _ = @import("utils/root.zig");
     _ = @import("rt/root.zig");
     _ = @import("Block/Self.zig");
