@@ -1,6 +1,5 @@
 const std = @import("std");
 const ffi = @import("../ffi/root.zig");
-const calling = @import("calling.zig");
 const c = ffi.c;
 
 pub fn Object(comptime T: type) type {
@@ -10,7 +9,7 @@ pub fn Object(comptime T: type) type {
         pub const prop = p.of;
 
         pub fn call(self: *T, comptime Return: type, name: [:0]const u8, args: anytype) Return {
-            return calling.call(self, Return, name, args);
+            return @import("call.zig").call(self, Return, name, args);
         }
 
         pub fn retain(self: *T) *T {

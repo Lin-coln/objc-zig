@@ -1,7 +1,6 @@
 const std = @import("std");
 const ffi = @import("../ffi/root.zig");
 const utils = @import("../utils/root.zig");
-const calling = @import("calling.zig");
 
 pub fn Class(comptime T: type) type {
     const class_name = comptime utils.resolveTypeName(@typeName(T));
@@ -9,7 +8,7 @@ pub fn Class(comptime T: type) type {
     return struct {
         /// Calls a class method, converting top-level bool arguments and returns through BOOL.
         pub fn call(comptime Return: type, name: [:0]const u8, args: anytype) Return {
-            return calling.call(getClass(), Return, name, args);
+            return @import("call.zig").call(getClass(), Return, name, args);
         }
 
         fn getClass() *ffi.Class {
