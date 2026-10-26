@@ -124,7 +124,7 @@ fn resolveFromShape(comptime Shape: type) type {
     };
 }
 
-test "helpers2.makeWithSync: forwards class arguments and maps void completion errors" {
+test "helpers.makeWithSync: forwards class arguments and maps void completion errors" {
     const Helper = struct {
         var selector: []const u8 = "";
         var value: i32 = 0;
@@ -145,7 +145,7 @@ test "helpers2.makeWithSync: forwards class arguments and maps void completion e
     try std.testing.expectError(error.ObjectiveCError, function(8));
 }
 
-test "helpers2.makeWithSync: extracts the receiver and retains successful object results" {
+test "helpers.makeWithSync: extracts the receiver and retains successful object results" {
     const Receiver = struct {};
     const Result = opaque {};
     const Helper = struct {
@@ -174,7 +174,7 @@ test "helpers2.makeWithSync: extracts the receiver and retains successful object
     try std.testing.expectError(error.ObjectiveCError, function(&receiver));
 }
 
-test "helpers2.makeWithSync: waits for completion on another thread" {
+test "helpers.makeWithSync: waits for completion on another thread" {
     const Helper = struct {
         var thread: ?std.Thread = null;
         fn call(comptime Return: type, _: [:0]const u8, args: anytype) Return {
@@ -194,7 +194,7 @@ test "helpers2.makeWithSync: waits for completion on another thread" {
     try result;
 }
 
-test "helpers2.makeWithSync.resolveFromShape: extracts the error union payload and method signature" {
+test "helpers.makeWithSync.resolveFromShape: extracts the error union payload and method signature" {
     const Result = opaque {};
     const resolved = resolveFromShape(fn (i32) anyerror!*Result);
     try std.testing.expect(resolved.types.len == 1);

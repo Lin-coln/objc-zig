@@ -76,7 +76,7 @@ fn resolveFromShape(comptime Shape: type) type {
     };
 }
 
-test "helpers2.makeWithCallback: appends a block bound to context and preserves the method result" {
+test "helpers.makeWithCallback: appends a block bound to context and preserves the method result" {
     const State = struct {};
     const Receiver = struct {};
     const Handler = struct {
@@ -122,7 +122,7 @@ test "helpers2.makeWithCallback: appends a block bound to context and preserves 
     try std.testing.expectEqual(&state, Instance.context.?);
 }
 
-test "helpers2.makeWithCallback.resolveFromShape: separates method parameters and builds a context callback" {
+test "helpers.makeWithCallback.resolveFromShape: separates method parameters and builds a context callback" {
     const State = struct {};
     const resolved = resolveFromShape(fn (u32, fn (i32, f64) bool) usize);
     try std.testing.expect(resolved.types.len == 1);

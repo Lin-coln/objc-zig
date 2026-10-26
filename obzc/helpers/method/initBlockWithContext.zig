@@ -55,7 +55,7 @@ fn BlockFromContextHandler(comptime Context: type, fn_info: std.lang.Type.Fn) ty
     return block.Block(Context, Function);
 }
 
-test "helpers2.initBlockWithContext: routes stored context and arguments to the handler" {
+test "helpers.initBlockWithContext: routes stored context and arguments to the handler" {
     const State = struct { value: i32 = 0 };
     const Handler = struct {
         fn invoke(state: *State, value: i32, scale: i32) i32 {
@@ -75,7 +75,7 @@ test "helpers2.initBlockWithContext: routes stored context and arguments to the 
     try std.testing.expectEqual(@as(i32, 99), state.value);
 }
 
-test "helpers2.handlerInfo: returns the validated handler information" {
+test "helpers.handlerInfo: returns the validated handler information" {
     const Handler = fn (*u32, i32) bool;
     const info = handlerInfo(*u32, Handler);
     try std.testing.expect(info.param_types.len == 2);
@@ -84,7 +84,7 @@ test "helpers2.handlerInfo: returns the validated handler information" {
     try std.testing.expect(info.return_type.? == bool);
 }
 
-test "helpers2.BlockFromContextHandler: removes the context parameter from the block signature" {
+test "helpers.BlockFromContextHandler: removes the context parameter from the block signature" {
     const B = BlockFromContextHandler(*u32, @typeInfo(fn (*u32, i32) bool).@"fn");
     try std.testing.expect(B == block.Block(*u32, fn (i32) bool));
 }

@@ -28,7 +28,7 @@ pub fn method(comptime T: type, comptime call: anytype) type {
     };
 }
 
-test "helpers2.method.of: binds the supplied call function and selector" {
+test "helpers.method.of: binds the supplied call function and selector" {
     const Wrapped = opaque {};
     const First = struct {
         var selector: []const u8 = "";
@@ -63,7 +63,7 @@ test {
     _ = @import("spreadForCallback.zig");
 }
 
-test "helpers2.method.withCallback: binds the supplied class call and selector" {
+test "helpers.method.withCallback: binds the supplied class call and selector" {
     const Wrapped = opaque {};
     const Helper = struct {
         fn call(comptime Return: type, _: [:0]const u8, _: anytype) Return {
@@ -76,7 +76,7 @@ test "helpers2.method.withCallback: binds the supplied class call and selector" 
     try std.testing.expect(bound == expected);
 }
 
-test "helpers2.method.withSync: binds the supplied instance call and selector" {
+test "helpers.method.withSync: binds the supplied instance call and selector" {
     const Wrapped = opaque {};
     const Helper = struct {
         fn call(_: *Wrapped, comptime Return: type, _: [:0]const u8, _: anytype) Return {

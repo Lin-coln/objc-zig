@@ -8,14 +8,14 @@ const Helper = struct {
 };
 
 pub const CompileTestCases = .{
-    .{ .name = "helpers2.withCallback: rejects missing block parameter", .expected_error = "Shape must end with a block function type" },
-    .{ .name = "helpers2.withCallback: rejects non-function block parameter", .expected_error = "Shape must be a function type" },
+    .{ .name = "helpers.withCallback: rejects missing block parameter", .expected_error = "Shape must end with a block function type" },
+    .{ .name = "helpers.withCallback: rejects non-function block parameter", .expected_error = "Shape must be a function type" },
 };
 
-test "helpers2.withCallback: rejects missing block parameter" {
+test "helpers.withCallback: rejects missing block parameter" {
     _ = make(null, Helper.call, "complete:", fn () void);
 }
 
-test "helpers2.withCallback: rejects non-function block parameter" {
+test "helpers.withCallback: rejects non-function block parameter" {
     _ = make(null, Helper.call, "complete:", fn (u32) void);
 }

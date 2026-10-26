@@ -7,12 +7,12 @@ const core = @import("src/root.zig");
 pub const rt = core.rt;
 pub const Block = @import("block/root.zig").Block;
 
-pub const helpers2 = @import("helpers2/root.zig");
+pub const helpers = @import("helpers/root.zig");
 
 test {
     _ = @import("utils/root.zig");
     _ = ffi;
     _ = core;
     _ = @import("block/root.zig");
-    _ = helpers2;
+    _ = helpers;
 }

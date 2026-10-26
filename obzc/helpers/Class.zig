@@ -22,14 +22,14 @@ pub fn Class(comptime T: type) type {
     };
 }
 
-test "helpers2.Class: getClass resolves the wrapper type" {
+test "helpers.Class: getClass resolves the wrapper type" {
     const NSObject = opaque {};
     const NSNumber = opaque {};
     try std.testing.expectEqual(ffi.Class.lookup("NSObject").?, Class(NSObject).getClass());
     try std.testing.expectEqual(ffi.Class.lookup("NSNumber").?, Class(NSNumber).getClass());
 }
 
-test "helpers2.Class: call binds the receiver to its wrapper class" {
+test "helpers.Class: call binds the receiver to its wrapper class" {
     const NSObject = opaque {};
     const NSNumber = opaque {};
 
@@ -40,7 +40,7 @@ test "helpers2.Class: call binds the receiver to its wrapper class" {
     try std.testing.expectEqual(ffi.Class.lookup("NSObject").?, object_class.call(*ffi.Class, "class", .{}));
 }
 
-test "helpers2.Class: alloc and new bind their selectors and wrapper class" {
+test "helpers.Class: alloc and new bind their selectors and wrapper class" {
     const ObzcHelpers2ClassConstructionProbe = opaque {};
     const Probe = struct {
         var receiver: ?*ffi.Class = null;

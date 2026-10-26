@@ -45,7 +45,7 @@ pub fn resolveFromShape(comptime Shape: type) type {
     };
 }
 
-test "helpers2.makeMethod: forwards class arguments without adding a receiver" {
+test "helpers.makeMethod: forwards class arguments without adding a receiver" {
     const Recorder = struct {
         var selector: []const u8 = "";
         var received: struct { value: i32, scale: f64 } = undefined;
@@ -66,7 +66,7 @@ test "helpers2.makeMethod: forwards class arguments without adding a receiver" {
     try std.testing.expectEqual(@as(f64, 2.5), Recorder.received.scale);
 }
 
-test "helpers2.makeMethod: extracts the receiver before forwarding method arguments" {
+test "helpers.makeMethod: extracts the receiver before forwarding method arguments" {
     const Receiver = struct {};
     const Recorder = struct {
         var receiver: ?*Receiver = null;
@@ -91,7 +91,7 @@ test "helpers2.makeMethod: extracts the receiver before forwarding method argume
     try std.testing.expectEqual(@as(f64, 1.25), Recorder.received.scale);
 }
 
-test "helpers2.makeMethod: receiver-only and static calls forward an empty argument tuple" {
+test "helpers.makeMethod: receiver-only and static calls forward an empty argument tuple" {
     const Receiver = struct {};
     const Static = struct {
         var argument_count: usize = 99;
@@ -119,7 +119,7 @@ test "helpers2.makeMethod: receiver-only and static calls forward an empty argum
     try std.testing.expectEqual(&receiver, Instance.receiver.?);
 }
 
-test "helpers2.resolveFromShape: extracts parameter types, return type and calling convention" {
+test "helpers.resolveFromShape: extracts parameter types, return type and calling convention" {
     const Shape = fn (i32, ?*const u8) callconv(.c) ?*const u8;
     const resolved = resolveFromShape(Shape);
     try std.testing.expect(resolved.types.len == 2);

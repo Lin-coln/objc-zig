@@ -33,7 +33,7 @@ pub fn prop(comptime T: type, comptime call: anytype) type {
     };
 }
 
-test "helpers2.prop.get: selects a custom getter or falls back to the property name" {
+test "helpers.prop.get: selects a custom getter or falls back to the property name" {
     const ObzcHelpers2PropGetProbe = opaque {};
     const Recorder = struct {
         var receiver: ?*ObzcHelpers2PropGetProbe = null;
@@ -74,7 +74,7 @@ test "helpers2.prop.get: selects a custom getter or falls back to the property n
     }
 }
 
-test "helpers2.prop.set: generates the setter and forwards the receiver, type and value" {
+test "helpers.prop.set: generates the setter and forwards the receiver, type and value" {
     const Wrapped = opaque {};
     const Recorder = struct {
         var receiver: ?*Wrapped = null;
@@ -114,7 +114,7 @@ test "helpers2.prop.set: generates the setter and forwards the receiver, type an
     try std.testing.expectEqual(@as(i64, 19), Recorder.value);
 }
 
-test "helpers2.prop.of: binds the property name and type to generated accessors" {
+test "helpers.prop.of: binds the property name and type to generated accessors" {
     const NSObject = opaque {};
     const Recorder = struct {
         var receiver: ?*NSObject = null;

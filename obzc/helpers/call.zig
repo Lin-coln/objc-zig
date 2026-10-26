@@ -14,7 +14,7 @@ pub fn call(receiver: anytype, comptime Return: type, name: [:0]const u8, args: 
     return if (Return == bool) ffi.cast.c2z(result) else result;
 }
 
-test "helpers2.call: selects conversion only for a bool return" {
+test "helpers.call: selects conversion only for a bool return" {
     const Methods = struct {
         fn echo(_: *ffi.Object, _: *ffi.Sel, value: ffi.c.BOOL) callconv(.c) ffi.c.BOOL {
             return value;
@@ -38,7 +38,7 @@ test "helpers2.call: selects conversion only for a bool return" {
     try std.testing.expectEqual(value, call(object, ffi.c.BOOL, "echoBool:", .{value}));
 }
 
-test "helpers2.call: assembles arguments in order and converts only top-level bool" {
+test "helpers.call: assembles arguments in order and converts only top-level bool" {
     const Payload = extern struct { flags: [2]bool, enabled: bool, count: i32 };
     const Callback = *const fn (i32) callconv(.c) i32;
     const Methods = struct {

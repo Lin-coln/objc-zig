@@ -5,7 +5,7 @@ const c = ffi.c;
 pub fn Object(comptime T: type) type {
     return struct {
         const p = @import("prop.zig").prop(T, call);
-        const m = @import("method/root.zig").method(T, call);
+        pub const m = @import("method/root.zig").method(T, call);
 
         pub const prop = p.of;
         pub const method = m.of;
@@ -24,7 +24,7 @@ pub fn Object(comptime T: type) type {
     };
 }
 
-test "helpers2.Object.call: forwards the supplied instance instead of binding a class receiver" {
+test "helpers.Object.call: forwards the supplied instance instead of binding a class receiver" {
     const Wrapped = opaque {};
     const cls = ffi.Class.lookup("NSObject").?;
     const first = ffi.msg.send(cls, *Wrapped, ffi.Sel.get("new"), .{});
@@ -37,7 +37,7 @@ test "helpers2.Object.call: forwards the supplied instance instead of binding a 
     try std.testing.expectEqual(second, h.call(second, *Wrapped, "self", .{}));
 }
 
-test "helpers2.Object.retain: returns the supplied instance with its wrapper type" {
+test "helpers.Object.retain: returns the supplied instance with its wrapper type" {
     const Wrapped = opaque {};
     const object = ffi.msg.send(ffi.Class.lookup("NSObject").?, *Wrapped, ffi.Sel.get("new"), .{});
     defer c.objc_release(@ptrCast(object));
@@ -48,7 +48,7 @@ test "helpers2.Object.retain: returns the supplied instance with its wrapper typ
     try std.testing.expectEqual(object, retained);
 }
 
-test "helpers2.Object.release: releases the supplied instance" {
+test "helpers.Object.release: releases the supplied instance" {
     const Wrapped = opaque {};
     const Probe = struct {
         var first: ?*Wrapped = null;

@@ -9,7 +9,7 @@
         "build.zig.zon",
         "root.zig",
         "compile_test.zig",
-        "helpers2",
+        "helpers",
         "ffi",
         "block",
         "utils",
