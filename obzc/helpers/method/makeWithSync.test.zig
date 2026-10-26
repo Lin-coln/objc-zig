@@ -1,5 +1,5 @@
 const Method = @import("root.zig").Method;
-const Object = @import("../../rt/Object.zig").Object;
+const Object = @import("../../src/rt/Object.zig").Object;
 
 const Helper = struct {
     pub fn call(comptime Return: type, _: [:0]const u8, _: anytype) Return {

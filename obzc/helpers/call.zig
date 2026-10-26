@@ -1,7 +1,7 @@
 const std = @import("std");
-const c = @import("../c.zig").c;
-const rt = @import("../rt/root.zig");
-const cast = @import("../utils/root.zig").cast;
+const c = @import("../src/c.zig").c;
+const rt = @import("../src/rt/root.zig");
+const cast = @import("../src/utils/root.zig").cast;
 
 /// Calls an Objective-C method using Zig-facing argument and return types.
 /// Converts top-level bool values to and from BOOL; nested types and callbacks are unchanged.
@@ -32,7 +32,7 @@ test "Args: converts only top-level bool parameters" {
 }
 
 test "call: normalizes nonzero BOOL returns and preserves explicit ABI types" {
-    const encode = @import("../Block/encode.zig").encode;
+    const encode = @import("../src/Block/encode.zig").encode;
     const Methods = struct {
         const value: c.BOOL = if (c.BOOL == bool) true else 2;
 

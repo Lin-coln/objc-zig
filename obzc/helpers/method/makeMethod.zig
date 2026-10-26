@@ -1,6 +1,6 @@
 const std = @import("std");
 const utils = @import("utils.zig");
-const toSpreadedFn = @import("../../utils/root.zig").toSpreadedFn;
+const toSpreadedFn = @import("../../src/utils/root.zig").toSpreadedFn;
 
 pub fn makeMethod(
     comptime Receiver: ?type,
@@ -89,7 +89,7 @@ test "of: Shape preserves parameter types and contextual initialization" {
 
 test "of: return types and pointer nullability are preserved" {
     const Method = @import("root.zig").Method;
-    const rt = @import("../../rt/root.zig");
+    const rt = @import("../../src/rt/root.zig");
     const Helper = struct {
         pub fn call(comptime Return: type, _: [:0]const u8, args: anytype) Return {
             if (Return != @TypeOf(args[0])) @compileError("unexpected message return type");

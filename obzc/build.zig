@@ -19,7 +19,7 @@ pub fn build(b: *std.Build) void {
 
     const obzc = blk: {
         const opts: std.Build.Module.CreateOptions = .{
-            .root_source_file = b.path("src/root.zig"),
+            .root_source_file = b.path("root.zig"),
             .target = target,
             .optimize = optimize,
             .imports = &.{
@@ -67,12 +67,12 @@ fn addCompileErrorTests(
     objc_abi: *std.Build.Module,
 ) *std.Build.Step {
     const step = b.step("test-compile-errors", "Check compile-time validation errors");
-    inline for (@import("src/compile_test.zig").sources) |source| {
+    inline for (@import("compile_test.zig").sources) |source| {
         inline for (source.CompileTestCases) |case| {
             const check = b.addTest(.{
                 .name = "compile-test",
                 .root_module = b.createModule(.{
-                    .root_source_file = b.path("src/compile_test.zig"),
+                    .root_source_file = b.path("compile_test.zig"),
                     .target = target,
                     .optimize = optimize,
                     .imports = &.{

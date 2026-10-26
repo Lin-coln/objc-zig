@@ -1,9 +1,9 @@
 const std = @import("std");
 const utils = @import("utils.zig");
-const toSpreadedFn = @import("../../utils/root.zig").toSpreadedFn;
+const toSpreadedFn = @import("../../src/utils/root.zig").toSpreadedFn;
 const block = @import("../block.zig");
 const dispatch = std.c.dispatch;
-const rt = @import("../../rt/root.zig");
+const rt = @import("../../src/rt/root.zig");
 
 pub fn makeWithSync(
     comptime Receiver: ?type,

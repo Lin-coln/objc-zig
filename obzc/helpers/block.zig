@@ -1,5 +1,5 @@
 const std = @import("std");
-const obzc = @import("../root.zig");
+const obzc = @import("../src/root.zig");
 
 /// Creates a stack block for a handler receiving `ctx` and zero to twelve block arguments.
 /// The context pointer must outlive every invocation, including heap copies.

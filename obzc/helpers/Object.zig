@@ -1,5 +1,5 @@
 const std = @import("std");
-const obzc = @import("../root.zig");
+const obzc = @import("../src/root.zig");
 const Class = @import("Class.zig").Class;
 const Method = @import("method/root.zig").Method;
 

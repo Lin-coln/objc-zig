@@ -1,5 +1,5 @@
 const std = @import("std");
-const obzc = @import("../root.zig");
+const obzc = @import("../src/root.zig");
 const Method = @import("method/root.zig").Method;
 
 /// Class helpers for a wrapper whose type or type factory is named after its Objective-C class.
@@ -41,14 +41,14 @@ test "helpers.Class: call forwards class arguments and preserves nullable return
     defer obzc.rt.autoreleasePoolPop(pool);
 
     const number = Class(NSNumber).call(*NSNumber, "numberWithInteger:", .{@as(isize, 42)});
-    try std.testing.expectEqual(42, obzc.helpers.Object(NSNumber).call(number, isize, "integerValue", .{}));
+    try std.testing.expectEqual(42, @import("Object.zig").Object(NSNumber).call(number, isize, "integerValue", .{}));
     try std.testing.expectEqual(null, Class(NSObject).call(?*obzc.rt.Class, "superclass", .{}));
 }
 
 test "helpers.Class: call and m.of convert bool arguments and returns" {
     const NSNumber = opaque {};
     const h = Class(NSNumber);
-    const object = obzc.helpers.Object(NSNumber);
+    const object = @import("Object.zig").Object(NSNumber);
     const pool = obzc.rt.autoreleasePoolPush();
     defer obzc.rt.autoreleasePoolPop(pool);
 
