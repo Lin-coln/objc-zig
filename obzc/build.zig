@@ -8,7 +8,7 @@ pub fn build(b: *std.Build) void {
 
     const objc_abi = blk: {
         const trans = b.addTranslateC(.{
-            .root_source_file = b.path("translate/objc.h"),
+            .root_source_file = b.path("ffi/c.h"),
             .target = target,
             .optimize = optimize,
         });

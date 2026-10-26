@@ -1,5 +1,5 @@
 const std = @import("std");
-const c = @import("../c.zig").c;
+const c = @import("../../ffi/root.zig").c;
 
 pub const Sel = opaque {
     pub fn registerName(selector_name: [:0]const u8) *Sel {

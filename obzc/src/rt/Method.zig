@@ -2,7 +2,7 @@ const std = @import("std");
 const objc = @import("objc/root.zig");
 const Sel = @import("Sel.zig").Sel;
 const Object = @import("Object.zig").Object;
-const c = @import("../c.zig").c;
+const c = @import("../../ffi/root.zig").c;
 
 pub const Method = opaque {
     pub fn getImplementation(self: *Method) c.IMP {

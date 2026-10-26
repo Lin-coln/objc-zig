@@ -1,5 +1,5 @@
 const std = @import("std");
-const c = @import("../c.zig").c;
+const c = @import("../../ffi/root.zig").c;
 const rt = @import("../rt/root.zig");
 
 pub fn isObject(comptime T: type) bool {

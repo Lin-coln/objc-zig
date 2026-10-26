@@ -71,6 +71,7 @@ pub fn Object(comptime T: type) type {
 }
 
 test "helpers.Object: call forwards instance receivers and arguments" {
+    const c = @import("../ffi/root.zig").c;
     const NSNumber = opaque {
         pub const call = Object(@This()).call;
     };
@@ -82,8 +83,8 @@ test "helpers.Object: call forwards instance receivers and arguments" {
     const second = h.cls.call(*NSNumber, "numberWithInteger:", .{@as(isize, 12)});
     try std.testing.expectEqual(7, first.call(isize, "integerValue", .{}));
     try std.testing.expectEqual(12, second.call(isize, "integerValue", .{}));
-    try std.testing.expectEqual(obzc.c.NO, first.call(obzc.c.BOOL, "isEqualToNumber:", .{second}));
-    try std.testing.expectEqual(obzc.c.YES, first.call(obzc.c.BOOL, "isEqualToNumber:", .{first}));
+    try std.testing.expectEqual(c.NO, first.call(c.BOOL, "isEqualToNumber:", .{second}));
+    try std.testing.expectEqual(c.YES, first.call(c.BOOL, "isEqualToNumber:", .{first}));
     try std.testing.expectEqual(first, first.call(?*NSNumber, "self", .{}).?);
 }
 

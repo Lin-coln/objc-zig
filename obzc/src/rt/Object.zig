@@ -1,7 +1,7 @@
 const std = @import("std");
 const objc = @import("objc/root.zig");
 const Sel = @import("Sel.zig").Sel;
-const c = @import("../c.zig").c;
+const c = @import("../../ffi/root.zig").c;
 const Class = @import("Class.zig").Class;
 const Ivar = @import("Ivar.zig").Ivar;
 

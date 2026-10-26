@@ -1,6 +1,6 @@
 const std = @import("std");
 const objc = @import("objc/root.zig");
-const c = @import("../c.zig").c;
+const c = @import("../../ffi/root.zig").c;
 
 pub const Property = opaque {
     pub fn getName(self: *Property) [:0]const u8 {

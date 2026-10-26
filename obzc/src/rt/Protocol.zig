@@ -1,6 +1,6 @@
 const std = @import("std");
 const objc = @import("objc/root.zig");
-const c = @import("../c.zig").c;
+const c = @import("../../ffi/root.zig").c;
 const Property = @import("Property.zig").Property;
 
 pub const Protocol = opaque {

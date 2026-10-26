@@ -10,8 +10,8 @@
         "root.zig",
         "compile_test.zig",
         "helpers",
+        "ffi",
         "src",
         "tests",
-        "translate",
     },
 }

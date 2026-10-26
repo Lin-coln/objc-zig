@@ -1,5 +1,5 @@
 const std = @import("std");
-const c = @import("../../c.zig").c;
+const c = @import("../../../ffi/root.zig").c;
 const Class = @import("../Class.zig").Class;
 const Protocol = @import("../Protocol.zig").Protocol;
 

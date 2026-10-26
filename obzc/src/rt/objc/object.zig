@@ -1,7 +1,7 @@
 const std = @import("std");
 const objc = @import("root.zig");
 const Sel = @import("../Sel.zig").Sel;
-const c = @import("../../c.zig").c;
+const c = @import("../../../ffi/root.zig").c;
 const Object = @import("../Object.zig").Object;
 
 pub const AssociationPolicy = enum(usize) {

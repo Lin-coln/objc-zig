@@ -1,5 +1,5 @@
 const std = @import("std");
-const c = @import("../src/c.zig").c;
+const c = @import("../ffi/root.zig").c;
 const rt = @import("../src/rt/root.zig");
 const cast = @import("../src/utils/root.zig").cast;
 

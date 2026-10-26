@@ -1,6 +1,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
-const c = @import("../c.zig").c;
+const c = @import("../../ffi/root.zig").c;
 const encode = @import("encode.zig").encode;
 
 /// An Objective-C block literal (Apple Block ABI) whose `invoke` has the parameters of `Function`,
