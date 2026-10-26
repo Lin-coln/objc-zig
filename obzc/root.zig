@@ -10,6 +10,7 @@ pub const AutoReleasePool = core.AutoReleasePool;
 pub const helpers = @import("helpers/root.zig");
 
 test {
+    _ = @import("utils/root.zig");
     _ = ffi;
     _ = core;
     _ = helpers;

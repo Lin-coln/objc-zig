@@ -1,7 +1,5 @@
 const std = @import("std");
 
-pub const toSpreadedFn = @import("spread.zig").toSpreadedFn;
-
 /// Resolves the last namespace component, omitting type factory arguments.
 pub fn resolveTypeName(comptime full_name: []const u8) [:0]const u8 {
     var start: usize = 0;
@@ -85,8 +83,4 @@ test "resolveTypeName: named and generated types" {
         try std.testing.expectEqualStrings(case[1], name);
         try std.testing.expectEqual(@as(u8, 0), name.ptr[name.len]);
     }
-}
-
-test {
-    _ = @import("spread.zig");
 }

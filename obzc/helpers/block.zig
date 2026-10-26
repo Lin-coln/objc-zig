@@ -1,5 +1,6 @@
 const std = @import("std");
 const obzc = @import("../src/root.zig");
+const utils = @import("../utils/root.zig");
 
 /// Creates a stack block for a handler receiving `ctx` and zero to twelve block arguments.
 /// The context pointer must outlive every invocation, including heap copies.
@@ -21,7 +22,7 @@ pub fn initWithContext(
         }
     };
 
-    return Block.init(ctx, obzc.utils.toSpreadedFn(Static.callback, .{ .cc = .c }));
+    return Block.init(ctx, utils.toSpreadedFn(Static.callback, .{ .cc = .c }));
 }
 
 /// Validates the handler before its parameter list is used to compute the returned Block type.

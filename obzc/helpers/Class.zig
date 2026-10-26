@@ -1,11 +1,12 @@
 const std = @import("std");
 const obzc = @import("../src/root.zig");
+const utils = @import("../utils/root.zig");
 const Method = @import("method/root.zig").Method;
 
 /// Class helpers for a wrapper whose type or type factory is named after its Objective-C class.
 /// Define class methods through `h.m.of`, `h.m.withCallback`, or `h.m.withSync`.
 pub fn Class(comptime T: type) type {
-    const class_name = comptime obzc.utils.resolveTypeName(@typeName(T));
+    const class_name = comptime utils.resolveTypeName(@typeName(T));
 
     return struct {
         pub const m = Method(T, @This());

@@ -11,6 +11,7 @@
         "compile_test.zig",
         "helpers",
         "ffi",
+        "utils",
         "src",
         "tests",
     },

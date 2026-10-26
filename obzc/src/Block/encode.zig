@@ -1,6 +1,6 @@
 const std = @import("std");
 const rt = @import("../rt/root.zig");
-const utils = @import("../utils/root.zig");
+const utils = @import("../../utils/root.zig");
 const Type = std.lang.Type;
 
 /// Returns the Objective-C encoding of a Zig type, e.g. `i32` -> `i`, `*i32` -> `^i`.

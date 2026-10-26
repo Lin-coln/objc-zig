@@ -1,6 +1,6 @@
 const std = @import("std");
 const utils = @import("utils.zig");
-const toSpreadedFn = @import("../../src/utils/root.zig").toSpreadedFn;
+const toSpreadedFn = @import("../../utils/root.zig").toSpreadedFn;
 const block = @import("../block.zig");
 const dispatch = std.c.dispatch;
 const rt = @import("../../src/rt/root.zig");
