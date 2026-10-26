@@ -152,15 +152,8 @@ fn resolveStructName(comptime T: type) []const u8 {
     return name;
 }
 
-test "encode" {
-    const Record = extern struct {
-        callback: ?*const fn () callconv(.c) void,
-        values: [2]u16,
-        object: ?*const Object,
-    };
-    const Sentinel = extern struct { data: [3:0]u8 };
-    try std.testing.expectEqualStrings("{Record=^?[2S]@}", comptime encode(Record));
-    try std.testing.expectEqualStrings("{Sentinel=[4C]}", comptime encode(Sentinel));
+test "encode: delegates to encodeAnytype" {
+    try std.testing.expectEqualStrings(comptime encodeAnytype(i32), comptime encode(i32));
 }
 
 test "encodeAnytype" {

@@ -79,6 +79,8 @@ test "DescriptorWithHelpers.init: reserved, block size and signature" {
     try std.testing.expectEqual(@as(c_ulong, 0), descriptor.reserved);
     try std.testing.expectEqual(@as(c_ulong, @sizeOf(B)), descriptor.size);
     try std.testing.expectEqual(signature.ptr, descriptor.signature);
+    try std.testing.expectEqual(&DescriptorWithHelpers(B).copyHelper, descriptor.copy_helper);
+    try std.testing.expectEqual(&DescriptorWithHelpers(B).disposeHelper, descriptor.dispose_helper);
 }
 
 test "DescriptorWithHelpers: copy retains the captured object until dispose" {
@@ -101,19 +103,19 @@ test "DescriptorWithHelpers: copy retains the captured object until dispose" {
     defer c.objc_disposeClassPair(class);
     try std.testing.expect(c.class_addMethod(class, c.sel_registerName("dealloc"), @ptrCast(&Probe.dealloc), "v@:") == c.YES);
     c.objc_registerClassPair(class);
-    const descriptor = DescriptorWithHelpers(B).init("v@?");
+    const Helpers = DescriptorWithHelpers(B);
     var destination: B = undefined;
     {
         const send: *const fn (c.Class, c.SEL) callconv(.c) c.id = @ptrCast(&c.objc_msgSend);
         const object: *Object = @ptrCast(send(class, c.sel_registerName("new")).?);
         defer c.objc_release(@ptrCast(object));
         const source: B = .{ .context = object };
-        descriptor.copy_helper(&destination, &source);
-        errdefer descriptor.dispose_helper(&destination);
+        Helpers.copyHelper(&destination, &source);
+        errdefer Helpers.disposeHelper(&destination);
         try std.testing.expectEqual(source.context, destination.context);
     }
     {
-        defer if (!Probe.deallocated) descriptor.dispose_helper(&destination);
+        defer if (!Probe.deallocated) Helpers.disposeHelper(&destination);
         try std.testing.expect(!Probe.deallocated);
     }
     try std.testing.expect(Probe.deallocated);
@@ -121,10 +123,10 @@ test "DescriptorWithHelpers: copy retains the captured object until dispose" {
 
 test "DescriptorWithHelpers: null object captures need no ownership" {
     const B = extern struct { context: ?*Object };
-    const descriptor = DescriptorWithHelpers(B).init("v@?");
+    const Helpers = DescriptorWithHelpers(B);
     const source: B = .{ .context = null };
     var destination: B = undefined;
-    descriptor.copy_helper(&destination, &source);
+    Helpers.copyHelper(&destination, &source);
     try std.testing.expectEqual(null, destination.context);
-    descriptor.dispose_helper(&destination);
+    Helpers.disposeHelper(&destination);
 }

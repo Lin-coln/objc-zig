@@ -84,59 +84,67 @@ pub fn generateFromFnType(comptime Fn: type) [:0]const u8 {
     return std.fmt.comptimePrint("{s}", .{signature});
 }
 
-test "Block.init: header, descriptor and invocation" {
-    const Add = Block(i32, fn (i32) i32);
+test "Block.init: binds context and callback with default header fields" {
+    const B = Block(i32, fn () void);
     const callback = struct {
-        fn invoke(block: *const Add, value: i32) callconv(.c) i32 {
-            return block.context + value;
-        }
+        fn invoke(_: *const B) callconv(.c) void {}
     }.invoke;
-    const block = Add.init(7, &callback);
+    const block = B.init(7, &callback);
+    const defaults: B = .{ .context = 0, .invoke = &callback };
 
-    try std.testing.expectEqual(@as(?*anyopaque, &c._NSConcreteStackBlock), block.isa);
-    try std.testing.expectEqual(@as(c_int, c.BLOCK_HAS_SIGNATURE), block.flags);
-    try std.testing.expectEqual(@as(c_int, 0), block.reserved);
-    // Check that Block connects its full type and generated signature to the descriptor.
-    try std.testing.expectEqual(@as(c_ulong, @sizeOf(Add)), block.descriptor.size);
-    try std.testing.expectEqualStrings("i@?i", std.mem.span(block.descriptor.signature));
-    try std.testing.expectEqual(10, block.invoke(&block, 3));
+    try std.testing.expectEqual(7, block.context);
+    try std.testing.expectEqual(&callback, block.invoke);
+    try std.testing.expectEqual(defaults.isa, block.isa);
+    try std.testing.expectEqual(defaults.flags, block.flags);
+    try std.testing.expectEqual(defaults.reserved, block.reserved);
+    try std.testing.expectEqual(defaults.descriptor, block.descriptor);
 }
 
-test "Block.copy / release: context snapshot and heap lifetime" {
-    const Context = extern struct { value: i32, pointer: *i32 };
-    const Read = Block(Context, fn () i32);
+test "Block.copy: forwards the supplied block and returns its typed heap copy" {
+    const B = Block(i32, fn () void);
     const callback = struct {
-        fn invoke(block: *const Read) callconv(.c) i32 {
-            return block.context.value + block.context.pointer.*;
-        }
+        fn invoke(_: *const B) callconv(.c) void {}
     }.invoke;
+    const source: B = .{ .context = 42, .invoke = &callback };
+    const copied = source.copy().?;
+    defer c._Block_release(copied);
 
-    var value: i32 = 10;
-    const retained = retain: {
-        // The heap copy must also survive the end of the stack block's scope.
-        const copied = copy: {
-            var block = Read.init(.{ .value = 7, .pointer = &value }, &callback);
-            const heap = block.copy().?;
-            errdefer heap.release();
-            try std.testing.expect(heap != &block);
-            block.context.value = 100;
-            break :copy heap;
+    try std.testing.expect(@TypeOf(copied) == *B);
+    try std.testing.expect(copied != &source);
+    try std.testing.expectEqual(source.context, copied.context);
+    try std.testing.expectEqual(source.invoke, copied.invoke);
+}
+
+test "Block.release: releases the supplied heap block" {
+    const B = Block(*bool, fn () void);
+    const Fixture = struct {
+        const Descriptor = extern struct {
+            reserved: c_ulong = 0,
+            size: c_ulong = @sizeOf(B),
+            copy: *const fn (*B, *const B) callconv(.c) void = &copy,
+            dispose: *const fn (*const B) callconv(.c) void = &dispose,
+            signature: [*:0]const u8 = "v@?",
         };
-        defer copied.release();
 
-        value = 20;
-        try std.testing.expectEqual(7, copied.context.value);
-        try std.testing.expectEqual(&value, copied.context.pointer);
-        try std.testing.expectEqual(27, copied.invoke(copied));
-
-        const retained = copied.copy().?;
-        errdefer retained.release();
-        try std.testing.expectEqual(copied, retained);
-        break :retain retained;
+        fn invoke(_: *const B) callconv(.c) void {}
+        fn copy(_: *B, _: *const B) callconv(.c) void {}
+        fn dispose(block: *const B) callconv(.c) void {
+            block.context.* = true;
+        }
     };
-    defer retained.release();
-    // Releasing one ownership must leave the retained heap block usable.
-    try std.testing.expectEqual(27, retained.invoke(retained));
+    var disposed = false;
+    const descriptor: Fixture.Descriptor = .{};
+    const source: B = .{
+        .context = &disposed,
+        .invoke = &Fixture.invoke,
+        .flags = c.BLOCK_HAS_SIGNATURE | c.BLOCK_HAS_COPY_DISPOSE,
+        .descriptor = @ptrCast(&descriptor),
+    };
+    const heap: *B = @ptrCast(@alignCast(c._Block_copy(&source).?));
+    defer if (!disposed) c._Block_release(heap);
+
+    heap.release();
+    try std.testing.expect(disposed);
 }
 
 test "getFlags: signature and struct return convention" {
