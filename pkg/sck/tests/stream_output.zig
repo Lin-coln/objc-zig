@@ -1,6 +1,7 @@
 const std = @import("std");
 const obzc = @import("obzc");
-const rt = obzc.rt;
+const ffi = obzc.ffi;
+const c = ffi.c;
 const macos = @import("macos/abi");
 const sck = @import("obzc-sck");
 
@@ -16,33 +17,32 @@ const ObzcSCKStreamOutputTest = opaque {
     };
 
     /// The caller must release every instance before disposing the registered class.
-    pub fn registerClass() !*rt.Class {
-        const cls = rt.allocateClassPair(rt.getClass("NSObject").?, "ObzcSCKStreamOutputTest", 0) orelse return error.ClassAllocFailed;
-        errdefer rt.disposeClassPair(cls);
+    pub fn registerClass() !*ffi.Class {
+        const cls = c.objc_allocateClassPair(c.objc_getClass("NSObject").?, "ObzcSCKStreamOutputTest", 0) orelse return error.ClassAllocFailed;
+        errdefer c.objc_disposeClassPair(@ptrCast(cls));
 
         // The SDK may omit protocol metadata; its add/remove operations are tested regardless.
-        if (rt.getProtocol("SCStreamOutput")) |protocol| {
-            if (!cls.addProtocol(protocol)) return error.AddProtocolFailed;
+        if (c.objc_getProtocol("SCStreamOutput")) |protocol| {
+            if (c.class_addProtocol(cls, protocol) != c.YES) return error.AddProtocolFailed;
         }
-        if (!cls.addIvar("_context", @sizeOf(*Context), std.math.log2_int(usize, @alignOf(*Context)), "^v"))
+        if (c.class_addIvar(cls, "_context", @sizeOf(*Context), std.math.log2_int(usize, @alignOf(*Context)), "^v") != c.YES)
             return error.AddContextFailed;
         // SCStream *, CMSampleBufferRef and SCStreamOutputType (NSInteger), from SCStream.h.
-        if (!cls.addMethod(rt.Sel.registerName(callback_selector), &receive, "v@:@^{opaqueCMSampleBuffer=}q"))
+        if (c.class_addMethod(cls, c.sel_registerName(callback_selector), @ptrCast(&receive), "v@:@^{opaqueCMSampleBuffer=}q") != c.YES)
             return error.AddCallbackFailed;
-        rt.registerClassPair(cls);
-        return cls;
+        c.objc_registerClassPair(cls);
+        return @ptrCast(cls);
     }
 
     /// The context is borrowed and must outlive the instance and every callback.
-    pub fn new(cls: *rt.Class, context: *Context) *Self {
-        const self = rt.msgSend(cls, ?*Self, rt.Sel.registerName("new"), .{}).?;
-        const object: *rt.Object = @ptrCast(self);
-        _ = object.setInstanceVariable("_context", context).?;
+    pub fn new(cls: *ffi.Class, context: *Context) *Self {
+        const self = ffi.msg.send(cls, ?*Self, ffi.Sel.get("new"), .{}).?;
+        _ = c.object_setInstanceVariable(@ptrCast(self), "_context", context).?;
         return self;
     }
 
     pub fn release(self: *Self) void {
-        rt.release(@ptrCast(self));
+        c.objc_release(@ptrCast(self));
     }
 
     pub fn asOutput(self: *Self) *sck.SCStreamOutput {
@@ -50,12 +50,12 @@ const ObzcSCKStreamOutputTest = opaque {
     }
 
     pub fn didOutputSampleBuffer(self: *Self, stream: *sck.SCStream, sample_buffer: macos.CMSampleBufferRef, output_type: sck.SCStreamOutputType) void {
-        rt.msgSend(self, void, rt.Sel.registerName(callback_selector), .{ stream, sample_buffer, output_type });
+        ffi.msg.send(self, void, ffi.Sel.get(callback_selector), .{ stream, sample_buffer, output_type });
     }
 
-    fn receive(self: *rt.Object, _: *rt.Sel, stream: *sck.SCStream, sample_buffer: macos.CMSampleBufferRef, output_type: sck.SCStreamOutputType) callconv(.c) void {
+    fn receive(self: *ffi.Object, _: *ffi.Sel, stream: *sck.SCStream, sample_buffer: macos.CMSampleBufferRef, output_type: sck.SCStreamOutputType) callconv(.c) void {
         var raw: ?*anyopaque = null;
-        _ = self.getInstanceVariable("_context", &raw).?;
+        _ = c.object_getInstanceVariable(@ptrCast(self), "_context", &raw).?;
         const context: *Context = @ptrCast(@alignCast(raw.?));
         context.calls += 1;
         context.stream = stream;
@@ -73,7 +73,7 @@ const Fixture = struct {
 
     fn init() !Fixture {
         // An empty filter allows stream initialization without starting capture.
-        const filter = rt.msgSend(rt.getClass("SCContentFilter").?, ?*sck.SCContentFilter, rt.Sel.registerName("new"), .{}).?;
+        const filter = ffi.msg.send(ffi.Class.lookup("SCContentFilter").?, ?*sck.SCContentFilter, ffi.Sel.get("new"), .{}).?;
         errdefer filter.release();
         const configuration = sck.SCStreamConfiguration.new();
         errdefer configuration.release();
@@ -95,11 +95,11 @@ const Fixture = struct {
 
 test "SCStreamOutput: SDK registration and per-instance callback contexts" {
     const cls = try ObzcSCKStreamOutputTest.registerClass();
-    defer rt.disposeClassPair(cls);
+    defer c.objc_disposeClassPair(@ptrCast(cls));
     const pool = obzc.AutoReleasePool.create();
     defer pool.release();
-    try std.testing.expect(cls.respondsToSelector(rt.Sel.registerName(ObzcSCKStreamOutputTest.callback_selector)));
-    if (rt.getProtocol("SCStreamOutput")) |protocol| try std.testing.expect(cls.conformsToProtocol(protocol));
+    try std.testing.expect(c.class_respondsToSelector(@ptrCast(cls), c.sel_registerName(ObzcSCKStreamOutputTest.callback_selector)) == c.YES);
+    if (c.objc_getProtocol("SCStreamOutput")) |protocol| try std.testing.expect(c.class_conformsToProtocol(@ptrCast(cls), protocol) == c.YES);
 
     var first_context: ObzcSCKStreamOutputTest.Context = .{};
     var second_context: ObzcSCKStreamOutputTest.Context = .{};

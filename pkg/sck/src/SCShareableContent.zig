@@ -6,12 +6,12 @@ const SCWindow = @import("SCWindow.zig").SCWindow;
 
 pub const SCShareableContent = opaque {
     const Self = @This();
-    const h = obzc.helpers.Object(Self);
+    const h = obzc.h(Self);
 
     pub const retain = h.retain;
     pub const release = h.release;
 
-    pub const windows = h.prop(*ns.NSArray(SCWindow), "windows").getter;
+    pub const windows = h.prop("windows", *ns.NSArray(SCWindow)).getter;
 
     /// The context pointer must remain valid until the completion handler returns.
     pub const getShareableContent = h.cls.m.withCallback(

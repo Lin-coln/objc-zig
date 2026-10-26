@@ -6,7 +6,7 @@ pub fn Class(comptime T: type) type {
     const class_name = comptime utils.resolveTypeName(@typeName(T));
 
     return struct {
-        const m = @import("method/root.zig").method(T, call);
+        pub const m = @import("method/root.zig").method(T, call);
 
         pub const alloc = m.of("alloc", fn () *T);
         pub const new = m.of("new", fn () *T);

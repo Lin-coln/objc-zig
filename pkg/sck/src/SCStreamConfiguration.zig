@@ -11,33 +11,33 @@ pub const SCCaptureResolutionType = enum(isize) {
 
 pub const SCStreamConfiguration = opaque {
     const Self = @This();
-    const h = obzc.helpers.Object(Self);
+    const h = obzc.h(Self);
 
     pub const new = h.cls.new;
     pub const retain = h.retain;
     pub const release = h.release;
 
-    pub const width = h.prop(usize, "width").getter;
-    pub const setWidth = h.prop(usize, "width").setter;
-    pub const height = h.prop(usize, "height").getter;
-    pub const setHeight = h.prop(usize, "height").setter;
-    pub const queueDepth = h.prop(isize, "queueDepth").getter;
-    pub const setQueueDepth = h.prop(isize, "queueDepth").setter;
-    pub const showsCursor = h.prop(bool, "showsCursor").getter;
-    pub const setShowsCursor = h.prop(bool, "showsCursor").setter;
-    pub const capturesAudio = h.prop(bool, "capturesAudio").getter;
-    pub const setCapturesAudio = h.prop(bool, "capturesAudio").setter;
-    pub const minimumFrameInterval = h.prop(macos.CMTime, "minimumFrameInterval").getter;
-    pub const setMinimumFrameInterval = h.prop(macos.CMTime, "minimumFrameInterval").setter;
-    pub const pixelFormat = h.prop(macos.OSType, "pixelFormat").getter;
-    pub const setPixelFormat = h.prop(macos.OSType, "pixelFormat").setter;
-    pub const captureResolution = h.prop(SCCaptureResolutionType, "captureResolution").getter;
-    pub const setCaptureResolution = h.prop(SCCaptureResolutionType, "captureResolution").setter;
+    pub const width = h.prop("width", usize).getter;
+    pub const setWidth = h.prop("width", usize).setter;
+    pub const height = h.prop("height", usize).getter;
+    pub const setHeight = h.prop("height", usize).setter;
+    pub const queueDepth = h.prop("queueDepth", isize).getter;
+    pub const setQueueDepth = h.prop("queueDepth", isize).setter;
+    pub const showsCursor = h.prop("showsCursor", bool).getter;
+    pub const setShowsCursor = h.prop("showsCursor", bool).setter;
+    pub const capturesAudio = h.prop("capturesAudio", bool).getter;
+    pub const setCapturesAudio = h.prop("capturesAudio", bool).setter;
+    pub const minimumFrameInterval = h.prop("minimumFrameInterval", macos.CMTime).getter;
+    pub const setMinimumFrameInterval = h.prop("minimumFrameInterval", macos.CMTime).setter;
+    pub const pixelFormat = h.prop("pixelFormat", macos.OSType).getter;
+    pub const setPixelFormat = h.prop("pixelFormat", macos.OSType).setter;
+    pub const captureResolution = h.prop("captureResolution", SCCaptureResolutionType).getter;
+    pub const setCaptureResolution = h.prop("captureResolution", SCCaptureResolutionType).setter;
     /// Borrowed CoreFoundation references.
-    pub const colorSpaceName = h.prop(macos.CFStringRef, "colorSpaceName").getter;
-    pub const setColorSpaceName = h.prop(macos.CFStringRef, "colorSpaceName").setter;
-    pub const backgroundColor = h.prop(macos.CGColorRef, "backgroundColor").getter;
-    pub const setBackgroundColor = h.prop(macos.CGColorRef, "backgroundColor").setter;
+    pub const colorSpaceName = h.prop("colorSpaceName", macos.CFStringRef).getter;
+    pub const setColorSpaceName = h.prop("colorSpaceName", macos.CFStringRef).setter;
+    pub const backgroundColor = h.prop("backgroundColor", macos.CGColorRef).getter;
+    pub const setBackgroundColor = h.prop("backgroundColor", macos.CGColorRef).setter;
 };
 
 test "SCStreamConfiguration: configure video and audio properties" {

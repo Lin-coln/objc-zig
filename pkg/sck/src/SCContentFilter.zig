@@ -3,7 +3,7 @@ const SCWindow = @import("SCWindow.zig").SCWindow;
 
 pub const SCContentFilter = opaque {
     const Self = @This();
-    const h = obzc.helpers.Object(Self);
+    const h = obzc.h(Self);
 
     pub const retain = h.retain;
     pub const release = h.release;

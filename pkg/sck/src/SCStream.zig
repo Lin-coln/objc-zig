@@ -17,7 +17,7 @@ pub const SCStreamOutputType = enum(isize) {
 
 pub const SCStream = opaque {
     const Self = @This();
-    const h = obzc.helpers.Object(Self);
+    const h = obzc.h(Self);
 
     pub const retain = h.retain;
     pub const release = h.release;
@@ -49,12 +49,12 @@ pub const SCStream = opaque {
         return error.RemoveStreamOutputFailed;
     }
 
-    pub const startCapture = h.m.withCallback("startCaptureWithCompletionHandler:", fn (fn (?*ns.NSError) void) void);
-    pub const stopCapture = h.m.withCallback("stopCaptureWithCompletionHandler:", fn (fn (?*ns.NSError) void) void);
-    pub const updateConfiguration = h.m.withCallback("updateConfiguration:completionHandler:", fn (*SCStreamConfiguration, fn (?*ns.NSError) void) void);
+    pub const startCapture = h.obj.m.withCallback("startCaptureWithCompletionHandler:", fn (fn (?*ns.NSError) void) void);
+    pub const stopCapture = h.obj.m.withCallback("stopCaptureWithCompletionHandler:", fn (fn (?*ns.NSError) void) void);
+    pub const updateConfiguration = h.obj.m.withCallback("updateConfiguration:completionHandler:", fn (*SCStreamConfiguration, fn (?*ns.NSError) void) void);
 
     /// Waits for completion. The calling thread must not be needed to deliver the callback.
-    pub const startCaptureSync = h.m.withSync("startCaptureWithCompletionHandler:", fn () anyerror!void);
-    pub const stopCaptureSync = h.m.withSync("stopCaptureWithCompletionHandler:", fn () anyerror!void);
-    pub const updateConfigurationSync = h.m.withSync("updateConfiguration:completionHandler:", fn (*SCStreamConfiguration) anyerror!void);
+    pub const startCaptureSync = h.obj.m.withSync("startCaptureWithCompletionHandler:", fn () anyerror!void);
+    pub const stopCaptureSync = h.obj.m.withSync("stopCaptureWithCompletionHandler:", fn () anyerror!void);
+    pub const updateConfigurationSync = h.obj.m.withSync("updateConfiguration:completionHandler:", fn (*SCStreamConfiguration) anyerror!void);
 };

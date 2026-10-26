@@ -5,13 +5,13 @@ const SCRunningApplication = @import("SCRunningApplication.zig").SCRunningApplic
 
 pub const SCWindow = opaque {
     const Self = @This();
-    const h = obzc.helpers.Object(Self);
+    const h = obzc.h(Self);
 
     pub const retain = h.retain;
     pub const release = h.release;
 
-    pub const windowID = h.prop(macos.CGWindowID, "windowID").getter;
-    pub const frame = h.prop(macos.CGRect, "frame").getter;
-    pub const owningApplication = h.prop(?*SCRunningApplication, "owningApplication").getter;
-    pub const title = h.prop(?*ns.NSString, "title").getter;
+    pub const windowID = h.prop("windowID", macos.CGWindowID).getter;
+    pub const frame = h.prop("frame", macos.CGRect).getter;
+    pub const owningApplication = h.prop("owningApplication", ?*SCRunningApplication).getter;
+    pub const title = h.prop("title", ?*ns.NSString).getter;
 };
