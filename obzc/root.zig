@@ -8,10 +8,12 @@ pub const Block = core.Block;
 pub const AutoReleasePool = core.AutoReleasePool;
 
 pub const helpers = @import("helpers/root.zig");
+pub const helpers2 = @import("helpers2/root.zig");
 
 test {
     _ = @import("utils/root.zig");
     _ = ffi;
     _ = core;
     _ = helpers;
+    _ = helpers2;
 }

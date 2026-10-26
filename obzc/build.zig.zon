@@ -10,6 +10,7 @@
         "root.zig",
         "compile_test.zig",
         "helpers",
+        "helpers2",
         "ffi",
         "utils",
         "src",
