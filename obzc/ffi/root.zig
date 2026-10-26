@@ -12,5 +12,6 @@ test {
     _ = @import("Sel.zig");
     _ = @import("Class.zig");
     _ = @import("Object.zig");
+    _ = @import("Property.zig");
     _ = msg;
 }

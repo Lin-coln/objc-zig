@@ -4,4 +4,5 @@ test {
     _ = @import("calling.zig");
 
     _ = @import("Class.zig");
+    _ = @import("Object.zig");
 }
