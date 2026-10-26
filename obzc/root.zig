@@ -5,9 +5,8 @@ pub const AutoReleasePool = ffi.AutoReleasePool;
 
 const core = @import("src/root.zig");
 pub const rt = core.rt;
-pub const Block = core.Block;
+pub const Block = @import("block/root.zig").Block;
 
-pub const helpers = @import("helpers/root.zig");
 pub const helpers2 = @import("helpers2/root.zig");
 
 test {
@@ -15,6 +14,5 @@ test {
     _ = ffi;
     _ = core;
     _ = @import("block/root.zig");
-    _ = helpers;
     _ = helpers2;
 }

@@ -9,12 +9,10 @@
         "build.zig.zon",
         "root.zig",
         "compile_test.zig",
-        "helpers",
         "helpers2",
         "ffi",
         "block",
         "utils",
         "src",
-        "tests",
     },
 }
