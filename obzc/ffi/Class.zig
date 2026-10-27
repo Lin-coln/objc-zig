@@ -36,6 +36,17 @@ pub const Class = opaque {
         const done = c.class_addMethod(@ptrCast(self), @ptrCast(sel), imp, signature);
         return done == c.YES;
     }
+
+    /// Adds an ivar before registration. `alignment` is log2 of its alignment in bytes.
+    pub fn addIvar(
+        self: *Self,
+        name: [:0]const u8,
+        size: usize,
+        alignment: u8,
+        signature: [:0]const u8,
+    ) bool {
+        return c.class_addIvar(@ptrCast(self), name, size, alignment, signature) == c.YES;
+    }
 };
 
 test "Class.lookup: forwards the class name and preserves a missing result" {
@@ -106,4 +117,24 @@ test "Class.addMethod: forwards selector implementation and signature and preser
     try std.testing.expectEqualStrings("i@:i", std.mem.span(c.method_getTypeEncoding(metadata)));
     try std.testing.expect(!cls.addMethod(sel, @ptrCast(&Probe.second), "i@:i"));
     try std.testing.expectEqual(imp, c.method_getImplementation(metadata));
+}
+
+test "Class.addIvar: forwards layout and signature and preserves failure" {
+    const raw = c.objc_allocateClassPair(c.objc_getClass("NSObject").?, "ObzcFfiClassAddIvarProbe", 0).?;
+    defer c.objc_disposeClassPair(raw);
+    const cls: *Class = @ptrCast(raw);
+    const base_size = c.class_getInstanceSize(raw);
+    try std.testing.expect(c.class_addIvar(raw, "_prefix", 1, 0, "C") == c.YES);
+    try std.testing.expect(cls.addIvar("_value", 16, 4, "[16C]"));
+    try std.testing.expect(!cls.addIvar("_value", 16, 4, "[16C]"));
+    try std.testing.expect(c.class_addIvar(raw, "_tail", 1, 0, "C") == c.YES);
+    c.objc_registerClassPair(raw);
+
+    const value = c.class_getInstanceVariable(raw, "_value").?;
+    const offset = std.mem.alignForward(usize, base_size + 1, 16);
+    try std.testing.expectEqual(@as(isize, @intCast(offset)), c.ivar_getOffset(value));
+    try std.testing.expectEqualStrings("[16C]", std.mem.span(c.ivar_getTypeEncoding(value)));
+    const tail = c.class_getInstanceVariable(raw, "_tail").?;
+    try std.testing.expectEqual(@as(isize, @intCast(offset + 16)), c.ivar_getOffset(tail));
+    try std.testing.expect(!cls.addIvar("_late", 1, 0, "C"));
 }
