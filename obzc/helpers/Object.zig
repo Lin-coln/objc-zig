@@ -6,9 +6,11 @@ pub fn Object(comptime T: type) type {
     return struct {
         const p = @import("prop.zig").prop(T, call);
         pub const m = @import("method/root.zig").method(T, call);
+        const i = @import("ivar.zig").ivar(T);
 
         pub const prop = p.of;
         pub const method = m.of;
+        pub const ivar = i.of;
 
         pub fn call(self: *T, comptime Return: type, name: [:0]const u8, args: anytype) Return {
             return @import("call.zig").call(self, Return, name, args);

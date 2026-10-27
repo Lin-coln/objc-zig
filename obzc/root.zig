@@ -13,11 +13,12 @@ pub fn h(comptime T: type) type {
         pub const cls = helpers.Class(T);
         pub const obj = helpers.Object(T);
 
+        pub const retain = obj.retain;
+        pub const release = obj.release;
         pub const call = obj.call;
         pub const prop = obj.prop;
         pub const method = obj.method;
-        pub const retain = obj.retain;
-        pub const release = obj.release;
+        pub const ivar = obj.ivar;
     };
 }
 

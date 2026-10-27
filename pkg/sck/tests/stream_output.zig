@@ -7,18 +7,19 @@ const ffi = obzc.ffi;
 const c = ffi.c;
 const Class = ffi.Class;
 
+const Context = struct {
+    calls: usize = 0,
+    stream: ?*sck.SCStream = null,
+    sample_buffer: macos.CMSampleBufferRef = null,
+    output_type: ?sck.SCStreamOutputType = null,
+};
+
 const SCKStreamOutputTest = opaque {
     const Self = @This();
     const h = obzc.h(Self);
-
     pub const release = h.release;
-
-    const Context = struct {
-        calls: usize = 0,
-        stream: ?*sck.SCStream = null,
-        sample_buffer: macos.CMSampleBufferRef = null,
-        output_type: ?sck.SCStreamOutputType = null,
-    };
+    pub const context = h.ivar("context", *Context).getter;
+    pub const setContext = h.ivar("context", *Context).setter;
 
     /// The caller must release every instance before disposing the registered class.
     pub fn registerClass() !*Class {
@@ -36,21 +37,18 @@ const SCKStreamOutputTest = opaque {
         return cls;
     }
 
-    /// The context is borrowed and must outlive the instance and every callback.
-    pub fn new(context: *Context) *Self {
+    pub fn new(ctx: *Context) *Self {
         const self = h.cls.new();
-        _ = c.object_setInstanceVariable(@ptrCast(self), "context", context).?;
+        self.setContext(ctx);
         return self;
     }
 
     fn receive(self: *Self, _: *ffi.Sel, stream: *sck.SCStream, sample_buffer: macos.CMSampleBufferRef, output_type: sck.SCStreamOutputType) callconv(.c) void {
-        var raw: ?*anyopaque = null;
-        _ = c.object_getInstanceVariable(@ptrCast(self), "context", &raw).?;
-        const context: *Context = @ptrCast(@alignCast(raw.?));
-        context.calls += 1;
-        context.stream = stream;
-        context.sample_buffer = sample_buffer;
-        context.output_type = output_type;
+        const ctx = self.context();
+        ctx.calls += 1;
+        ctx.stream = stream;
+        ctx.sample_buffer = sample_buffer;
+        ctx.output_type = output_type;
     }
 };
 
@@ -58,8 +56,8 @@ test "SCKStreamOutputTest: routes callback arguments to each instance context" {
     const cls = try SCKStreamOutputTest.registerClass();
     defer cls.dispose();
 
-    var first_context: SCKStreamOutputTest.Context = .{};
-    var second_context: SCKStreamOutputTest.Context = .{};
+    var first_context: Context = .{};
+    var second_context: Context = .{};
     const first = SCKStreamOutputTest.new(&first_context);
     defer first.release();
     const second = SCKStreamOutputTest.new(&second_context);
@@ -74,7 +72,7 @@ test "SCKStreamOutputTest: routes callback arguments to each instance context" {
 
     try std.testing.expectEqual(1, first_context.calls);
     try std.testing.expectEqual(1, second_context.calls);
-    for ([_]*SCKStreamOutputTest.Context{ &first_context, &second_context }) |context| {
+    for ([_]*Context{ &first_context, &second_context }) |context| {
         try std.testing.expectEqual(stream, context.stream.?);
         try std.testing.expectEqual(sample_buffer, context.sample_buffer);
     }
