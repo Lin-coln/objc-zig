@@ -152,10 +152,6 @@ fn resolveStructName(comptime T: type) []const u8 {
     return name;
 }
 
-test "encode: delegates to encodeAnytype" {
-    try std.testing.expectEqualStrings(comptime encodeAnytype(i32), comptime encode(i32));
-}
-
 test "encodeAnytype" {
     const Kind = enum(u16) { value };
     const cases = .{

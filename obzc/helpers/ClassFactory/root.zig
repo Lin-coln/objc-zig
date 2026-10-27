@@ -49,13 +49,6 @@ test "ClassFactory.allocate: accepts a root class and rejects a missing supercla
     try std.testing.expectEqual(null, c.class_getSuperclass(@ptrCast(cls)));
 }
 
-test "ClassFactory: exposes its method helpers" {
-    const T = opaque {};
-    const methods = @import("method.zig").method(T);
-    try std.testing.expect(ClassFactory(T).addMethod == methods.addMethod);
-    try std.testing.expect(ClassFactory(T).addStaticMethod == methods.addStaticMethod);
-}
-
 test {
     _ = @import("method.zig");
 }

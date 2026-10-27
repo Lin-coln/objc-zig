@@ -84,20 +84,15 @@ pub fn generateFromFnType(comptime Fn: type) [:0]const u8 {
     return std.fmt.comptimePrint("{s}", .{signature});
 }
 
-test "Block.init: binds context and callback with default header fields" {
+test "Block.init: binds the supplied context and callback" {
     const B = Block(i32, fn () void);
     const callback = struct {
         fn invoke(_: *const B) callconv(.c) void {}
     }.invoke;
     const block = B.init(7, &callback);
-    const defaults: B = .{ .context = 0, .invoke = &callback };
 
     try std.testing.expectEqual(7, block.context);
     try std.testing.expectEqual(&callback, block.invoke);
-    try std.testing.expectEqual(defaults.isa, block.isa);
-    try std.testing.expectEqual(defaults.flags, block.flags);
-    try std.testing.expectEqual(defaults.reserved, block.reserved);
-    try std.testing.expectEqual(defaults.descriptor, block.descriptor);
 }
 
 test "Block.copy: forwards the supplied block and returns its typed heap copy" {

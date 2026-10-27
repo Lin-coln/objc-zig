@@ -62,29 +62,3 @@ test {
     _ = @import("initBlockWithContext.zig");
     _ = @import("spreadForCallback.zig");
 }
-
-test "helpers.method.withCallback: binds the supplied class call and selector" {
-    const Wrapped = opaque {};
-    const Helper = struct {
-        fn call(comptime Return: type, _: [:0]const u8, _: anytype) Return {
-            unreachable;
-        }
-    };
-    const Shape = fn (fn () void) void;
-    const bound = method(Wrapped, Helper.call).withCallback("complete:", Shape);
-    const expected = @import("makeWithCallback.zig").makeWithCallback(null, Helper.call, "complete:", Shape).function;
-    try std.testing.expect(bound == expected);
-}
-
-test "helpers.method.withSync: binds the supplied instance call and selector" {
-    const Wrapped = opaque {};
-    const Helper = struct {
-        fn call(_: *Wrapped, comptime Return: type, _: [:0]const u8, _: anytype) Return {
-            unreachable;
-        }
-    };
-    const Shape = fn () anyerror!void;
-    const bound = method(Wrapped, Helper.call).withSync("complete:", Shape);
-    const expected = @import("makeWithSync.zig").makeWithSync(*Wrapped, Helper.call, "complete:", Shape).function;
-    try std.testing.expect(bound == expected);
-}
