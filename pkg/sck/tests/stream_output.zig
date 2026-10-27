@@ -26,13 +26,10 @@ const SCKStreamOutputTest = opaque {
         const cls = try h.f.allocate("NSObject");
         errdefer cls.dispose();
 
-        // The SDK may omit protocol metadata; its add/remove operations are tested regardless.
-        if (c.objc_getProtocol("SCStreamOutput")) |protocol| {
-            if (c.class_addProtocol(@ptrCast(cls), protocol) != c.YES) return error.AddProtocolFailed;
-        }
+        try h.f.addProtocol(cls, "SCStreamOutput");
         try h.f.addIvar(cls, "context", *Context, "^v");
-        // SCStream *, CMSampleBufferRef and SCStreamOutputType (NSInteger), from SCStream.h.
         try h.f.addMethod(cls, "stream:didOutputSampleBuffer:ofType:", receive, "v@:@^{opaqueCMSampleBuffer=}q");
+
         cls.register();
         return cls;
     }

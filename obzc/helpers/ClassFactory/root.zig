@@ -9,6 +9,7 @@ pub fn ClassFactory(comptime T: type) type {
 
     const m = @import("method.zig").method(T);
     const i = @import("ivar.zig").ivar(T);
+    const ptc = @import("protocol.zig").protocol(T);
     return struct {
         pub fn allocate(super: ?[:0]const u8) !*Class {
             const super_class: ?*Class = if (super) |name|
@@ -28,6 +29,7 @@ pub fn ClassFactory(comptime T: type) type {
         pub const addMethod = m.addMethod;
         pub const addStaticMethod = m.addStaticMethod;
         pub const addIvar = i.addIvar;
+        pub const addProtocol = ptc.addProtocol;
     };
 }
 
@@ -54,4 +56,5 @@ test "ClassFactory.allocate: accepts a root class and rejects a missing supercla
 test {
     _ = @import("method.zig");
     _ = @import("ivar.zig");
+    _ = @import("protocol.zig");
 }
