@@ -5,6 +5,7 @@ pub const ClassFactory = @import("ClassFactory/root.zig").ClassFactory;
 test {
     _ = @import("call.zig");
     _ = @import("prop.zig");
+    _ = @import("ivar.zig");
     _ = @import("method/root.zig");
 
     _ = @import("Class.zig");
