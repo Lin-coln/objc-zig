@@ -8,17 +8,6 @@ pub fn method(comptime T: type) type {
     _ = T;
 
     return struct {
-        pub fn addMethod(
-            cls: *Class,
-            comptime name: [:0]const u8,
-            comptime handler: anytype,
-            comptime signature: [:0]const u8,
-        ) !void {
-            const imp: c.IMP = @ptrCast(if (@typeInfo(@TypeOf(handler)) == .@"fn") &handler else handler);
-            if (cls.addMethod(Sel.get(name), imp, signature)) return;
-            return error.AddMethodFailed;
-        }
-
         pub fn addStaticMethod(
             cls: *Class,
             comptime name: [:0]const u8,
@@ -28,6 +17,18 @@ pub fn method(comptime T: type) type {
             const metaclass = cls.metaclass() orelse
                 return error.MetaClassNotFound;
             try addMethod(metaclass, name, handler, signature);
+        }
+
+        pub fn addMethod(
+            cls: *Class,
+            comptime name: [:0]const u8,
+            comptime handler: anytype,
+            comptime signature: [:0]const u8,
+        ) !void {
+            const imp: c.IMP = @ptrCast(if (@typeInfo(@TypeOf(handler)) == .@"fn") &handler else handler);
+            const done = c.class_addMethod(@ptrCast(cls), @ptrCast(Sel.get(name)), imp, signature);
+            if (done == c.YES) return;
+            return error.AddMethodFailed;
         }
     };
 }

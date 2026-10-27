@@ -13,8 +13,6 @@ const SCKStreamOutputTest = opaque {
 
     pub const release = h.release;
 
-    const callback_selector = "stream:didOutputSampleBuffer:ofType:";
-
     const Context = struct {
         calls: usize = 0,
         stream: ?*sck.SCStream = null,
@@ -31,10 +29,9 @@ const SCKStreamOutputTest = opaque {
         if (c.objc_getProtocol("SCStreamOutput")) |protocol| {
             if (c.class_addProtocol(@ptrCast(cls), protocol) != c.YES) return error.AddProtocolFailed;
         }
-        if (c.class_addIvar(@ptrCast(cls), "_context", @sizeOf(*Context), std.math.log2_int(usize, @alignOf(*Context)), "^v") != c.YES)
-            return error.AddContextFailed;
+        try h.f.addIvar(cls, "context", *Context, "^v");
         // SCStream *, CMSampleBufferRef and SCStreamOutputType (NSInteger), from SCStream.h.
-        try h.f.addMethod(cls, callback_selector, receive, "v@:@^{opaqueCMSampleBuffer=}q");
+        try h.f.addMethod(cls, "stream:didOutputSampleBuffer:ofType:", receive, "v@:@^{opaqueCMSampleBuffer=}q");
         cls.register();
         return cls;
     }
@@ -42,13 +39,13 @@ const SCKStreamOutputTest = opaque {
     /// The context is borrowed and must outlive the instance and every callback.
     pub fn new(context: *Context) *Self {
         const self = h.cls.new();
-        _ = c.object_setInstanceVariable(@ptrCast(self), "_context", context).?;
+        _ = c.object_setInstanceVariable(@ptrCast(self), "context", context).?;
         return self;
     }
 
-    fn receive(self: *ffi.Object, _: *ffi.Sel, stream: *sck.SCStream, sample_buffer: macos.CMSampleBufferRef, output_type: sck.SCStreamOutputType) callconv(.c) void {
+    fn receive(self: *Self, _: *ffi.Sel, stream: *sck.SCStream, sample_buffer: macos.CMSampleBufferRef, output_type: sck.SCStreamOutputType) callconv(.c) void {
         var raw: ?*anyopaque = null;
-        _ = c.object_getInstanceVariable(@ptrCast(self), "_context", &raw).?;
+        _ = c.object_getInstanceVariable(@ptrCast(self), "context", &raw).?;
         const context: *Context = @ptrCast(@alignCast(raw.?));
         context.calls += 1;
         context.stream = stream;
@@ -72,8 +69,8 @@ test "SCKStreamOutputTest: routes callback arguments to each instance context" {
     const stream: *sck.SCStream = @ptrFromInt(0x1000);
     const sample_buffer: macos.CMSampleBufferRef = @ptrFromInt(0x2000);
     const h = obzc.h(SCKStreamOutputTest);
-    h.call(first, void, SCKStreamOutputTest.callback_selector, .{ stream, sample_buffer, sck.SCStreamOutputType.screen });
-    h.call(second, void, SCKStreamOutputTest.callback_selector, .{ stream, sample_buffer, sck.SCStreamOutputType.audio });
+    h.call(first, void, "stream:didOutputSampleBuffer:ofType:", .{ stream, sample_buffer, sck.SCStreamOutputType.screen });
+    h.call(second, void, "stream:didOutputSampleBuffer:ofType:", .{ stream, sample_buffer, sck.SCStreamOutputType.audio });
 
     try std.testing.expectEqual(1, first_context.calls);
     try std.testing.expectEqual(1, second_context.calls);

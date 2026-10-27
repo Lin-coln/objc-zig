@@ -10,10 +10,12 @@ pub fn ivar(comptime T: type) type {
         pub fn addIvar(
             cls: *Class,
             comptime name: [:0]const u8,
-            comptime Value: type,
+            comptime Type: type,
             comptime signature: [:0]const u8,
         ) !void {
-            if (cls.addIvar(name, @sizeOf(Value), std.math.log2_int(usize, @alignOf(Value)), signature)) return;
+            const alignment = comptime std.math.log2_int(usize, @alignOf(Type));
+            const done = c.class_addIvar(@ptrCast(cls), name, @sizeOf(Type), alignment, signature);
+            if (done == c.YES) return;
             return error.AddIvarFailed;
         }
     };
