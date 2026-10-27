@@ -9,6 +9,7 @@ pub const helpers = @import("helpers/root.zig");
 
 pub fn h(comptime T: type) type {
     return struct {
+        pub const f = helpers.ClassFactory(T);
         pub const cls = helpers.Class(T);
         pub const obj = helpers.Object(T);
 
