@@ -1,7 +1,9 @@
 const std = @import("std");
+const Metadata = @import("../encode/Metadata.zig");
 const c = @import("c.zig").c;
 
 pub const Sel = opaque {
+    pub const metadata = Metadata.sel;
     const Self = @This();
 
     /// Interns a selector name. Selectors have process lifetime.

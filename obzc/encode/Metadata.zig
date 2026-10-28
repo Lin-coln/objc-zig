@@ -19,6 +19,8 @@ const Self = @This();
 encoding: Encoding,
 
 pub const obj: Self = .{ .encoding = .obj };
+pub const cls: Self = .{ .encoding = .cls };
+pub const sel: Self = .{ .encoding = .sel };
 
 pub fn fromPointer(info: Type.Pointer) ?Self {
     const T = info.child;
