@@ -18,11 +18,14 @@ pub fn fromStruct(
             };
             break :blk "{" ++ content ++ "}";
         },
-        else => @compileError(
-            "cannot encode struct " ++
-                @typeName(T) ++
-                ":\nauto layout is not C-compatible; use an extern or packed struct",
-        ),
+        else => switch (mode) {
+            .ref => "v",
+            .val => @compileError(
+                "cannot encode struct " ++
+                    @typeName(T) ++
+                    ":\nauto layout is not C-compatible; use an extern or packed struct",
+            ),
+        },
     };
 }
 
@@ -41,11 +44,14 @@ pub fn fromUnion(
             };
             break :blk "(" ++ content ++ ")";
         },
-        else => @compileError(
-            "cannot encode union " ++
-                @typeName(T) ++
-                ":\nonly extern unions have a supported Objective-C layout",
-        ),
+        else => switch (mode) {
+            .ref => "v",
+            .val => @compileError(
+                "cannot encode union " ++
+                    @typeName(T) ++
+                    ":\nonly extern unions have a supported Objective-C layout",
+            ),
+        },
     };
 }
 
@@ -99,7 +105,7 @@ fn resolveStructName(comptime T: type) []const u8 {
     return name;
 }
 
-test "fromStruct: formats extern values and references and uses packed backing" {
+test "fromStruct: formats extern values and references, packed backing, and auto references" {
     const Stub = struct {
         fn encode(comptime T: type) []const u8 {
             return if (T == u8) "C" else "I";
@@ -107,22 +113,26 @@ test "fromStruct: formats extern values and references and uses packed backing" 
     };
     const Point = extern struct { x: u8, y: u32 };
     const Packed = packed struct(u32) { value: u32 };
+    const Auto = struct { value: u32 };
 
     try std.testing.expectEqualStrings("{Point=CI}", comptime fromStruct(Stub.encode, Point, @typeInfo(Point).@"struct", .val).?);
     try std.testing.expectEqualStrings("{Point}", comptime fromStruct(Stub.encode, Point, @typeInfo(Point).@"struct", .ref).?);
     try std.testing.expectEqualStrings("I", comptime fromStruct(Stub.encode, Packed, @typeInfo(Packed).@"struct", .val).?);
+    try std.testing.expectEqualStrings("v", comptime fromStruct(Stub.encode, Auto, @typeInfo(Auto).@"struct", .ref).?);
 }
 
-test "fromUnion: formats extern values and references" {
+test "fromUnion: formats extern values and references and auto references" {
     const Stub = struct {
         fn encode(comptime T: type) []const u8 {
             return if (T == u8) "C" else "I";
         }
     };
     const Value = extern union { byte: u8, word: u32 };
+    const Auto = union { byte: u8, word: u32 };
 
     try std.testing.expectEqualStrings("(Value=CI)", comptime fromUnion(Stub.encode, Value, @typeInfo(Value).@"union", .val).?);
     try std.testing.expectEqualStrings("(Value)", comptime fromUnion(Stub.encode, Value, @typeInfo(Value).@"union", .ref).?);
+    try std.testing.expectEqualStrings("v", comptime fromUnion(Stub.encode, Auto, @typeInfo(Auto).@"union", .ref).?);
 }
 
 test "resolveFields: keeps aggregate field order" {
