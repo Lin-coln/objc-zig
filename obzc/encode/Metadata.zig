@@ -9,12 +9,12 @@ pub const Encoding = enum {
     obj, // @
     sel, // :
 
-    fn encode(self: Encoding) []const u8 {
-        switch (self) {
+    pub fn encode(self: Encoding) []const u8 {
+        return switch (self) {
             .cls => "#",
             .obj => "@",
             .sel => ":",
-        }
+        };
     }
 };
 
