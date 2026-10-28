@@ -1,7 +1,9 @@
 const obzc = @import("obzc");
+const Metadata = obzc.Metadata;
 const ns = @import("obzc-ns");
 
 pub const VNRecognizedText = opaque {
+    pub const metadata = Metadata.obj;
     const Self = @This();
     const h = obzc.h(Self);
 

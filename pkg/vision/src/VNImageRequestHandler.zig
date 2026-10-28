@@ -1,6 +1,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const obzc = @import("obzc");
+const Metadata = obzc.Metadata;
 const Object = obzc.ffi.Object;
 const ns = @import("obzc-ns");
 const macos = @import("macos/abi");
@@ -8,6 +9,7 @@ const VNRequest = @import("VNRequest.zig").VNRequest;
 const VNRecognizeTextRequest = @import("VNRecognizeTextRequest.zig").VNRecognizeTextRequest;
 
 pub const VNImageRequestHandler = opaque {
+    pub const metadata = Metadata.obj;
     const Self = @This();
     const h = obzc.h(Self);
     const Options = ns.NSDictionary(ns.NSString, Object);

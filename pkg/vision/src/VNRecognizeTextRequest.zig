@@ -1,5 +1,6 @@
 const std = @import("std");
 const obzc = @import("obzc");
+const Metadata = obzc.Metadata;
 const ns = @import("obzc-ns");
 const macos = @import("macos/abi");
 const VNRecognizedTextObservation = @import("VNRecognizedTextObservation.zig").VNRecognizedTextObservation;
@@ -10,6 +11,7 @@ pub const VNRequestTextRecognitionLevel = enum(isize) {
 };
 
 pub const VNRecognizeTextRequest = opaque {
+    pub const metadata = Metadata.obj;
     const Self = @This();
     const h = obzc.h(Self);
 

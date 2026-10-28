@@ -1,10 +1,12 @@
 const std = @import("std");
 const obzc = @import("obzc");
+const Metadata = obzc.Metadata;
 const ns = @import("obzc-ns");
 const macos = @import("macos/abi");
 const VNRecognizedText = @import("VNRecognizedText.zig").VNRecognizedText;
 
 pub const VNRecognizedTextObservation = opaque {
+    pub const metadata = Metadata.obj;
     const Self = @This();
     const h = obzc.h(Self);
 
