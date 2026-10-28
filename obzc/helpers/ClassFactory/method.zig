@@ -32,7 +32,7 @@ pub fn method(comptime T: type) type {
                 @ptrCast(cls),
                 @ptrCast(Sel.get(name)),
                 imp,
-                comptime encodeFunction(Fn, ""),
+                comptime encodeFunction(Fn),
             );
             if (done == c.YES) return;
             return error.AddMethodFailed;

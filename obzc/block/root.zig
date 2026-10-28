@@ -1,30 +1,33 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const ffi = @import("../ffi/root.zig");
+const Metadata = @import("../encode/Metadata.zig");
 const encodeFunction = @import("../encode/root.zig").encodeFunction;
 const c = ffi.c;
 
 pub fn Block(comptime Context: type, comptime Function: type) type {
-    const signature = comptime encodeFunction(Function, "@?");
-
     return extern struct {
+        pub const metadata: Metadata = .{ .encoding = .blk };
         const Self = @This();
         // Context is currently copied bytewise, without retaining or releasing captured objects.
         // TODO: expose context copy/dispose callbacks through DescriptorWithHelpers;
         // callers must manage captured object lifetimes until these callbacks are supported.
         const Descriptor = @import("descriptor.zig").Descriptor(Self);
         const Callback = getCallbackType(Self, Function);
+        const signature = encodeFunction(Callback);
+        const static_descriptor = Descriptor.init(signature);
         isa: ?*anyopaque = &c._NSConcreteStackBlock,
         flags: c_int = getFlags(Function),
         reserved: c_int = 0,
         invoke: *const Callback,
-        descriptor: *const Descriptor = &.init(signature),
+        descriptor: *const Descriptor,
         context: Context,
 
         /// Creates a stack block. Copy it before keeping it beyond the lifetime of its stack storage.
         pub fn init(context: Context, callback: *const Callback) Self {
             return .{
                 .invoke = callback,
+                .descriptor = &static_descriptor,
                 .context = context,
             };
         }
@@ -78,6 +81,7 @@ test "Block.init: binds the supplied context and callback" {
 
     try std.testing.expectEqual(7, block.context);
     try std.testing.expectEqual(&callback, block.invoke);
+    try std.testing.expectEqualStrings("v@?", std.mem.span(block.descriptor.signature));
 }
 
 test "Block.copy: forwards the supplied block and returns its typed heap copy" {
@@ -85,7 +89,7 @@ test "Block.copy: forwards the supplied block and returns its typed heap copy" {
     const callback = struct {
         fn invoke(_: *const B) callconv(.c) void {}
     }.invoke;
-    const source: B = .{ .context = 42, .invoke = &callback };
+    const source = B.init(42, &callback);
     const copied = source.copy().?;
     defer c._Block_release(copied);
 
