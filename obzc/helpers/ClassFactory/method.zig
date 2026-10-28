@@ -1,5 +1,6 @@
 const std = @import("std");
 const ffi = @import("../../ffi/root.zig");
+const Metadata = @import("../../encode/Metadata.zig");
 const encodeFunction = @import("../../encode/root.zig").encodeFunction;
 const c = ffi.c;
 const Sel = ffi.Sel;
@@ -31,7 +32,7 @@ pub fn method(comptime T: type) type {
                 @ptrCast(cls),
                 @ptrCast(Sel.get(name)),
                 imp,
-                comptime encodeFunction(Fn, 2, "@:"),
+                comptime encodeFunction(Fn, ""),
             );
             if (done == c.YES) return;
             return error.AddMethodFailed;
@@ -40,7 +41,9 @@ pub fn method(comptime T: type) type {
 }
 
 test "ClassFactory.method.addMethod: binds the function to the selector" {
-    const T = opaque {};
+    const T = opaque {
+        pub const metadata = Metadata.obj;
+    };
     const Probe = struct {
         fn handle(_: *T, _: *Sel) callconv(.c) void {}
     };
@@ -70,5 +73,6 @@ test "ClassFactory.method.addStaticMethod: targets the metaclass and propagates 
     const selector = c.sel_registerName("factoryProbe");
     try std.testing.expect(c.class_getClassMethod(raw, selector) != null);
     try std.testing.expectEqual(null, c.class_getInstanceMethod(raw, selector));
+    try std.testing.expectEqualStrings("v#:", std.mem.span(c.method_getTypeEncoding(c.class_getClassMethod(raw, selector).?)));
     try std.testing.expectError(error.AddMethodFailed, methods.addStaticMethod(cls, "factoryProbe", Probe.handle));
 }

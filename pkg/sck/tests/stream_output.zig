@@ -6,6 +6,7 @@ const sck = @import("obzc-sck");
 const ffi = obzc.ffi;
 const c = ffi.c;
 const Class = ffi.Class;
+const Metadata = obzc.Metadata;
 
 const Context = struct {
     calls: usize = 0,
@@ -15,6 +16,7 @@ const Context = struct {
 };
 
 const SCKStreamOutputTest = opaque {
+    pub const metadata = Metadata.obj;
     const Self = @This();
     const h = obzc.h(Self);
     pub const release = h.release;

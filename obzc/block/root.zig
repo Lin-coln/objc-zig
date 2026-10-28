@@ -5,7 +5,7 @@ const encodeFunction = @import("../encode/root.zig").encodeFunction;
 const c = ffi.c;
 
 pub fn Block(comptime Context: type, comptime Function: type) type {
-    const signature = comptime encodeFunction(Function, 0, "@?");
+    const signature = comptime encodeFunction(Function, "@?");
 
     return extern struct {
         const Self = @This();
