@@ -1,11 +1,7 @@
 const primitive = @import("primitive.zig");
 const nested = @import("nested.zig");
 
-pub inline fn encode(comptime T: type) []const u8 {
-    return comptime encodeType(T);
-}
-
-fn encodeType(comptime T: type) []const u8 {
+pub fn encodeType(comptime T: type) []const u8 {
     return switch (@typeInfo(T)) {
         // primitive
         .void => "v",

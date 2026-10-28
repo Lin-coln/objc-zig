@@ -1,4 +1,5 @@
 const std = @import("std");
+const Metadata = @import("Metadata.zig");
 const Type = std.lang.Type;
 
 pub fn fromArray(encode: anytype, info: Type.Array) ?[]const u8 {
@@ -40,8 +41,10 @@ pub fn fromPointer(encode: anytype, info: Type.Pointer) ?[]const u8 {
         return "*";
     }
 
-    // custom encoding
-    if (@import("custom.zig").resolveEncoding(info)) |res| return res;
+    // resolve from metadata
+    if (Metadata.fromPointer(info)) |metadata| {
+        return metadata.encoding.encode();
+    }
 
     // regular ptr
     const suffix = switch (@typeInfo(info.child)) {
