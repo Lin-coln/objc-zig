@@ -1,3 +1,4 @@
+const std = @import("std");
 const primitive = @import("primitive.zig");
 const nested = @import("nested.zig");
 
@@ -28,4 +29,11 @@ pub fn encodeType(comptime T: type) []const u8 {
                 @tagName(@typeInfo(T)) ++
                 " has no supported Objective-C type encoding",
         );
+}
+
+test "encodeType: encodes built-in categories and enum tag type" {
+    try std.testing.expectEqualStrings("v", comptime encodeType(void));
+    try std.testing.expectEqualStrings("B", comptime encodeType(bool));
+    const Kind = enum(u16) { value };
+    try std.testing.expectEqualStrings("S", comptime encodeType(Kind));
 }

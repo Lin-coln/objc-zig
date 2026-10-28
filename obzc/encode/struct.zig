@@ -98,3 +98,48 @@ fn resolveStructName(comptime T: type) []const u8 {
     if (std.mem.startsWith(u8, name, "union_")) return name["union_".len..];
     return name;
 }
+
+test "fromStruct: formats extern values and references and uses packed backing" {
+    const Stub = struct {
+        fn encode(comptime T: type) []const u8 {
+            return if (T == u8) "C" else "I";
+        }
+    };
+    const Point = extern struct { x: u8, y: u32 };
+    const Packed = packed struct(u32) { value: u32 };
+
+    try std.testing.expectEqualStrings("{Point=CI}", comptime fromStruct(Stub.encode, Point, @typeInfo(Point).@"struct", .val).?);
+    try std.testing.expectEqualStrings("{Point}", comptime fromStruct(Stub.encode, Point, @typeInfo(Point).@"struct", .ref).?);
+    try std.testing.expectEqualStrings("I", comptime fromStruct(Stub.encode, Packed, @typeInfo(Packed).@"struct", .val).?);
+}
+
+test "fromUnion: formats extern values and references" {
+    const Stub = struct {
+        fn encode(comptime T: type) []const u8 {
+            return if (T == u8) "C" else "I";
+        }
+    };
+    const Value = extern union { byte: u8, word: u32 };
+
+    try std.testing.expectEqualStrings("(Value=CI)", comptime fromUnion(Stub.encode, Value, @typeInfo(Value).@"union", .val).?);
+    try std.testing.expectEqualStrings("(Value)", comptime fromUnion(Stub.encode, Value, @typeInfo(Value).@"union", .ref).?);
+}
+
+test "resolveFields: keeps aggregate field order" {
+    const Stub = struct {
+        fn encode(comptime T: type) []const u8 {
+            return if (T == u8) "C" else "I";
+        }
+    };
+    const Fields = extern struct { first: u32, second: u8 };
+    try std.testing.expectEqualStrings("IC", comptime resolveFields(Stub.encode, Fields, .{ .@"struct" = @typeInfo(Fields).@"struct" }));
+}
+
+test "resolveStructName: strips translated aggregate prefixes" {
+    const Names = struct {
+        const struct_Point = extern struct { value: u8 };
+        const union_Value = extern union { value: u8 };
+    };
+    try std.testing.expectEqualStrings("Point", comptime resolveStructName(Names.struct_Point));
+    try std.testing.expectEqualStrings("Value", comptime resolveStructName(Names.union_Value));
+}

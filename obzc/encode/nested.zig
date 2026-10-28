@@ -56,3 +56,51 @@ pub fn fromPointer(encode: anytype, info: Type.Pointer) ?[]const u8 {
 
     return "^" ++ (suffix orelse return null);
 }
+
+test "fromArray: counts the sentinel and encodes its element" {
+    const Stub = struct {
+        fn encode(comptime _: type) []const u8 {
+            return "X";
+        }
+    };
+    try std.testing.expectEqualStrings("[2X]", comptime fromArray(Stub.encode, @typeInfo([2]u8).array).?);
+    try std.testing.expectEqualStrings("[3X]", comptime fromArray(Stub.encode, @typeInfo([2:0]u8).array).?);
+}
+
+test "fromOptional: accepts only nullable pointer layouts" {
+    const Stub = struct {
+        fn encode(comptime _: type) []const u8 {
+            return "P";
+        }
+    };
+    try std.testing.expectEqualStrings("P", comptime fromOptional(Stub.encode, @typeInfo(?*i32).optional).?);
+    try std.testing.expectEqual(null, comptime fromOptional(Stub.encode, @typeInfo(?u32).optional));
+    try std.testing.expectEqual(null, comptime fromOptional(Stub.encode, @typeInfo(?[]u8).optional));
+    try std.testing.expectEqual(null, comptime fromOptional(Stub.encode, @typeInfo(?[*c]u8).optional));
+    try std.testing.expectEqual(null, comptime fromOptional(Stub.encode, @typeInfo(?*allowzero i32).optional));
+}
+
+test "fromPointer: handles string, metadata, function, opaque and ordinary pointers" {
+    const Stub = struct {
+        fn encode(comptime _: type) []const u8 {
+            return "X";
+        }
+    };
+    const Annotated = opaque {
+        pub const metadata: Metadata = .{ .encoding = .sel };
+    };
+    const Plain = opaque {};
+
+    const cases = .{
+        .{ [*:0]const u8, "*" },
+        .{ [*c]u8, "*" },
+        .{ *Annotated, ":" },
+        .{ *Plain, "^v" },
+        .{ *const fn () callconv(.c) void, "^?" },
+        .{ *i32, "^X" },
+    };
+    inline for (cases) |case| {
+        try std.testing.expectEqualStrings(case[1], comptime fromPointer(Stub.encode, @typeInfo(case[0]).pointer).?);
+    }
+    try std.testing.expectEqual(null, comptime fromPointer(Stub.encode, @typeInfo([]u8).pointer));
+}

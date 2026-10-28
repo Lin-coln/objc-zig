@@ -27,3 +27,21 @@ pub fn fromFloat(info: Type.Float) ?[]const u8 {
         else => null,
     };
 }
+
+test "fromInt: maps width and signedness" {
+    const cases = .{
+        .{ i8, "c" },   .{ u8, "C" },   .{ i16, "s" }, .{ u16, "S" },
+        .{ i32, "i" },  .{ u32, "I" },  .{ i64, "q" }, .{ u64, "Q" },
+        .{ i128, "t" }, .{ u128, "T" },
+    };
+    inline for (cases) |case| {
+        try std.testing.expectEqualStrings(case[1], comptime fromInt(@typeInfo(case[0]).int).?);
+    }
+    try std.testing.expectEqual(null, comptime fromInt(@typeInfo(u7).int));
+}
+
+test "fromFloat: maps supported widths" {
+    try std.testing.expectEqualStrings("f", comptime fromFloat(@typeInfo(f32).float).?);
+    try std.testing.expectEqualStrings("d", comptime fromFloat(@typeInfo(f64).float).?);
+    try std.testing.expectEqual(null, comptime fromFloat(@typeInfo(f16).float));
+}
