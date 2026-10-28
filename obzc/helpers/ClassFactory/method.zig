@@ -24,15 +24,8 @@ pub fn method(comptime T: type) type {
             comptime name: [:0]const u8,
             comptime handler: anytype,
         ) !void {
-            const Fn = switch (@typeInfo(@TypeOf(handler))) {
-                .@"fn" => @TypeOf(handler),
-                .pointer => |pointer| pointer.child,
-                else => @compileError("method handler must be a function or function pointer"),
-            };
-            const info = @typeInfo(Fn).@"fn";
-            if (info.param_types.len < 2) @compileError("method handler needs receiver and selector parameters");
-
-            const imp: c.IMP = @ptrCast(if (@typeInfo(@TypeOf(handler)) == .@"fn") &handler else handler);
+            const Fn = @TypeOf(handler);
+            const imp: c.IMP = @ptrCast(&handler);
 
             const done = c.class_addMethod(
                 @ptrCast(cls),
@@ -46,7 +39,7 @@ pub fn method(comptime T: type) type {
     };
 }
 
-test "ClassFactory.method.addMethod: binds names and accepts functions or function pointers" {
+test "ClassFactory.method.addMethod: binds the function to the selector" {
     const T = opaque {};
     const Probe = struct {
         fn handle(_: *T, _: *Sel) callconv(.c) void {}
@@ -57,12 +50,9 @@ test "ClassFactory.method.addMethod: binds names and accepts functions or functi
     const cls: *Class = @ptrCast(raw);
     const methods = method(T);
     try methods.addMethod(cls, "first", Probe.handle);
-    try methods.addMethod(cls, "second", &Probe.handle);
-    inline for (.{ "first", "second" }) |name| {
-        const metadata = c.class_getInstanceMethod(raw, c.sel_registerName(name)).?;
-        try std.testing.expectEqual(@as(c.IMP, @ptrCast(&Probe.handle)), c.method_getImplementation(metadata));
-        try std.testing.expectEqualStrings("v@:", std.mem.span(c.method_getTypeEncoding(metadata)));
-    }
+    const metadata = c.class_getInstanceMethod(raw, c.sel_registerName("first")).?;
+    try std.testing.expectEqual(@as(c.IMP, @ptrCast(&Probe.handle)), c.method_getImplementation(metadata));
+    try std.testing.expectEqualStrings("v@:", std.mem.span(c.method_getTypeEncoding(metadata)));
     try std.testing.expectError(error.AddMethodFailed, methods.addMethod(cls, "first", Probe.handle));
 }
 

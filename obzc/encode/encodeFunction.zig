@@ -6,7 +6,14 @@ pub inline fn encodeFunction(
     comptime skipped_params: usize,
     comptime implicit_encoding: []const u8,
 ) [:0]const u8 {
-    const info = @typeInfo(Fn).@"fn";
+    const info = switch (@typeInfo(Fn)) {
+        .@"fn" => |info| info,
+        else => @compileError("encodeFunction expects a function type"),
+    };
+    if (info.is_generic or info.attrs.varargs)
+        @compileError("encodeFunction requires a non-generic function with fixed parameters");
+    if (skipped_params > info.param_types.len)
+        @compileError("skipped_params exceeds the function parameter count");
 
     var result: []const u8 = comptime encodeType(info.return_type.?);
     result = result ++ implicit_encoding;

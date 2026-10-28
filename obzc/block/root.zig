@@ -5,13 +5,6 @@ const encodeFunction = @import("../encode/root.zig").encodeFunction;
 const c = ffi.c;
 
 pub fn Block(comptime Context: type, comptime Function: type) type {
-    const fn_info = switch (@typeInfo(Function)) {
-        .@"fn" => |info| info,
-        else => @compileError("expected a function type, got " ++ @typeName(Function)),
-    };
-    if (fn_info.is_generic or fn_info.attrs.varargs) {
-        @compileError("a block signature requires a non-generic function with fixed parameters");
-    }
     const signature = comptime encodeFunction(Function, 0, "@?");
 
     return extern struct {
