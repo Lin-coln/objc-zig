@@ -1,10 +1,12 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const obzc = @import("obzc");
+const Metadata = obzc.Metadata;
 const Object = obzc.ffi.Object;
 const NSString = @import("NSString.zig").NSString;
 
 pub const NSError = opaque {
+    pub const metadata = Metadata.obj;
     const Self = @This();
     const h = obzc.h(Self);
 

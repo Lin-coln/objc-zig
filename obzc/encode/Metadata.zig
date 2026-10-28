@@ -1,9 +1,6 @@
 const std = @import("std");
 const Type = std.lang.Type;
 
-const Self = @This();
-encoding: Encoding,
-
 pub const Encoding = enum {
     cls, // #
     obj, // @
@@ -17,6 +14,11 @@ pub const Encoding = enum {
         };
     }
 };
+
+const Self = @This();
+encoding: Encoding,
+
+pub const obj: Self = .{ .encoding = .obj };
 
 pub fn fromPointer(info: Type.Pointer) ?Self {
     const T = info.child;

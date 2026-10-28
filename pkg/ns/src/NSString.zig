@@ -1,7 +1,9 @@
 const std = @import("std");
 const obzc = @import("obzc");
+const Metadata = obzc.Metadata;
 
 pub const NSString = opaque {
+    pub const metadata = Metadata.obj;
     const Self = @This();
     const h = obzc.h(Self);
     const utf8_encoding: usize = 4; // NSUTF8StringEncoding in Foundation/NSString.h.
