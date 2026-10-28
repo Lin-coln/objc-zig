@@ -29,7 +29,7 @@ pub fn fromStruct(
 pub fn fromUnion(
     encode: anytype,
     comptime T: type,
-    info: Type.Struct,
+    info: Type.Union,
     mode: enum { val, ref },
 ) ?[]const u8 {
     switch (info.layout) {

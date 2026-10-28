@@ -8,9 +8,8 @@ pub fn fromInt(info: Type.Int) ?[]const u8 {
         32 => 'i',
         64 => 'q',
         128 => 't',
-        else => null,
-    } orelse
-        return null;
+        else => return null,
+    };
 
     const C: u8 = switch (info.signedness) {
         .signed => c,
