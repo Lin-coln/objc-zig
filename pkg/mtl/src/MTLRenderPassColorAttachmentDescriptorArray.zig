@@ -1,8 +1,10 @@
 const std = @import("std");
 const obzc = @import("obzc");
+const Metadata = obzc.Metadata;
 const MTLRenderPassColorAttachmentDescriptor = @import("MTLRenderPassColorAttachmentDescriptor.zig").MTLRenderPassColorAttachmentDescriptor;
 
 pub const MTLRenderPassColorAttachmentDescriptorArray = opaque {
+    pub const metadata = Metadata.obj;
     const Self = @This();
     const h = obzc.h(Self);
 

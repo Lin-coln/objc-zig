@@ -1,9 +1,11 @@
 const obzc = @import("obzc");
+const Metadata = obzc.Metadata;
 const mtl = @import("mtl-abi");
 const MTLRenderPipelineState = @import("MTLRenderPipelineState.zig").MTLRenderPipelineState;
 const MTLTexture = @import("MTLTexture.zig").MTLTexture;
 
 pub const MTLRenderCommandEncoder = opaque {
+    pub const metadata = Metadata.obj;
     const Self = @This();
     const h = obzc.h(Self);
 

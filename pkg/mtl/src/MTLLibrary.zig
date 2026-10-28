@@ -1,9 +1,11 @@
 const std = @import("std");
 const obzc = @import("obzc");
+const Metadata = obzc.Metadata;
 const ns = @import("obzc-ns");
 const MTLFunction = @import("MTLFunction.zig").MTLFunction;
 
 pub const MTLLibrary = opaque {
+    pub const metadata = Metadata.obj;
     const Self = @This();
     const h = obzc.h(Self);
 

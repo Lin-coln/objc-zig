@@ -1,6 +1,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const obzc = @import("obzc");
+const Metadata = obzc.Metadata;
 const ns = @import("obzc-ns");
 const macos = @import("macos/abi");
 const mtl = @import("mtl-abi");
@@ -13,6 +14,7 @@ const MTLRenderPipelineDescriptor = @import("MTLRenderPipelineDescriptor.zig").M
 const MTLRenderPipelineState = @import("MTLRenderPipelineState.zig").MTLRenderPipelineState;
 
 pub const MTLDevice = opaque {
+    pub const metadata = Metadata.obj;
     const Self = @This();
     const h = obzc.h(Self);
 

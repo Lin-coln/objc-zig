@@ -1,9 +1,11 @@
 const std = @import("std");
 const obzc = @import("obzc");
+const Metadata = obzc.Metadata;
 const mtl = @import("mtl-abi");
 const MTLDevice = @import("MTLDevice.zig").MTLDevice;
 
 pub const MTLTexture = opaque {
+    pub const metadata = Metadata.obj;
     const Self = @This();
     const h = obzc.h(Self);
 

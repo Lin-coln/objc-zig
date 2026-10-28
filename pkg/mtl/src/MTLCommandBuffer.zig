@@ -1,4 +1,5 @@
 const obzc = @import("obzc");
+const Metadata = obzc.Metadata;
 const ns = @import("obzc-ns");
 const mtl = @import("mtl-abi");
 const MTLRenderPassDescriptor = @import("MTLRenderPassDescriptor.zig").MTLRenderPassDescriptor;
@@ -6,6 +7,7 @@ const MTLRenderCommandEncoder = @import("MTLRenderCommandEncoder.zig").MTLRender
 const MTLBlitCommandEncoder = @import("MTLBlitCommandEncoder.zig").MTLBlitCommandEncoder;
 
 pub const MTLCommandBuffer = opaque {
+    pub const metadata = Metadata.obj;
     const Self = @This();
     const h = obzc.h(Self);
 

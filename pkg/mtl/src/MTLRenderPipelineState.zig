@@ -1,6 +1,8 @@
 const obzc = @import("obzc");
+const Metadata = obzc.Metadata;
 
 pub const MTLRenderPipelineState = opaque {
+    pub const metadata = Metadata.obj;
     const Self = @This();
     const h = obzc.h(Self);
 

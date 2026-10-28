@@ -1,7 +1,9 @@
 const obzc = @import("obzc");
+const Metadata = obzc.Metadata;
 const MTLTexture = @import("MTLTexture.zig").MTLTexture;
 
 pub const MTLBlitCommandEncoder = opaque {
+    pub const metadata = Metadata.obj;
     const Self = @This();
     const h = obzc.h(Self);
 
