@@ -1,4 +1,4 @@
-const Metadata = @import("../encode/Metadata.zig");
+const Metadata = @import("../encode/root.zig").Metadata;
 
 /// An Objective-C instance. Opaque so tagged pointers require no object alignment.
 pub const Object = opaque {
