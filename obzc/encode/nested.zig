@@ -3,8 +3,7 @@ const Metadata = @import("Metadata.zig");
 const Type = std.lang.Type;
 
 pub fn fromArray(encode: anytype, info: Type.Array) ?[]const u8 {
-    const el = encode(info.child) orelse
-        return null;
+    const el = encode(info.child);
 
     const len = if (info.sentinel_ptr != null)
         info.len + 1
@@ -47,14 +46,13 @@ pub fn fromPointer(encode: anytype, info: Type.Pointer) ?[]const u8 {
     }
 
     // regular ptr
-    const suffix = switch (@typeInfo(info.child)) {
+    const suffix: ?[]const u8 = switch (@typeInfo(info.child)) {
         .@"fn" => "?",
         .@"struct" => |x| @import("struct.zig").fromStruct(encode, info.child, x, .ref),
         .@"union" => |x| @import("struct.zig").fromUnion(encode, info.child, x, .ref),
         .@"opaque" => "v",
         else => encode(info.child),
-    } orelse
-        return null;
+    };
 
-    return "^" ++ suffix;
+    return "^" ++ (suffix orelse return null);
 }

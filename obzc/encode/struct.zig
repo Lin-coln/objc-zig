@@ -8,7 +8,7 @@ pub fn fromStruct(
     info: Type.Struct,
     mode: enum { val, ref },
 ) ?[]const u8 {
-    switch (info.layout) {
+    return switch (info.layout) {
         .@"packed" => encode(info.backing_integer.?),
         .@"extern" => blk: {
             const name = resolveStructName(T);
@@ -23,7 +23,7 @@ pub fn fromStruct(
                 @typeName(T) ++
                 ":\nauto layout is not C-compatible; use an extern or packed struct",
         ),
-    }
+    };
 }
 
 pub fn fromUnion(
@@ -32,7 +32,7 @@ pub fn fromUnion(
     info: Type.Union,
     mode: enum { val, ref },
 ) ?[]const u8 {
-    switch (info.layout) {
+    return switch (info.layout) {
         .@"extern" => blk: {
             const name = resolveStructName(T);
             const content = switch (mode) {
@@ -46,7 +46,7 @@ pub fn fromUnion(
                 @typeName(T) ++
                 ":\nonly extern unions have a supported Objective-C layout",
         ),
-    }
+    };
 }
 
 fn resolveFields(

@@ -35,27 +35,27 @@ pub const CompileTestCases = .{
     },
     .{
         .name = "encode: rejects auto-layout structs",
-        .expected_error = "cannot encode struct Auto:",
+        .expected_error = "cannot encode struct " ++ @typeName(Auto) ++ ":",
     },
     .{
         .name = "encode: rejects pointers to auto-layout structs",
-        .expected_error = "cannot encode struct Auto:",
+        .expected_error = "cannot encode struct " ++ @typeName(Auto) ++ ":",
     },
     .{
         .name = "encode: rejects non-extern unions",
-        .expected_error = "cannot encode union Plain:",
+        .expected_error = "cannot encode union " ++ @typeName(Plain) ++ ":",
     },
     .{
         .name = "encode: rejects packed unions",
-        .expected_error = "cannot encode union Packed:",
+        .expected_error = "cannot encode union " ++ @typeName(Packed) ++ ":",
     },
     .{
         .name = "encode: rejects pointers to non-extern unions",
-        .expected_error = "cannot encode union Plain:",
+        .expected_error = "cannot encode union " ++ @typeName(Plain) ++ ":",
     },
     .{
         .name = "encode: rejects slices",
-        .expected_error = "cannot encode slice of u8:",
+        .expected_error = "cannot encode []const u8:",
     },
     .{
         .name = "encode: rejects optional values",
@@ -83,19 +83,19 @@ pub const CompileTestCases = .{
     },
     .{
         .name = "encode: rejects lowered struct field alignment",
-        .expected_error = "cannot encode struct Lowered:",
+        .expected_error = "cannot encode struct " ++ @typeName(Lowered) ++ ":",
     },
     .{
         .name = "encode: rejects raised struct field alignment",
-        .expected_error = "cannot encode struct Raised:",
+        .expected_error = "cannot encode struct " ++ @typeName(Raised) ++ ":",
     },
     .{
         .name = "encode: rejects custom union field alignment",
-        .expected_error = "cannot encode union AlignedUnion:",
+        .expected_error = "cannot encode union " ++ @typeName(AlignedUnion) ++ ":",
     },
     .{
         .name = "encode: rejects custom field alignment in nested structs",
-        .expected_error = "cannot encode struct Lowered:",
+        .expected_error = "cannot encode struct " ++ @typeName(Lowered) ++ ":",
     },
 };
 

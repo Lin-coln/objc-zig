@@ -2,7 +2,7 @@ const primitive = @import("primitive.zig");
 const nested = @import("nested.zig");
 
 pub fn encodeType(comptime T: type) []const u8 {
-    return switch (@typeInfo(T)) {
+    const encoded: ?[]const u8 = switch (@typeInfo(T)) {
         // primitive
         .void => "v",
         .bool => "B",
@@ -18,7 +18,9 @@ pub fn encodeType(comptime T: type) []const u8 {
         .pointer => |x| nested.fromPointer(encodeType, x),
 
         else => null,
-    } orelse
+    };
+
+    return encoded orelse
         @compileError(
             "cannot encode " ++
                 @typeName(T) ++
