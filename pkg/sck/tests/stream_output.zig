@@ -27,8 +27,8 @@ const SCKStreamOutputTest = opaque {
         errdefer cls.dispose();
 
         try h.f.addProtocol(cls, "SCStreamOutput");
-        try h.f.addIvar(cls, "context", *Context, "^v");
-        try h.f.addMethod(cls, "stream:didOutputSampleBuffer:ofType:", receive, "v@:@^{opaqueCMSampleBuffer=}q");
+        try h.f.addIvar(cls, "context", *anyopaque);
+        try h.f.addMethod(cls, "stream:didOutputSampleBuffer:ofType:", receive);
 
         cls.register();
         return cls;

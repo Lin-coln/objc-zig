@@ -1,5 +1,6 @@
 const std = @import("std");
 const ffi = @import("../../ffi/root.zig");
+const encodeType = @import("../../encode/root.zig").encodeType;
 const c = ffi.c;
 const Class = ffi.Class;
 
@@ -11,10 +12,14 @@ pub fn ivar(comptime T: type) type {
             cls: *Class,
             comptime name: [:0]const u8,
             comptime Type: type,
-            comptime signature: [:0]const u8,
         ) !void {
-            const alignment = comptime std.math.log2_int(usize, @alignOf(Type));
-            const done = c.class_addIvar(@ptrCast(cls), name, @sizeOf(Type), alignment, signature);
+            const done = c.class_addIvar(
+                @ptrCast(cls),
+                name,
+                @sizeOf(Type),
+                comptime std.math.log2_int(usize, @alignOf(Type)),
+                comptime encodeType(Type),
+            );
             if (done == c.YES) return;
             return error.AddIvarFailed;
         }
@@ -28,10 +33,10 @@ test "ClassFactory.ivar.addIvar: derives size and alignment from the value type 
     const cls: *Class = @ptrCast(raw);
     const ivars = ivar(opaque {});
     const base_size = c.class_getInstanceSize(raw);
-    try ivars.addIvar(cls, "_prefix", u8, "C");
-    try ivars.addIvar(cls, "_payload", Payload, "{Payload=QQ}");
-    try ivars.addIvar(cls, "_tail", u8, "C");
-    try std.testing.expectError(error.AddIvarFailed, ivars.addIvar(cls, "_payload", Payload, "{Payload=QQ}"));
+    try ivars.addIvar(cls, "_prefix", u8);
+    try ivars.addIvar(cls, "_payload", Payload);
+    try ivars.addIvar(cls, "_tail", u8);
+    try std.testing.expectError(error.AddIvarFailed, ivars.addIvar(cls, "_payload", Payload));
     c.objc_registerClassPair(raw);
 
     const payload = c.class_getInstanceVariable(raw, "_payload").?;

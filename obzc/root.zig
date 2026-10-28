@@ -3,7 +3,8 @@ pub const c = ffi.c;
 pub const cast = ffi.cast;
 pub const AutoReleasePool = ffi.AutoReleasePool;
 
-pub const encode = @import("encode/root.zig").encode;
+pub const encodeType = @import("encode/root.zig").encodeType;
+pub const encodeFunction = @import("encode/root.zig").encodeFunction;
 
 pub const Block = @import("block/root.zig").Block;
 

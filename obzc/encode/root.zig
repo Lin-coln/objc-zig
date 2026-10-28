@@ -1,11 +1,18 @@
+const std = @import("std");
+
 pub const Metadata = @import("Metadata.zig");
 
-pub inline fn encode(comptime T: type) []const u8 {
-    return comptime @import("encode.zig").encodeType(T);
+pub const encodeFunction = @import("encodeFunction.zig").encodeFunction;
+
+pub inline fn encodeType(comptime T: type) [:0]const u8 {
+    return comptime std.fmt.comptimePrint("{s}", .{
+        @import("encode.zig").encodeType(T),
+    });
 }
 
 test {
     _ = Metadata;
+    _ = @import("encodeFunction.zig");
     _ = @import("encode.zig");
     _ = @import("primitive.zig");
     _ = @import("nested.zig");

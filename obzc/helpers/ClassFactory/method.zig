@@ -1,5 +1,6 @@
 const std = @import("std");
 const ffi = @import("../../ffi/root.zig");
+const encodeFunction = @import("../../encode/root.zig").encodeFunction;
 const c = ffi.c;
 const Sel = ffi.Sel;
 const Class = ffi.Class;
@@ -12,21 +13,33 @@ pub fn method(comptime T: type) type {
             cls: *Class,
             comptime name: [:0]const u8,
             comptime handler: anytype,
-            comptime signature: [:0]const u8,
         ) !void {
             const metaclass = cls.metaclass() orelse
                 return error.MetaClassNotFound;
-            try addMethod(metaclass, name, handler, signature);
+            try addMethod(metaclass, name, handler);
         }
 
         pub fn addMethod(
             cls: *Class,
             comptime name: [:0]const u8,
             comptime handler: anytype,
-            comptime signature: [:0]const u8,
         ) !void {
+            const Fn = switch (@typeInfo(@TypeOf(handler))) {
+                .@"fn" => @TypeOf(handler),
+                .pointer => |pointer| pointer.child,
+                else => @compileError("method handler must be a function or function pointer"),
+            };
+            const info = @typeInfo(Fn).@"fn";
+            if (info.param_types.len < 2) @compileError("method handler needs receiver and selector parameters");
+
             const imp: c.IMP = @ptrCast(if (@typeInfo(@TypeOf(handler)) == .@"fn") &handler else handler);
-            const done = c.class_addMethod(@ptrCast(cls), @ptrCast(Sel.get(name)), imp, signature);
+
+            const done = c.class_addMethod(
+                @ptrCast(cls),
+                @ptrCast(Sel.get(name)),
+                imp,
+                comptime encodeFunction(Fn, 2, "@:"),
+            );
             if (done == c.YES) return;
             return error.AddMethodFailed;
         }
@@ -43,14 +56,14 @@ test "ClassFactory.method.addMethod: binds names and accepts functions or functi
     c.objc_registerClassPair(raw);
     const cls: *Class = @ptrCast(raw);
     const methods = method(T);
-    try methods.addMethod(cls, "first", Probe.handle, "v@:");
-    try methods.addMethod(cls, "second", &Probe.handle, "v@:");
+    try methods.addMethod(cls, "first", Probe.handle);
+    try methods.addMethod(cls, "second", &Probe.handle);
     inline for (.{ "first", "second" }) |name| {
         const metadata = c.class_getInstanceMethod(raw, c.sel_registerName(name)).?;
         try std.testing.expectEqual(@as(c.IMP, @ptrCast(&Probe.handle)), c.method_getImplementation(metadata));
         try std.testing.expectEqualStrings("v@:", std.mem.span(c.method_getTypeEncoding(metadata)));
     }
-    try std.testing.expectError(error.AddMethodFailed, methods.addMethod(cls, "first", Probe.handle, "v@:"));
+    try std.testing.expectError(error.AddMethodFailed, methods.addMethod(cls, "first", Probe.handle));
 }
 
 test "ClassFactory.method.addStaticMethod: targets the metaclass and propagates duplicate errors" {
@@ -63,9 +76,9 @@ test "ClassFactory.method.addStaticMethod: targets the metaclass and propagates 
     c.objc_registerClassPair(raw);
     const cls: *Class = @ptrCast(raw);
     const methods = method(T);
-    try methods.addStaticMethod(cls, "factoryProbe", Probe.handle, "v@:");
+    try methods.addStaticMethod(cls, "factoryProbe", Probe.handle);
     const selector = c.sel_registerName("factoryProbe");
     try std.testing.expect(c.class_getClassMethod(raw, selector) != null);
     try std.testing.expectEqual(null, c.class_getInstanceMethod(raw, selector));
-    try std.testing.expectError(error.AddMethodFailed, methods.addStaticMethod(cls, "factoryProbe", Probe.handle, "v@:"));
+    try std.testing.expectError(error.AddMethodFailed, methods.addStaticMethod(cls, "factoryProbe", Probe.handle));
 }

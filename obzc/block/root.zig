@@ -1,7 +1,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const ffi = @import("../ffi/root.zig");
-const encode = @import("../encode/root.zig").encode;
+const encode = @import("../encode/encode.zig").encodeType;
 const c = ffi.c;
 
 pub fn Block(comptime Context: type, comptime Function: type) type {
