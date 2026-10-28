@@ -1,7 +1,11 @@
 const std = @import("std");
 const encodeType = @import("encode.zig").encodeType;
 
-pub inline fn encodeFunction(comptime Fn: type, comptime skipped_params: usize, comptime implicit_encoding: []const u8) [:0]const u8 {
+pub inline fn encodeFunction(
+    comptime Fn: type,
+    comptime skipped_params: usize,
+    comptime implicit_encoding: []const u8,
+) [:0]const u8 {
     const info = @typeInfo(Fn).@"fn";
 
     var result: []const u8 = comptime encodeType(info.return_type.?);

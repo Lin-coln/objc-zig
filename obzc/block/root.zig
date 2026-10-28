@@ -1,11 +1,18 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const ffi = @import("../ffi/root.zig");
-const encode = @import("../encode/encode.zig").encodeType;
+const encodeFunction = @import("../encode/root.zig").encodeFunction;
 const c = ffi.c;
 
 pub fn Block(comptime Context: type, comptime Function: type) type {
-    const signature = comptime generateFromFnType(Function);
+    const fn_info = switch (@typeInfo(Function)) {
+        .@"fn" => |info| info,
+        else => @compileError("expected a function type, got " ++ @typeName(Function)),
+    };
+    if (fn_info.is_generic or fn_info.attrs.varargs) {
+        @compileError("a block signature requires a non-generic function with fixed parameters");
+    }
+    const signature = comptime encodeFunction(Function, 0, "@?");
 
     return extern struct {
         const Self = @This();
@@ -67,21 +74,6 @@ fn getCallbackType(comptime BlockType: type, comptime Function: type) type {
         info.return_type.?,
         .{ .@"callconv" = .c },
     );
-}
-
-/// Encodes the return type, the implicit block argument, then the function parameters.
-/// Sizes and offsets are omitted, matching the type-only signatures used by Block.
-pub fn generateFromFnType(comptime Fn: type) [:0]const u8 {
-    const fn_info = switch (@typeInfo(Fn)) {
-        .@"fn" => |info| info,
-        else => @compileError("expected a function type, got " ++ @typeName(Fn)),
-    };
-    if (fn_info.is_generic or fn_info.attrs.varargs) {
-        @compileError("a block signature requires a non-generic function with fixed parameters");
-    }
-    var signature: []const u8 = encode(fn_info.return_type.?) ++ "@?";
-    for (fn_info.param_types) |T| signature = signature ++ encode(T.?);
-    return std.fmt.comptimePrint("{s}", .{signature});
 }
 
 test "Block.init: binds the supplied context and callback" {
@@ -158,17 +150,4 @@ test "getCallbackType: implicit block parameter and C calling convention" {
     try std.testing.expect(getCallbackType(B, fn () void) == fn (*const B) callconv(.c) void);
     try std.testing.expect(getCallbackType(B, fn (i32, ?*const u8) Result) ==
         fn (*const B, i32, ?*const u8) callconv(.c) Result);
-}
-
-test "generateFromFnType: return type, implicit argument, parameter order and terminator" {
-    const cases = .{
-        .{ fn () void, "v@?" },
-        .{ fn (i32, f64) i32, "i@?id" },
-        .{ fn (i32, *const u8, bool) f64, "d@?i^CB" },
-    };
-    inline for (cases) |case| {
-        const signature = comptime generateFromFnType(case[0]);
-        try std.testing.expectEqualStrings(case[1], signature);
-        try std.testing.expectEqual(@as(u8, 0), signature.ptr[signature.len]);
-    }
 }
