@@ -1,5 +1,6 @@
 const std = @import("std");
 const obzc = @import("obzc");
+const Metadata = obzc.Metadata;
 const macos = @import("macos/abi");
 
 /// SCCaptureResolutionType from ScreenCaptureKit/SCStream.h.
@@ -10,6 +11,7 @@ pub const SCCaptureResolutionType = enum(isize) {
 };
 
 pub const SCStreamConfiguration = opaque {
+    pub const metadata = Metadata.obj;
     const Self = @This();
     const h = obzc.h(Self);
 

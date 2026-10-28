@@ -1,9 +1,11 @@
 const obzc = @import("obzc");
+const Metadata = obzc.Metadata;
 const ns = @import("obzc-ns");
 const macos = @import("macos/abi");
 const SCRunningApplication = @import("SCRunningApplication.zig").SCRunningApplication;
 
 pub const SCWindow = opaque {
+    pub const metadata = Metadata.obj;
     const Self = @This();
     const h = obzc.h(Self);
 

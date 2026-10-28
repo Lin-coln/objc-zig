@@ -1,6 +1,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const obzc = @import("obzc");
+const Metadata = obzc.Metadata;
 const ns = @import("obzc-ns");
 const SCContentFilter = @import("SCContentFilter.zig").SCContentFilter;
 const SCStreamConfiguration = @import("SCStreamConfiguration.zig").SCStreamConfiguration;
@@ -16,6 +17,7 @@ pub const SCStreamOutputType = enum(isize) {
 };
 
 pub const SCStream = opaque {
+    pub const metadata = Metadata.obj;
     const Self = @This();
     const h = obzc.h(Self);
 

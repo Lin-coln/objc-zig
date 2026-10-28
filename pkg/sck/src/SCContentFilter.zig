@@ -1,7 +1,9 @@
 const obzc = @import("obzc");
+const Metadata = obzc.Metadata;
 const SCWindow = @import("SCWindow.zig").SCWindow;
 
 pub const SCContentFilter = opaque {
+    pub const metadata = Metadata.obj;
     const Self = @This();
     const h = obzc.h(Self);
 
