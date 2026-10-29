@@ -1,3 +1,4 @@
+const std = @import("std");
 pub const c = @import("mtl-abi");
 
 pub const MTLBlitCommandEncoder = @import("MTLBlitCommandEncoder.zig").MTLBlitCommandEncoder;
@@ -19,21 +20,5 @@ pub const MTLTexture = @import("MTLTexture.zig").MTLTexture;
 pub const MTLTextureDescriptor = @import("MTLTextureDescriptor.zig").MTLTextureDescriptor;
 
 test {
-    _ = @import("MTLBlitCommandEncoder.zig");
-    _ = @import("MTLCommandBuffer.zig");
-    _ = @import("MTLCommandQueue.zig");
-    _ = @import("MTLCompileOptions.zig");
-    _ = @import("MTLDevice.zig");
-    _ = @import("MTLFunction.zig");
-    _ = @import("MTLLibrary.zig");
-    _ = @import("MTLRenderCommandEncoder.zig");
-    _ = @import("MTLRenderPassColorAttachmentDescriptor.zig");
-    _ = @import("MTLRenderPassColorAttachmentDescriptorArray.zig");
-    _ = @import("MTLRenderPassDescriptor.zig");
-    _ = @import("MTLRenderPipelineColorAttachmentDescriptor.zig");
-    _ = @import("MTLRenderPipelineColorAttachmentDescriptorArray.zig");
-    _ = @import("MTLRenderPipelineDescriptor.zig");
-    _ = @import("MTLRenderPipelineState.zig");
-    _ = @import("MTLTexture.zig");
-    _ = @import("MTLTextureDescriptor.zig");
+    std.testing.refAllDecls(@This());
 }

@@ -1,3 +1,4 @@
+const std = @import("std");
 pub const sources = .{
     @import("encode/encode.test.zig"),
     @import("encode/struct.test.zig"),
@@ -11,5 +12,5 @@ pub const sources = .{
 };
 
 test {
-    inline for (sources) |source| _ = source;
+    std.testing.refAllDecls(@This());
 }

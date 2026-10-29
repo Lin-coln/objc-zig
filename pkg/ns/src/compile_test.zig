@@ -1,7 +1,8 @@
+const std = @import("std");
 pub const sources = .{
     @import("NSNumber.test.zig"),
 };
 
 test {
-    inline for (sources) |source| _ = source;
+    std.testing.refAllDecls(@This());
 }

@@ -11,8 +11,7 @@ pub inline fn encodeType(comptime T: type) [:0]const u8 {
 }
 
 test {
-    _ = Metadata;
-    _ = @import("encodeFunction.zig");
+    std.testing.refAllDecls(@This());
     _ = @import("encode.zig");
     _ = @import("primitive.zig");
     _ = @import("nested.zig");

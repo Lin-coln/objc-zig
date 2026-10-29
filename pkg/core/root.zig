@@ -1,3 +1,4 @@
+const std = @import("std");
 pub const ffi = @import("ffi/root.zig");
 pub const c = ffi.c;
 pub const cast = ffi.cast;
@@ -27,9 +28,6 @@ pub fn h(comptime T: type) type {
 }
 
 test {
+    std.testing.refAllDecls(@This());
     _ = @import("utils/root.zig");
-    _ = ffi;
-    _ = @import("encode/root.zig");
-    _ = @import("block/root.zig");
-    _ = helpers;
 }
