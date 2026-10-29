@@ -9,6 +9,7 @@
         .sck = .{ .path = "pkg/sck" },
         .mtl = .{ .path = "pkg/mtl" },
         .vision = .{ .path = "pkg/vision" },
+        .macos = .{ .path = "shared/macos" },
     },
     .paths = .{
         "build.zig",
