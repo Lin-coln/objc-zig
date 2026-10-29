@@ -4,7 +4,7 @@
     .fingerprint = 0xaadcc77454f6fcc6,
     .minimum_zig_version = "0.17.0",
     .dependencies = .{
-        .obzc = .{ .path = "obzc" },
+        .core = .{ .path = "pkg/core" },
         .ns = .{ .path = "pkg/ns" },
         .sck = .{ .path = "pkg/sck" },
         .mtl = .{ .path = "pkg/mtl" },
@@ -13,7 +13,6 @@
     .paths = .{
         "build.zig",
         "build.zig.zon",
-        "obzc",
         "pkg",
         "shared",
     },

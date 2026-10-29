@@ -1,7 +1,7 @@
 .{
-    .name = .obzc,
+    .name = .obzc_core,
     .version = "0.1.0",
-    .fingerprint = 0x0839869945c7ff95,
+    .fingerprint = 0xc1ef0dc54b4b67d7,
     .minimum_zig_version = "0.17.0",
     .dependencies = .{},
     .paths = .{

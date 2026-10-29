@@ -1,5 +1,5 @@
 const std = @import("std");
-const obzc = @import("obzc");
+const core = @import("core");
 const ns = @import("obzc-ns");
 const macos = @import("macos/abi");
 const mtl = @import("obzc-mtl");
@@ -11,7 +11,7 @@ const MTLTextureDescriptor = mtl.MTLTextureDescriptor;
 const MTLRenderPassDescriptor = mtl.MTLRenderPassDescriptor;
 
 test "Metal: compile, render, and read copied pixels through an IOSurface" {
-    const pool = obzc.AutoReleasePool.create();
+    const pool = core.AutoReleasePool.create();
     defer pool.release();
     const device = MTLDevice.createSystemDefaultDevice() orelse return error.SkipZigTest;
     defer device.release();

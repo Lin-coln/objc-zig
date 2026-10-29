@@ -1,13 +1,13 @@
 const std = @import("std");
-const obzc = @import("obzc");
-const Metadata = obzc.Metadata;
+const core = @import("core");
+const Metadata = core.Metadata;
 const MTLFunction = @import("MTLFunction.zig").MTLFunction;
 const MTLRenderPipelineColorAttachmentDescriptorArray = @import("MTLRenderPipelineColorAttachmentDescriptorArray.zig").MTLRenderPipelineColorAttachmentDescriptorArray;
 
 pub const MTLRenderPipelineDescriptor = opaque {
     pub const metadata = Metadata.obj;
     const Self = @This();
-    const h = obzc.h(Self);
+    const h = core.h(Self);
 
     pub const retain = h.retain;
     pub const release = h.release;
@@ -33,7 +33,7 @@ test "MTLRenderPipelineDescriptor: new has empty function slots" {
 test "MTLRenderPipelineDescriptor: function slots store and clear functions independently" {
     const ns = @import("obzc-ns");
     const MTLDevice = @import("MTLDevice.zig").MTLDevice;
-    const pool = obzc.AutoReleasePool.create();
+    const pool = core.AutoReleasePool.create();
     defer pool.release();
     const device = MTLDevice.createSystemDefaultDevice() orelse return error.SkipZigTest;
     defer device.release();

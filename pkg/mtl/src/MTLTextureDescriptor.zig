@@ -1,12 +1,12 @@
 const std = @import("std");
-const obzc = @import("obzc");
-const Metadata = obzc.Metadata;
+const core = @import("core");
+const Metadata = core.Metadata;
 const mtl = @import("mtl-abi");
 
 pub const MTLTextureDescriptor = opaque {
     pub const metadata = Metadata.obj;
     const Self = @This();
-    const h = obzc.h(Self);
+    const h = core.h(Self);
 
     pub const retain = h.retain;
     pub const release = h.release;
@@ -36,7 +36,7 @@ pub const MTLTextureDescriptor = opaque {
 };
 
 test "MTLTextureDescriptor: configure texture dimensions and storage" {
-    const pool = obzc.AutoReleasePool.create();
+    const pool = core.AutoReleasePool.create();
     defer pool.release();
     const descriptor = MTLTextureDescriptor.texture2DDescriptor(mtl.MTLPixelFormatBGRA8Unorm, 32, 16, false);
     descriptor.setUsage(mtl.MTLTextureUsageShaderRead | mtl.MTLTextureUsageRenderTarget);

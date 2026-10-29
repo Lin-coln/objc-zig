@@ -1,6 +1,6 @@
 const std = @import("std");
-const obzc = @import("obzc");
-const Metadata = obzc.Metadata;
+const core = @import("core");
+const Metadata = core.Metadata;
 const ns = @import("obzc-ns");
 const macos = @import("macos/abi");
 const SCWindow = @import("SCWindow.zig").SCWindow;
@@ -8,7 +8,7 @@ const SCWindow = @import("SCWindow.zig").SCWindow;
 pub const SCShareableContent = opaque {
     pub const metadata = Metadata.obj;
     const Self = @This();
-    const h = obzc.h(Self);
+    const h = core.h(Self);
 
     pub const retain = h.retain;
     pub const release = h.release;
@@ -31,7 +31,7 @@ pub const SCShareableContent = opaque {
 test "SCShareableContent: getShareableContent invokes a Zig completion" {
     // Preflight checks Screen Recording permission without requesting it.
     if (!macos.CGPreflightScreenCaptureAccess()) return error.SkipZigTest;
-    const pool = obzc.AutoReleasePool.create();
+    const pool = core.AutoReleasePool.create();
     defer pool.release();
 
     const State = struct {

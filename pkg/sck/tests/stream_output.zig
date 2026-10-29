@@ -1,12 +1,12 @@
 const std = @import("std");
-const obzc = @import("obzc");
+const core = @import("core");
 const macos = @import("macos/abi");
 const sck = @import("obzc-sck");
 
-const ffi = obzc.ffi;
+const ffi = core.ffi;
 const c = ffi.c;
 const Class = ffi.Class;
-const Metadata = obzc.Metadata;
+const Metadata = core.Metadata;
 
 const Context = struct {
     calls: usize = 0,
@@ -18,7 +18,7 @@ const Context = struct {
 const SCKStreamOutputTest = opaque {
     pub const metadata = Metadata.obj;
     const Self = @This();
-    const h = obzc.h(Self);
+    const h = core.h(Self);
     pub const release = h.release;
     pub const context = h.ivar("context", *Context).getter;
     pub const setContext = h.ivar("context", *Context).setter;
@@ -65,7 +65,7 @@ test "SCKStreamOutputTest: routes callback arguments to each instance context" {
     // Opaque argument tokens: the callback only stores them and never dereferences them.
     const stream: *sck.SCStream = @ptrFromInt(0x1000);
     const sample_buffer: macos.CMSampleBufferRef = @ptrFromInt(0x2000);
-    const h = obzc.h(SCKStreamOutputTest);
+    const h = core.h(SCKStreamOutputTest);
     h.call(first, void, "stream:didOutputSampleBuffer:ofType:", .{ stream, sample_buffer, sck.SCStreamOutputType.screen });
     h.call(second, void, "stream:didOutputSampleBuffer:ofType:", .{ stream, sample_buffer, sck.SCStreamOutputType.audio });
 

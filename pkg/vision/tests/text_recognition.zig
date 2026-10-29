@@ -1,6 +1,6 @@
 const std = @import("std");
-const obzc = @import("obzc");
-const Object = obzc.ffi.Object;
+const core = @import("core");
+const Object = core.ffi.Object;
 const ns = @import("obzc-ns");
 const vision = @import("obzc-vision");
 const macos = @import("macos/abi");
@@ -9,7 +9,7 @@ const VNRecognizeTextRequest = vision.VNRecognizeTextRequest;
 const VNImageRequestHandler = vision.VNImageRequestHandler;
 
 test "text recognition: encoded image data produces readable candidates" {
-    const pool = obzc.AutoReleasePool.create();
+    const pool = core.AutoReleasePool.create();
     defer pool.release();
     const handler = blk: {
         const data = ns.NSData.init(@embedFile("fixtures/text.png"));
@@ -61,7 +61,7 @@ test "text recognition: encoded image data produces readable candidates" {
 }
 
 test "text recognition: a blank pixel buffer produces an empty result" {
-    const pool = obzc.AutoReleasePool.create();
+    const pool = core.AutoReleasePool.create();
     defer pool.release();
     const handler = created: {
         var pixel_buffer: macos.CVPixelBufferRef = null;

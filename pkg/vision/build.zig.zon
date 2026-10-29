@@ -4,7 +4,7 @@
     .fingerprint = 0xac774f18ad47b0ef,
     .minimum_zig_version = "0.17.0",
     .dependencies = .{
-        .obzc = .{ .path = "../../obzc" },
+        .core = .{ .path = "../core" },
         .ns = .{ .path = "../ns" },
         .macos = .{ .path = "../../shared/macos" },
     },

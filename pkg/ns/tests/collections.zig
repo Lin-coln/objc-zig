@@ -1,12 +1,12 @@
 const std = @import("std");
-const obzc = @import("obzc");
+const core = @import("core");
 const ns = @import("obzc-ns");
 
 test "NSDictionary: nested arrays survive their creators and autorelease pool" {
     const Strings = ns.NSArray(ns.NSString);
     const Dictionary = ns.NSDictionary(ns.NSString, Strings);
     const dictionary = created: {
-        const pool = obzc.AutoReleasePool.create();
+        const pool = core.AutoReleasePool.create();
         defer pool.release();
         const key = ns.NSString.init("nested collection contents").?;
         defer key.release();

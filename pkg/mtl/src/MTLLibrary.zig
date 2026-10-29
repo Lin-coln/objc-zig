@@ -1,13 +1,13 @@
 const std = @import("std");
-const obzc = @import("obzc");
-const Metadata = obzc.Metadata;
+const core = @import("core");
+const Metadata = core.Metadata;
 const ns = @import("obzc-ns");
 const MTLFunction = @import("MTLFunction.zig").MTLFunction;
 
 pub const MTLLibrary = opaque {
     pub const metadata = Metadata.obj;
     const Self = @This();
-    const h = obzc.h(Self);
+    const h = core.h(Self);
 
     pub const retain = h.retain;
     pub const release = h.release;
@@ -18,7 +18,7 @@ pub const MTLLibrary = opaque {
 
 test "MTLLibrary: newFunction finds a named function and returns null for a missing name" {
     const MTLDevice = @import("MTLDevice.zig").MTLDevice;
-    const pool = obzc.AutoReleasePool.create();
+    const pool = core.AutoReleasePool.create();
     defer pool.release();
     const device = MTLDevice.createSystemDefaultDevice() orelse return error.SkipZigTest;
     defer device.release();

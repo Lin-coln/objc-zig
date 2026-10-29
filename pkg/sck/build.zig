@@ -6,7 +6,7 @@ pub fn build(b: *std.Build) void {
 
     const test_step = b.step("test", "Run ScreenCaptureKit tests");
     const macos_abi = b.dependency("macos", .{ .target = target, .optimize = optimize }).module("abi");
-    const obzc = b.dependency("obzc", .{ .target = target, .optimize = optimize }).module("obzc");
+    const core = b.dependency("core", .{ .target = target, .optimize = optimize }).module("core");
     const ns = b.dependency("ns", .{ .target = target, .optimize = optimize }).module("obzc-ns");
 
     const sck = blk: {
@@ -15,7 +15,7 @@ pub fn build(b: *std.Build) void {
             .target = target,
             .optimize = optimize,
             .imports = &.{
-                .{ .name = "obzc", .module = obzc },
+                .{ .name = "core", .module = core },
                 .{ .name = "obzc-ns", .module = ns },
                 .{ .name = "macos/abi", .module = macos_abi },
             },
@@ -40,7 +40,7 @@ pub fn build(b: *std.Build) void {
             .target = target,
             .optimize = optimize,
             .imports = &.{
-                .{ .name = "obzc", .module = obzc },
+                .{ .name = "core", .module = core },
                 .{ .name = "obzc-sck", .module = sck },
                 .{ .name = "macos/abi", .module = macos_abi },
             },

@@ -7,7 +7,7 @@ pub fn build(b: *std.Build) void {
     const test_step = b.step("test", "Run all project tests");
     const opts = .{ .target = target, .optimize = optimize };
 
-    inline for (.{ "obzc", "ns", "sck", "mtl", "vision" }) |name| {
+    inline for (.{ "core", "ns", "sck", "mtl", "vision" }) |name| {
         const dependency = b.dependency(name, opts);
         const step = &dependency.builder.top_level_steps.get("test").?.step;
         test_step.dependOn(step);

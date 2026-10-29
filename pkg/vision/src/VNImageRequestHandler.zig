@@ -1,8 +1,8 @@
 const std = @import("std");
 const builtin = @import("builtin");
-const obzc = @import("obzc");
-const Metadata = obzc.Metadata;
-const Object = obzc.ffi.Object;
+const core = @import("core");
+const Metadata = core.Metadata;
+const Object = core.ffi.Object;
 const ns = @import("obzc-ns");
 const macos = @import("macos/abi");
 const VNRequest = @import("VNRequest.zig").VNRequest;
@@ -11,7 +11,7 @@ const VNRecognizeTextRequest = @import("VNRecognizeTextRequest.zig").VNRecognize
 pub const VNImageRequestHandler = opaque {
     pub const metadata = Metadata.obj;
     const Self = @This();
-    const h = obzc.h(Self);
+    const h = core.h(Self);
     const Options = ns.NSDictionary(ns.NSString, Object);
 
     pub const retain = h.retain;
@@ -40,7 +40,7 @@ pub const VNImageRequestHandler = opaque {
 };
 
 test "VNImageRequestHandler: invalid image data fails without producing results" {
-    const pool = obzc.AutoReleasePool.create();
+    const pool = core.AutoReleasePool.create();
     defer pool.release();
     const data = ns.NSData.init("not an image");
     defer data.release();

@@ -17,7 +17,7 @@ pub fn build(b: *std.Build) void {
     };
     test_step.dependOn(addCompileErrorTests(b, target, optimize, objc_abi));
 
-    const obzc = blk: {
+    const core = blk: {
         const opts: std.Build.Module.CreateOptions = .{
             .root_source_file = b.path("root.zig"),
             .target = target,
@@ -27,7 +27,7 @@ pub fn build(b: *std.Build) void {
             },
         };
 
-        const mod = b.addModule("obzc", opts);
+        const mod = b.addModule("core", opts);
         mod.linkSystemLibrary("objc", .{});
 
         const test_mod = b.createModule(opts);
@@ -40,7 +40,7 @@ pub fn build(b: *std.Build) void {
         break :blk mod;
     };
 
-    _ = obzc;
+    _ = core;
 }
 
 fn addCompileErrorTests(

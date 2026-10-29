@@ -5,8 +5,8 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
 
     const test_step = b.step("test", "Run Foundation tests");
-    const obzc = b.dependency("obzc", .{ .target = target, .optimize = optimize }).module("obzc");
-    test_step.dependOn(addCompileErrorTests(b, target, optimize, obzc));
+    const core = b.dependency("core", .{ .target = target, .optimize = optimize }).module("core");
+    test_step.dependOn(addCompileErrorTests(b, target, optimize, core));
 
     const ns = blk: {
         const mod = b.addModule("obzc-ns", .{
@@ -14,7 +14,7 @@ pub fn build(b: *std.Build) void {
             .target = target,
             .optimize = optimize,
             .imports = &.{
-                .{ .name = "obzc", .module = obzc },
+                .{ .name = "core", .module = core },
             },
         });
 
@@ -31,7 +31,7 @@ pub fn build(b: *std.Build) void {
             .target = target,
             .optimize = optimize,
             .imports = &.{
-                .{ .name = "obzc", .module = obzc },
+                .{ .name = "core", .module = core },
                 .{ .name = "obzc-ns", .module = ns },
             },
         });
@@ -48,7 +48,7 @@ fn addCompileErrorTests(
     b: *std.Build,
     target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
-    obzc: *std.Build.Module,
+    core: *std.Build.Module,
 ) *std.Build.Step {
     const step = b.step("test-compile-errors", "Check compile-time validation errors");
     inline for (@import("src/compile_test.zig").sources) |source| {
@@ -60,7 +60,7 @@ fn addCompileErrorTests(
                     .target = target,
                     .optimize = optimize,
                     .imports = &.{
-                        .{ .name = "obzc", .module = obzc },
+                        .{ .name = "core", .module = core },
                     },
                 }),
                 .filters = &.{case.name},
