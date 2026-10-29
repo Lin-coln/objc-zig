@@ -1,7 +1,7 @@
 const std = @import("std");
 const core = @import("core");
 const macos = @import("macos/abi");
-const sck = @import("obzc-sck");
+const sck = @import("sck");
 const SCShareableContent = sck.SCShareableContent;
 
 test "SCShareableContent: enumerate windows through the synchronous query" {

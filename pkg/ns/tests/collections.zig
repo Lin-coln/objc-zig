@@ -1,6 +1,6 @@
 const std = @import("std");
 const core = @import("core");
-const ns = @import("obzc-ns");
+const ns = @import("ns");
 
 test "NSDictionary: nested arrays survive their creators and autorelease pool" {
     const Strings = ns.NSArray(ns.NSString);

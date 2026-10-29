@@ -1,7 +1,7 @@
 const std = @import("std");
 const core = @import("core");
 const Metadata = core.Metadata;
-const ns = @import("obzc-ns");
+const ns = @import("ns");
 const macos = @import("macos/abi");
 const VNRecognizedTextObservation = @import("VNRecognizedTextObservation.zig").VNRecognizedTextObservation;
 

@@ -15,7 +15,7 @@ pub const MTLFunction = opaque {
 };
 
 test "MTLFunction: functionType identifies a compute function" {
-    const ns = @import("obzc-ns");
+    const ns = @import("ns");
     const MTLDevice = @import("MTLDevice.zig").MTLDevice;
     const pool = core.AutoReleasePool.create();
     defer pool.release();

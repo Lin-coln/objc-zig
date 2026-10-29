@@ -1,6 +1,6 @@
 const core = @import("core");
 const Metadata = core.Metadata;
-const ns = @import("obzc-ns");
+const ns = @import("ns");
 
 pub const VNRecognizedText = opaque {
     pub const metadata = Metadata.obj;

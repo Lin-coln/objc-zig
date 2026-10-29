@@ -31,7 +31,7 @@ test "MTLRenderPipelineDescriptor: new has empty function slots" {
 }
 
 test "MTLRenderPipelineDescriptor: function slots store and clear functions independently" {
-    const ns = @import("obzc-ns");
+    const ns = @import("ns");
     const MTLDevice = @import("MTLDevice.zig").MTLDevice;
     const pool = core.AutoReleasePool.create();
     defer pool.release();

@@ -9,7 +9,7 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(addCompileErrorTests(b, target, optimize, core));
 
     const ns = blk: {
-        const mod = b.addModule("obzc-ns", .{
+        const mod = b.addModule("ns", .{
             .root_source_file = b.path("src/root.zig"),
             .target = target,
             .optimize = optimize,
@@ -32,7 +32,7 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
             .imports = &.{
                 .{ .name = "core", .module = core },
-                .{ .name = "obzc-ns", .module = ns },
+                .{ .name = "ns", .module = ns },
             },
         });
 

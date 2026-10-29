@@ -1,7 +1,7 @@
 .{
-    .name = .objc_zig,
+    .name = .obzc,
     .version = "0.1.0",
-    .fingerprint = 0xaadcc77454f6fcc6,
+    .fingerprint = 0x083986996f6183a8,
     .minimum_zig_version = "0.17.0",
     .dependencies = .{
         .core = .{ .path = "pkg/core" },
